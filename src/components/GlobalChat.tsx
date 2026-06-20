@@ -205,12 +205,12 @@ export default function GlobalChat({ currentUser, onLogout }: { currentUser: str
       </div>
 
       {/* Input Area */}
-      <footer className="h-auto min-h-[90px] py-4 bg-[#0a0a0c] border-t border-[#222] flex flex-col sm:flex-row items-center px-4 sm:px-[30px] gap-3 sm:gap-5 relative z-10">
+      <footer className="h-auto min-h-[90px] py-4 bg-[#0a0a0c] border-t border-[#222] flex items-center px-4 sm:px-[30px] gap-3 sm:gap-5 relative z-10">
         <input type="file" accept="image/*" style={{ display: 'none' }} ref={fileInputRef} onChange={handleImageSelect} />
         
-        <div className="flex items-center gap-4 text-[#888] w-full sm:w-auto justify-between sm:justify-start px-2 sm:px-0">
-          <button onClick={() => fileInputRef.current?.click()} className="hover:text-white transition flex-shrink-0 p-2 sm:p-0">
-            <ImageIcon className="w-6 h-6" />
+        <div className="flex items-center gap-2 sm:gap-4 text-[#888] flex-shrink-0">
+          <button onClick={() => fileInputRef.current?.click()} className="hover:text-white transition p-2 sm:p-0">
+            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           
           <button 
@@ -218,9 +218,9 @@ export default function GlobalChat({ currentUser, onLogout }: { currentUser: str
             onPointerDown={startRecording}
             onPointerUp={stopRecording}
             onPointerLeave={stopRecording}
-            className={cn("transition flex-shrink-0 p-2 sm:p-0", isRecording ? "text-red-500 animate-pulse scale-110" : "hover:text-white")}
+            className={cn("transition p-2 sm:p-0", isRecording ? "text-red-500 animate-pulse scale-110" : "hover:text-white")}
           >
-            <Mic className="w-6 h-6" />
+            <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
