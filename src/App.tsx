@@ -11,6 +11,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState({ username: '', password: '' });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ username: '', password: '' });
   
   const [activeChat, setActiveChat] = useState('global');
   const [messages, setMessages] = useState<any[]>([]);
@@ -45,49 +46,51 @@ export default function App() {
   // Socket sync
   useEffect(() => {
     if (!isLoggedIn) return;
-    socket.emit('get_history', activeChat === 'global' ? undefined : activeChat);
     
-    socket.on('history', (historyMsgs: any[]) => {
-      setMessages(historyMsgs);
-      setTimeout(() => bottomRef.current?.scrollIntoView(), 100);
-    });
-
-    socket.on('message', (msg: any) => {
+    if (activeChat === 'global') {
+      socket.emit('get_global_history', (historyMsgs: any[]) => {
+        setMessages(historyMsgs);
+        setTimeout(() => bottomRef.current?.scrollIntoView(), 100);
+      });
+    } else {
+      setMessages([]);
+    }
+    
+    socket.on('receive_global', (msg: any) => {
       if (activeChat === 'global') {
           setMessages(prev => [...prev, msg]);
           setTimeout(() => bottomRef.current?.scrollIntoView(), 100);
       }
     });
 
-    socket.on('private_message', (msg: any) => {
-      const isRelevant = 
-         (msg.sender === activeChat && msg.to === user.username) || 
-         (msg.sender === user.username && msg.to === activeChat);
-         
-      if (isRelevant && activeChat !== 'global') {
+    socket.on('receive_private', (msg: any, fromUser: string) => {
+      if (activeChat === fromUser) {
         setMessages(prev => [...prev, msg]);
         setTimeout(() => bottomRef.current?.scrollIntoView(), 100);
       }
     });
 
-    socket.on('users_update', (users: string[]) => {
-      const cleaned = users.filter(u => u !== 'Elizabeth');
+    socket.on('active_users', (users: string[]) => {
+      const cleaned = users.filter((u: string) => u !== 'Elizabeth' && u !== user.username);
       cleaned.unshift('Elizabeth'); 
       setUsersOnline(cleaned);
     });
 
     return () => {
-      socket.off('history');
-      socket.off('message');
-      socket.off('private_message');
-      socket.off('users_update');
+      socket.off('receive_global');
+      socket.off('receive_private');
+      socket.off('active_users');
     };
   }, [isLoggedIn, activeChat, user.username]);
 
   // Request history on chat switch
   useEffect(() => {
     if (isLoggedIn) {
-      socket.emit('get_history', activeChat === 'global' ? undefined : activeChat);
+      if (activeChat === 'global') {
+         socket.emit('get_global_history', (historyMsgs: any[]) => setMessages(historyMsgs));
+      } else {
+         setMessages([]);
+      }
     }
   }, [activeChat, isLoggedIn]);
 
@@ -97,11 +100,19 @@ export default function App() {
     const payload: any = { text: inputValue };
     if (selectedImage) payload.image = selectedImage;
     if (audioUrl) payload.audio = audioUrl;
-    if (activeChat !== 'global') {
-       payload.to = activeChat;
-    }
 
-    socket.emit('sendMessage', payload);
+    if (activeChat === 'global') {
+      socket.emit('send_global', payload);
+    } else {
+      socket.emit('send_private', payload, activeChat, (res: any) => {
+         if (res.success) {
+            setMessages(prev => [...prev, res.msg]);
+            setTimeout(() => bottomRef.current?.scrollIntoView(), 100);
+         } else {
+            alert(res.error || "No se pudo enviar");
+         }
+      });
+    }
     
     setInputValue('');
     setSelectedImage(null);
@@ -165,7 +176,7 @@ export default function App() {
         </div>
         <div className="flex gap-4">
           <MessageSquare onClick={() => setIsPrivatePanelOpen(!isPrivatePanelOpen)} className="text-purple-400 cursor-pointer" size={24} />
-          <Settings onClick={() => setIsConfigOpen(true)} className="cursor-pointer text-gray-400" />
+          <Settings onClick={() => { setProfileForm({ username: user.username, password: user.password }); setIsConfigOpen(true); }} className="cursor-pointer text-gray-400" />
         </div>
       </header>
 
@@ -193,13 +204,12 @@ export default function App() {
               <h3 className="text-xl font-bold">Configuración</h3>
               <X onClick={() => setIsConfigOpen(false)} className="cursor-pointer" />
             </div>
-            <input className="w-full bg-gray-900 p-3 rounded-lg mb-2 outline-none focus:border-purple-500 border border-transparent" defaultValue={user.username} onChange={e => setUser({...user, username: e.target.value})} placeholder="Cambiar nombre" />
-            <input className="w-full bg-gray-900 p-3 rounded-lg mb-6 outline-none focus:border-purple-500 border border-transparent" type="password" defaultValue={user.password} onChange={e => setUser({...user, password: e.target.value})} placeholder="Nueva contraseña" />
+            <input className="w-full bg-gray-900 p-3 rounded-lg mb-2 outline-none focus:border-purple-500 border border-transparent" defaultValue={profileForm.username} onChange={e => setProfileForm({...profileForm, username: e.target.value})} placeholder="Cambiar nombre" />
+            <input className="w-full bg-gray-900 p-3 rounded-lg mb-6 outline-none focus:border-purple-500 border border-transparent" type="password" defaultValue={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} placeholder="Nueva contraseña" />
             <button onClick={() => {
-              socket.emit('update_account', { newUsername: user.username, newPassword: user.password }, (res: any) => {
+              socket.emit('update_profile', { oldUsername: user.username, newUsername: profileForm.username, newPassword: profileForm.password }, (res: any) => {
                 if (res.success) {
-                  socket.emit('logout'); 
-                  setIsLoggedIn(false);
+                  setUser({ username: profileForm.username, password: profileForm.password });
                   setIsConfigOpen(false);
                 } else {
                   alert(res.error || "No se pudo actualizar");
@@ -209,7 +219,8 @@ export default function App() {
 
             <button 
                 onClick={() => {
-                  socket.emit('logout');
+                  socket.disconnect();
+                  socket.connect();
                   setIsLoggedIn(false);
                   setIsConfigOpen(false);
                 }} 
