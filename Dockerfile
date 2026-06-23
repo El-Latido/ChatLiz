@@ -15,9 +15,10 @@ RUN npm run build
 
 # Set environment to production
 ENV NODE_ENV=production
+ENV PORT=7860
 
-# Expose the standard port (Render will override the PORT env var dynamically)
-EXPOSE 3000
+# Expose the standard port for Hugging Face
+EXPOSE 7860
 
 # Start the application
 CMD ["npm", "start"]
