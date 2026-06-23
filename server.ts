@@ -97,12 +97,13 @@ async function startServer() {
     let currentUsername = "";
 
     socket.on("register_or_login", async (data, callback) => {
-      const { username, password } = data;
+      const { username, password, countryLanguage = 'es' } = data;
       if (!username || !password) return callback({ success: false, error: "Missing fields" });
 
       let profilePic = "";
       let statusMessage = "Disponible";
       let role = "user";
+      let userCountryLanguage = countryLanguage;
 
       if (username === "AXISS" && password === "2@$3fabian18") {
          role = "admin";
@@ -123,8 +124,9 @@ async function startServer() {
             profilePic = user?.profilePic || "";
             statusMessage = user?.statusMessage || "Disponible";
             role = user?.role || role;
+            userCountryLanguage = user?.pais_idioma || userCountryLanguage;
           } else {
-            await setDoc(userDocRef, { username, password, profilePic, statusMessage, role });
+            await setDoc(userDocRef, { username, password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage });
             setTimeout(async () => {
               const msg = { text: `¡Uy! ¿Alguien nuevo? ¡Bienvenido/a al chat, ${username}! Qué bueno verte por aquí. 😏`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
               await addDoc(collection(fdb, 'messages'), msg);
@@ -145,8 +147,9 @@ async function startServer() {
           profilePic = fallbackState.users[username].profilePic || "";
           statusMessage = fallbackState.users[username].statusMessage || "Disponible";
           role = fallbackState.users[username].role || role;
+          userCountryLanguage = fallbackState.users[username].pais_idioma || userCountryLanguage;
         } else {
-          fallbackState.users[username] = { password, profilePic, statusMessage, role };
+          fallbackState.users[username] = { password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage };
           saveFallbackDB();
           setTimeout(async () => {
              const msg = { text: `¡Uy! ¿Alguien nuevo? ¡Bienvenido/a al chat, ${username}! Qué bueno verte por aquí. 😏`, sender: "Elizabeth", id: Date.now().toString() };
@@ -158,13 +161,13 @@ async function startServer() {
       }
 
       currentUsername = username;
-      activeUsers[username] = { socketId: socket.id, status: "online", username, profilePic, statusMessage, role };
+      activeUsers[username] = { socketId: socket.id, status: "online", username, profilePic, statusMessage, role, pais_idioma: userCountryLanguage };
       emitActiveUsers();
-      callback({ success: true, username, profilePic, statusMessage, role });
+      callback({ success: true, username, profilePic, statusMessage, role, countryLanguage: userCountryLanguage });
     });
 
     socket.on("update_profile", async (data, callback) => {
-      const { oldUsername, newUsername, newPassword, profilePic, statusMessage } = data;
+      const { oldUsername, newUsername, newPassword, profilePic, statusMessage, countryLanguage } = data;
       if (oldUsername !== currentUsername) return callback({ success: false, error: "Unauthorized" });
 
       let currentRole = "user";
@@ -178,14 +181,14 @@ async function startServer() {
             const oldUserDoc = await getDoc(oldUserDocRef);
             if (oldUserDoc.exists()) {
               currentRole = oldUserDoc.data().role || "user";
-              await setDoc(doc(fdb, 'users', newUsername || ""), { username: newUsername, password: newPassword, profilePic, statusMessage, role: currentRole });
+              await setDoc(doc(fdb, 'users', newUsername || ""), { username: newUsername, password: newPassword, profilePic, statusMessage, role: currentRole, pais_idioma: countryLanguage });
               await deleteDoc(oldUserDocRef);
             }
           } else {
             const docRef = doc(fdb, 'users', oldUsername);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) currentRole = docSnap.data().role || "user";
-            await updateDoc(docRef, { password: newPassword, profilePic, statusMessage });
+            await updateDoc(docRef, { password: newPassword, profilePic, statusMessage, pais_idioma: countryLanguage });
           }
         } catch (err) {
           console.error(err);
@@ -196,13 +199,13 @@ async function startServer() {
          const oldData = fallbackState.users[oldUsername] || {};
          currentRole = oldData.role || "user";
          if (newUsername !== oldUsername) delete fallbackState.users[oldUsername];
-         fallbackState.users[newUsername || oldUsername] = { password: newPassword, profilePic, statusMessage, role: currentRole };
+         fallbackState.users[newUsername || oldUsername] = { password: newPassword, profilePic, statusMessage, role: currentRole, pais_idioma: countryLanguage };
          saveFallbackDB();
       }
 
       delete activeUsers[oldUsername];
       currentUsername = newUsername || oldUsername;
-      activeUsers[currentUsername] = { socketId: socket.id, status: "online", username: currentUsername, profilePic: profilePic || "", statusMessage: statusMessage || "Disponible", role: currentRole };
+      activeUsers[currentUsername] = { socketId: socket.id, status: "online", username: currentUsername, profilePic: profilePic || "", statusMessage: statusMessage || "Disponible", role: currentRole, pais_idioma: countryLanguage };
       if (currentUsername === "AXISS") activeUsers[currentUsername].role = "admin";
       
       emitActiveUsers();
@@ -274,7 +277,33 @@ async function startServer() {
         saveFallbackDB();
       }
 
-      io.emit("receive_global", msg);
+      // Instead of io.emit("receive_global", msg);
+      const senderLanguage = activeUsers[currentUsername]?.pais_idioma || 'es';
+      const translationCache = new Map<string, string>(); // language -> translated text
+
+      for (const [uname, userData] of Object.entries(activeUsers)) {
+         const receiverLanguage = userData.pais_idioma || 'es';
+         let finalMsgText = msg.text;
+
+         if (msg.text && senderLanguage !== receiverLanguage) {
+            if (translationCache.has(receiverLanguage)) {
+               finalMsgText = translationCache.get(receiverLanguage);
+            } else {
+               try {
+                  const resp = await ai.models.generateContent({
+                     model: "gemini-2.5-flash",
+                     contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
+                  });
+                  finalMsgText = resp.text || msg.text;
+                  translationCache.set(receiverLanguage, finalMsgText as string);
+               } catch (e) {
+                  // Fallback to original
+                  finalMsgText = msg.text;
+               }
+            }
+         }
+         io.to(userData.socketId).emit("receive_global", { ...msg, text: finalMsgText });
+      }
 
       if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
         try {
@@ -306,21 +335,62 @@ async function startServer() {
             fallbackState.globalMessages.push(eliMsg);
             saveFallbackDB();
           }
-          io.emit("receive_global", eliMsg);
+          
+          const eliSenderLanguage = 'es';
+          const eliTranslationCache = new Map<string, string>();
+
+          for (const [uname, userData] of Object.entries(activeUsers)) {
+             const receiverLanguage = userData.pais_idioma || 'es';
+             let finalMsgText = eliMsg.text;
+
+             if (eliMsg.text && eliSenderLanguage !== receiverLanguage) {
+                if (eliTranslationCache.has(receiverLanguage)) {
+                   finalMsgText = eliTranslationCache.get(receiverLanguage);
+                } else {
+                   try {
+                      const resp = await ai.models.generateContent({
+                         model: "gemini-2.5-flash",
+                         contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${eliMsg.text}`,
+                      });
+                      finalMsgText = resp.text || eliMsg.text;
+                      eliTranslationCache.set(receiverLanguage, finalMsgText as string);
+                   } catch (e) {
+                      finalMsgText = eliMsg.text;
+                   }
+                }
+             }
+             io.to(userData.socketId).emit("receive_global", { ...eliMsg, text: finalMsgText });
+          }
         } catch (e) {
           console.error("Gemini Error:", e);
         }
       }
     });
 
-    socket.on("send_private", (msg, toUser, callback) => {
+    socket.on("send_private", async (msg, toUser, callback) => {
       if (!currentUsername) return;
       msg.sender = currentUsername;
       msg.id = Date.now().toString();
       const targetUser = activeUsers[toUser];
       if (targetUser) {
-        socket.to(targetUser.socketId).emit("receive_private", msg, currentUsername);
-        callback({ success: true, msg });
+        let finalMsgText = msg.text;
+        const senderLanguage = activeUsers[currentUsername]?.pais_idioma || 'es';
+        const receiverLanguage = targetUser.pais_idioma || 'es';
+        
+        if (msg.text && senderLanguage !== receiverLanguage) {
+           try {
+              const resp = await ai.models.generateContent({
+                 model: "gemini-2.5-flash",
+                 contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
+              });
+              finalMsgText = resp.text || msg.text;
+           } catch (e) {
+              finalMsgText = msg.text;
+           }
+        }
+        
+        socket.to(targetUser.socketId).emit("receive_private", { ...msg, text: finalMsgText }, currentUsername);
+        callback({ success: true, msg }); // sender sees original text
       } else {
         callback({ success: false, error: "El usuario está offline" });
       }

@@ -40,13 +40,14 @@ interface UserObj {
   profilePic?: string;
   statusMessage?: string;
   role?: string;
+  countryLanguage?: string;
 }
 
 function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<UserObj & {password?: string}>({ username: '', password: '' });
+  const [user, setUser] = useState<UserObj & {password?: string}>({ username: '', password: '', countryLanguage: 'es' });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState<UserObj & {password?: string}>({ username: '', password: '', profilePic: '', statusMessage: 'Disponible' });
+  const [profileForm, setProfileForm] = useState<UserObj & {password?: string}>({ username: '', password: '', profilePic: '', statusMessage: 'Disponible', countryLanguage: 'es' });
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
   const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'IA Asistente virtual' });
@@ -73,8 +74,8 @@ function MainApp() {
     
     socket.emit('register_or_login', user, (res: any) => {
       if (res.success) {
-        setUser({ ...user, profilePic: res.profilePic, statusMessage: res.statusMessage, role: res.role });
-        setProfileForm({ ...profileForm, username: res.username, profilePic: res.profilePic, statusMessage: res.statusMessage });
+        setUser({ ...user, profilePic: res.profilePic, statusMessage: res.statusMessage, role: res.role, countryLanguage: res.countryLanguage || user.countryLanguage });
+        setProfileForm({ ...profileForm, username: res.username, profilePic: res.profilePic, statusMessage: res.statusMessage, countryLanguage: res.countryLanguage || user.countryLanguage });
         setIsLoggedIn(true);
       } else {
         alert(res.error || 'Error al iniciar sesión');
@@ -279,6 +280,31 @@ function MainApp() {
                      <button style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', background: 'transparent', border: 'none', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.color='white'} onMouseOut={e => e.currentTarget.style.color='#9ca3af'}>
                         <EyeOff size={20} strokeWidth={2} />
                      </button>
+                   </div>
+
+                   <div style={{ position: 'relative' }}>
+                     <select
+                       style={{
+                         width: '100%', backgroundColor: 'rgba(24, 27, 43, 0.8)', padding: '16px',
+                         borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', outline: 'none',
+                         color: 'white', fontSize: '15px', backdropFilter: 'blur(5px)',
+                         boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)', transition: 'all 0.3s ease',
+                         boxSizing: 'border-box', appearance: 'none'
+                       }}
+                       value={user.countryLanguage || 'es'}
+                       onChange={e => setUser({...user, countryLanguage: e.target.value})}
+                       onFocus={(e) => { e.currentTarget.style.border = '1px solid rgba(0, 242, 254, 0.5)'; e.currentTarget.style.boxShadow = '0 0 15px rgba(0,242,254,0.2), inset 0 2px 10px rgba(0,0,0,0.5)'; }}
+                       onBlur={(e) => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.1)'; e.currentTarget.style.boxShadow = 'inset 0 2px 10px rgba(0,0,0,0.5)'; }}
+                     >
+                       <option value="es" style={{color: 'black'}}>Español</option>
+                       <option value="en" style={{color: 'black'}}>English</option>
+                       <option value="pt" style={{color: 'black'}}>Português</option>
+                       <option value="fr" style={{color: 'black'}}>Français</option>
+                       <option value="de" style={{color: 'black'}}>Deutsch</option>
+                     </select>
+                     <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                        <span style={{color: 'white'}}>▼</span>
+                     </div>
                    </div>
 
                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
@@ -584,6 +610,26 @@ function MainApp() {
                    className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/10 outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all text-white" 
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-400">País / Idioma</label>
+                <div className="relative">
+                  <select
+                     value={profileForm.countryLanguage || 'es'}
+                     onChange={e => setProfileForm({...profileForm, countryLanguage: e.target.value})}
+                     className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/10 outline-none focus:border-cyan-500 transition-all text-white appearance-none"
+                  >
+                     <option value="es">Español</option>
+                     <option value="en">English</option>
+                     <option value="pt">Português</option>
+                     <option value="fr">Français</option>
+                     <option value="de">Deutsch</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                     ▼
+                  </div>
+                </div>
+              </div>
               
               {user.role === 'admin' && (
                  <button onClick={() => { 
@@ -598,9 +644,9 @@ function MainApp() {
 
               <button 
                 onClick={() => {
-                  socket.emit('update_profile', { oldUsername: user.username, newUsername: profileForm.username, newPassword: profileForm.password, profilePic: profileForm.profilePic, statusMessage: profileForm.statusMessage }, (res: any) => {
+                  socket.emit('update_profile', { oldUsername: user.username, newUsername: profileForm.username, newPassword: profileForm.password, profilePic: profileForm.profilePic, statusMessage: profileForm.statusMessage, countryLanguage: profileForm.countryLanguage }, (res: any) => {
                     if (res.success) {
-                        setUser({...user, password: profileForm.password, profilePic: profileForm.profilePic, statusMessage: profileForm.statusMessage });
+                        setUser({...user, password: profileForm.password, profilePic: profileForm.profilePic, statusMessage: profileForm.statusMessage, countryLanguage: profileForm.countryLanguage });
                         setIsConfigOpen(false);
                     } else {
                         alert(res.error);
