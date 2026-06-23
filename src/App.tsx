@@ -215,236 +215,199 @@ export default function App() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-40 w-72 h-full bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text">Chat-Liz</h2>
-            <p className="text-xs text-gray-500 mt-1">Conectado como <span className="text-purple-300">{user.username}</span></p>
+      <aside className={`fixed md:relative z-40 w-80 h-full bg-[#171821] flex flex-col transition-transform duration-300 ease-in-out px-4 py-6 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex items-center gap-3 mb-8 px-2">
+          <div className="text-cyan-400">
+             <MessageSquare size={28} className="stroke-[1.5]" />
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-white">
-            <X size={20} />
-          </button>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-100 to-gray-300 text-transparent bg-clip-text">Chat-Liz</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <div>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-2 mb-3">Red Global</h3>
+        <div className="flex-1 overflow-y-auto space-y-6">
+          {/* Main User (Elizabeth) */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative mb-4 group cursor-pointer" onClick={() => { setActiveChat('Elizabeth'); setIsSidebarOpen(false); }}>
+               <div className="absolute inset-0 bg-cyan-500 blur-xl opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
+               <div className="w-24 h-24 rounded-full border-2 border-cyan-400/50 p-1 relative z-10">
+                  <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
+                     <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" className="w-16 h-16 object-contain filter invert opacity-80" alt="Elizabeth IA" />
+                  </div>
+               </div>
+            </div>
+
             <button 
-              onClick={() => { setActiveChat('global'); setIsSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeChat === 'global' ? 'bg-purple-900/40 border border-purple-500/30 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+              onClick={() => { setActiveChat('Elizabeth'); setIsSidebarOpen(false); }}
+              className={`w-full relative flex flex-col px-4 py-3 rounded-2xl transition-all ${activeChat === 'Elizabeth' ? 'bg-slate-900/50 border border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border border-transparent hover:bg-white/5'}`}
             >
-              <Hash size={18} className={activeChat === 'global' ? 'text-purple-400' : ''} />
-              <span className="font-medium">Global</span>
+              <div className="flex items-center gap-3">
+                 <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-cyan-500/30 overflow-hidden">
+                        <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" className="w-6 h-6 object-contain filter invert opacity-70" alt="IA" />
+                    </div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-cyan-400 rounded-full border-2 border-[#171821]" />
+                 </div>
+                 <div className="flex flex-col items-start w-full">
+                    <span className="font-bold text-gray-100 flex items-center justify-between w-full">
+                        ELIZABETH (IA) <span className="text-cyan-400 font-normal">~</span>
+                    </span>
+                    <span className="text-xs text-cyan-400 font-medium tracking-wider">online</span>
+                 </div>
+              </div>
             </button>
           </div>
 
-          <div>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-2 mb-3 flex justify-between items-center">
-              <span>Usuarios Conectados</span>
-              <span className="bg-purple-900/50 text-purple-300 text-[10px] px-2 py-0.5 rounded-full">{usersOnline.length}</span>
-            </h3>
-            <div className="space-y-1">
-              {usersOnline.map(u => (
+          <div className="space-y-1">
+            <button 
+              onClick={() => { setActiveChat('global'); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group ${activeChat === 'global' ? 'bg-slate-900/50 border border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border border-transparent hover:bg-white/5'}`}
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 border border-white/5 group-hover:border-white/20">
+                <Hash size={18} />
+              </div>
+              <span className="font-semibold text-gray-200">Global</span>
+              <div className="ml-auto w-2.5 h-2.5 bg-green-500 rounded-full" />
+            </button>
+
+            {usersOnline.map(u => {
+              if (u === 'Elizabeth') return null; // Already rendered above
+              return (
                 <button
                   key={u}
                   onClick={() => { setActiveChat(u); setIsSidebarOpen(false); }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group ${activeChat === u ? 'bg-blue-900/40 border border-blue-500/30 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group ${activeChat === u ? 'bg-slate-900/50 border border-slate-600 shadow-[0_0_15px_rgba(255,255,255,0.05)]' : 'border border-transparent hover:bg-white/5'}`}
                 >
-                  <div className="flex items-center gap-3 truncate">
-                    <div className="relative">
-                      {u === 'Elizabeth' ? (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center p-1">
-                          <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" className="w-full h-full object-contain filter invert" alt="HF" />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-300 border border-white/10 group-hover:border-white/20 transition-colors">
-                          {u.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border border-gray-950" />
-                    </div>
-                    <span className="font-medium truncate">{u}</span>
+                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 border border-white/5 group-hover:border-white/20 font-bold overflow-hidden">
+                     {u.charAt(0).toUpperCase()}
                   </div>
+                  <span className="font-semibold text-gray-200 flex items-center gap-2">
+                     {u} <span className="text-gray-500 font-normal">~</span>
+                  </span>
+                  <div className="ml-auto w-2.5 h-2.5 bg-green-500 rounded-full" />
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </div>
-
-        <div className="p-4 border-t border-white/5">
-          <button 
-            onClick={() => { setProfileForm({ username: user.username, password: user.password }); setIsConfigOpen(true); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all font-medium"
-          >
-            <Settings size={18} />
-            <span>Configuración</span>
-          </button>
         </div>
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col min-w-0 relative z-10 backdrop-blur-[2px]">
-        {/* Header */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-6 bg-gray-950/40 backdrop-blur-xl shrink-0">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/5">
-              <Menu size={24} />
-            </button>
-            <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                {activeChat === 'global' ? (
-                  <>
-                    <Hash className="text-purple-400" size={24} />
-                    <span>Global</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="text-blue-400" size={24} />
-                    <span>{activeChat}</span>
-                  </>
-                )}
-              </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {activeChat === 'global' ? 'Canal de comunicación pública' : 'Mensajería cifrada de extremo a extremo'}
-              </p>
-            </div>
-          </div>
-        </header>
-
-        {/* Chat Feed */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4 opacity-50">
-              <MessageSquare size={48} className="text-gray-600" />
-              <p>No hay mensajes en esta conexión</p>
-            </div>
-          )}
-          {messages.filter((m, i, arr) => 
-            // Dedup consecutive identical welcome messages from Elizabeth
-            !(i > 0 && m.sender === 'Elizabeth' && m.text === arr[i-1].text)
-          ).map((m, idx) => {
-            const isMe = m.sender === user.username;
-            const isLiz = m.sender === 'Elizabeth' || m.isAi;
-            
-            // To prevent Elizabeth duplicate welcome spam, we can filter out identical messages
-            // but for now we just show them
-            
-            let bubbleClass = 'bg-gray-800/60 border border-white/5 backdrop-blur-md';
-            let alignClass = 'items-start';
-            let labelColor = 'text-gray-400';
-            
-            if (isLiz) {
-              bubbleClass = 'bg-gradient-to-br from-purple-900/80 to-pink-900/60 border border-pink-500/30 backdrop-blur-md shadow-[0_4px_20px_rgba(236,72,153,0.15)] text-white';
-              labelColor = 'text-pink-300';
-            } else if (isMe) {
-              bubbleClass = 'bg-indigo-600/90 border border-indigo-400/50 backdrop-blur-md shadow-[0_4px_20px_rgba(79,70,229,0.2)] text-white';
-              alignClass = 'items-end';
-              labelColor = 'text-indigo-200';
-            }
-            
-            return (
-              <div key={m.id || idx} className={`flex flex-col ${alignClass} animate-in slide-in-from-bottom-2 duration-300 group`}>
-                <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[70%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {/* Avatar */}
-                  {!isMe && (
-                    <div className="w-8 h-8 rounded-full flex-shrink-0 bg-gray-800 border border-white/10 flex items-center justify-center overflow-hidden">
-                       {isLiz ? (
-                          <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center p-1.5">
-                             <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" className="w-full h-full object-contain filter invert" alt="HF" />
-                          </div>
-                       ) : (
-                          <span className="text-xs font-bold text-gray-300">{m.sender.charAt(0).toUpperCase()}</span>
-                       )}
-                    </div>
-                  )}
-
-                  <div className={`px-5 py-3.5 rounded-2xl ${bubbleClass} ${isMe ? 'rounded-br-sm' : 'rounded-bl-sm'} relative`}>
-                    <p className={`text-[10px] font-bold tracking-wider uppercase mb-1.5 ${labelColor}`}>{m.sender}</p>
-                    {m.image && <img src={m.image} className="rounded-xl mb-3 max-w-full md:max-w-[300px] border border-white/10" alt="adjunto"/>}
-                    {m.audio && (
-                      <div className="bg-black/30 p-2 rounded-xl border border-white/5 mb-2 w-full md:w-64">
-                         <audio src={m.audio} controls className="w-full h-8 opacity-90" />
-                      </div>
-                    )}
-                    {m.text && <p className="text-[15px] whitespace-pre-wrap leading-relaxed min-w-[20px]">{m.text}</p>}
-                  </div>
-                </div>
+      <main className="flex-1 flex flex-col min-w-0 bg-[#0f111a] p-4 md:p-6 pb-6 relative z-10">
+        
+        {/* Top Right User Info & Settings */}
+        <div className="absolute top-6 right-6 flex items-center gap-4">
+           <div className="flex items-center gap-3 bg-[#171821] border border-cyan-500/30 px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold border border-white/10">
+                 {user.username.charAt(0).toUpperCase()}
               </div>
-            );
-          })}
-          <div ref={bottomRef} className="h-4" />
+              <span className="font-semibold text-gray-200 pr-2">{user.username}</span>
+           </div>
+           
+           <button 
+              onClick={() => { setProfileForm({ username: user.username, password: user.password }); setIsConfigOpen(true); }}
+              className="p-2.5 bg-[#171821] border border-white/10 text-gray-300 rounded-xl hover:text-white hover:border-white/30 transition-all"
+           >
+              <Settings size={20} />
+           </button>
         </div>
 
-        {/* Input Area */}
-        <div className="p-4 md:p-6 bg-gray-950/60 backdrop-blur-xl border-t border-white/5 shrink-0">
-          <div className="max-w-4xl mx-auto">
-            {/* Previews */}
-            {(selectedImage || audioUrl) && (
-              <div className="flex gap-4 mb-4">
-                {selectedImage && (
-                  <div className="relative group">
-                     <img src={selectedImage} alt="Preview" className="h-24 w-24 rounded-xl border border-purple-500/50 object-cover shadow-lg" />
-                     <button onClick={() => setSelectedImage(null)} className="absolute -top-3 -right-3 bg-gray-900 border border-white/10 hover:border-red-500 text-gray-400 hover:text-red-500 rounded-full p-1.5 transition-all shadow-xl"><X size={14} /></button>
-                  </div>
-                )}
-                {audioUrl && (
-                  <div className="relative flex items-center gap-3 bg-gray-900/80 border border-white/10 px-4 py-2 rounded-xl shadow-lg">
-                     <Mic className="text-purple-400 animate-pulse" size={16} />
-                     <audio src={audioUrl} controls className="h-8 w-48 opacity-90" />
-                     <button onClick={() => setAudioUrl(null)} className="absolute -top-3 -right-3 bg-gray-900 border border-white/10 hover:border-red-500 text-gray-400 hover:text-red-500 rounded-full p-1.5 transition-all shadow-xl"><X size={14} /></button>
-                  </div>
-                )}
+        {/* Chat Window Container */}
+        <div className="flex-1 flex flex-col mt-20 border border-cyan-500/50 rounded-[2rem] bg-[#1a1c26]/60 backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.1),inset_0_0_20px_rgba(168,85,247,0.05)] overflow-hidden relative">
+           
+           {/* Inner glow gradients */}
+           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 opacity-50"></div>
+           
+           {/* Chat Header */}
+           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#1a1c26]/80">
+              <div className="flex items-center gap-3">
+                 <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-300 hover:text-white p-1">
+                   <Menu size={20} />
+                 </button>
+                 <h2 className="text-lg font-bold text-gray-100 flex items-center gap-2">
+                    {activeChat === 'global' ? 'CHAT GLOBAL #1 - Chat-Liz' : `Private Chat: ${activeChat}`}
+                    {activeChat === 'global' && <span className="text-sm font-normal text-gray-500">({usersOnline.length} usuarios online)</span>}
+                 </h2>
               </div>
-            )}
+              {activeChat === 'global' && (
+                 <button className="flex items-center gap-2 text-gray-400 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full hover:bg-white/10 transition-colors text-sm font-medium">
+                    <MessageSquare size={16} />
+                    Private chat
+                    <Search size={16} className="ml-1 opacity-70" />
+                 </button>
+              )}
+           </div>
 
-            {/* Input Bar */}
-            <div className="flex gap-3 items-end">
-              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-              
-              <div className="flex bg-gray-900/80 border border-white/5 backdrop-blur-md rounded-2xl p-1 shadow-inner">
+           {/* Chat Feed */}
+           <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              {messages.filter((m, i, arr) => 
+                !(i > 0 && m.sender === 'Elizabeth' && m.text === arr[i-1].text)
+              ).map((m, idx) => {
+                const isLiz = m.sender === 'Elizabeth' || m.isAi;
+                // Generate a dummy timestamp
+                const timeStr = "10:0" + (idx % 10);
+                
+                return (
+                   <div key={m.id || idx} className="text-[15px] font-medium leading-relaxed font-sans">
+                      <span className="text-gray-500 mr-2">[{timeStr}]</span>
+                      <span className={`font-bold mr-2 ${isLiz ? 'text-cyan-400' : 'text-blue-300'}`}>
+                         {isLiz ? 'ELIZABETH (IA Administradora Gemini ✨):' : `${m.sender}:`}
+                      </span>
+                      <span className={isLiz ? 'text-gray-200' : 'text-gray-300'}>
+                         {m.text}
+                      </span>
+                      {m.image && <div className="ml-[60px] mt-2"><img src={m.image} className="rounded-xl border border-white/10 max-w-[300px]" alt="adjunto"/></div>}
+                      {m.audio && <div className="ml-[60px] mt-2"><audio src={m.audio} controls className="h-8 max-w-[200px] filter invert opacity-80" /></div>}
+                   </div>
+                );
+              })}
+              <div ref={bottomRef} className="h-4" />
+           </div>
+
+           {/* Input Area */}
+           <div className="px-6 py-4 pb-6 bg-[#1a1c26]/80 flex flex-col">
+             {(selectedImage || audioUrl) && (
+               <div className="flex gap-4 mb-3">
+                 {selectedImage && (
+                   <div className="relative inline-block">
+                      <img src={selectedImage} alt="Preview" className="h-16 w-16 rounded-xl border border-cyan-500 object-cover" />
+                      <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X size={12} /></button>
+                   </div>
+                 )}
+                 {audioUrl && (
+                   <div className="relative flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-xl">
+                      <audio src={audioUrl} controls className="h-8 w-40" />
+                      <button onClick={() => setAudioUrl(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X size={12} /></button>
+                   </div>
+                 )}
+               </div>
+             )}
+
+             <div className="flex items-center gap-3 w-full">
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
+                <div className="flex-1 bg-[#13141f] border border-white/10 rounded-full flex items-center px-4 py-2 relative">
+                   <input 
+                      value={inputValue}
+                      onChange={e => setInputValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSendMessage();
+                      }}
+                      className="w-full bg-transparent outline-none text-gray-200 placeholder-gray-500 text-[15px]" 
+                      placeholder="Escribe tu mensaje... @Elizabeth para IA carismática 😉"
+                   />
+                   <div className="flex items-center gap-3 text-gray-500 ml-2">
+                       <MessageCircle onClick={isRecording ? stopRecording : startRecording} className={`cursor-pointer hover:text-cyan-400 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : ''}`} size={20} />
+                       <ImageIcon onClick={() => fileInputRef.current?.click()} className="cursor-pointer hover:text-cyan-400 transition-colors" size={20} />
+                   </div>
+                </div>
+                
                 <button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="p-3 text-gray-400 hover:text-purple-400 hover:bg-white/5 rounded-xl transition-all"
-                  title="Adjuntar Imagen"
+                  onClick={handleSendMessage} 
+                  disabled={!inputValue.trim() && !selectedImage && !audioUrl}
+                  className="bg-gradient-to-r from-cyan-500 to-teal-400 rounded-full p-3 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] disabled:opacity-50 disabled:shadow-none hover:scale-105 transition-all text-white shrink-0 ml-2"
                 >
-                  <ImageIcon size={22} />
+                  <Send size={20} className="ml-1" />
                 </button>
-                <button 
-                  onClick={isRecording ? stopRecording : startRecording} 
-                  className={`p-3 rounded-xl transition-all ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-gray-400 hover:text-purple-400 hover:bg-white/5'}`}
-                  title={isRecording ? "Detener Grabación" : "Grabar Audio"}
-                >
-                  {isRecording ? <StopCircle size={22} /> : <Mic size={22} />}
-                </button>
-              </div>
-
-              <div className="flex-1 bg-gray-900/80 border border-white/5 backdrop-blur-md rounded-2xl flex items-center focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/20 transition-all shadow-inner relative">
-                <textarea 
-                  value={inputValue} 
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="w-full bg-transparent px-5 py-4 outline-none text-[15px] placeholder-gray-500 text-white resize-none max-h-32 min-h-[56px] scrollbar-thin overflow-y-auto" 
-                  placeholder="Transmite tu mensaje..."
-                  rows={1}
-                />
-              </div>
-
-              <button 
-                onClick={handleSendMessage} 
-                disabled={!inputValue.trim() && !selectedImage && !audioUrl}
-                className="h-[56px] w-[56px] flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl cursor-pointer flex-shrink-0 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all duration-300 group"
-              >
-                <Send size={22} className="text-white ml-0.5 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            </div>
-            {/* Note about shift+enter */}
-            <p className="text-[10px] text-gray-600 font-medium mt-2 text-right px-2">Enter para enviar, Shift+Enter para nueva línea</p>
-          </div>
+             </div>
+           </div>
         </div>
       </main>
 
