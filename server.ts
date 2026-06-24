@@ -9,6 +9,8 @@ import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { fdb, fStorage } from "./server/firebase";
+import { updateUserProfileInFirebase, updateAiProfileInFirebase, saveMessageToFirebase } from "./server/firebaseLogic";
+import { DBState } from "./server/types";
 
 dotenv.config();
 
@@ -23,10 +25,6 @@ const ai = new GoogleGenAI({
 
 // Fallback JSON DB if no Firebase configured (e.g. initial setup)
 const DB_FILE = path.join(process.cwd(), "db.json");
-interface DBState {
-  users: Record<string, { password?: string, profilePic?: string, statusMessage?: string, role?: string, pais_idioma?: string, securityEmail?: string }>;
-  globalMessages: any[];
-}
 let fallbackState: DBState = { users: {}, globalMessages: [] };
 
 try {
@@ -231,30 +229,14 @@ async function startServer() {
 
       if (fdb) {
         try {
-          if (safeNewUsername !== oldUsername) {
-            const existsDoc = await getDoc(doc(fdb, 'users', safeNewUsername));
-            if (existsDoc.exists()) return callback({ success: false, error: "El usuario ya existe" });
-            const oldUserDocRef = doc(fdb, 'users', oldUsername);
-            const oldUserDoc = await getDoc(oldUserDocRef);
-            if (oldUserDoc.exists()) {
-              currentRole = oldUserDoc.data().role || "user";
-              await setDoc(doc(fdb, 'users', safeNewUsername), { username: safeNewUsername, password: safePassword, profilePic: safeProfilePic, statusMessage: safeStatusMessage, role: currentRole, pais_idioma: safeLanguage });
-              await deleteDoc(oldUserDocRef);
-            }
-          } else {
-            const docRef = doc(fdb, 'users', oldUsername);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              currentRole = docSnap.data().role || "user";
-              await updateDoc(docRef, { password: safePassword, profilePic: safeProfilePic, statusMessage: safeStatusMessage, pais_idioma: safeLanguage });
-            } else {
-              // Create it if it somehow doesn't exist
-              await setDoc(docRef, { username: oldUsername, password: safePassword, profilePic: safeProfilePic, statusMessage: safeStatusMessage, role: currentRole, pais_idioma: safeLanguage });
-            }
-          }
+           currentRole = await updateUserProfileInFirebase(oldUsername, safeNewUsername, {
+               password: safePassword,
+               profilePic: safeProfilePic,
+               statusMessage: safeStatusMessage,
+               pais_idioma: safeLanguage
+           }) || "user";
         } catch (err) {
-          console.error(err);
-          return callback({ success: false, error: "Database error" });
+           return callback({ success: false, error: "Database error" });
         }
       } else {
          if (safeNewUsername !== oldUsername && fallbackState.users[safeNewUsername]) return callback({ success: false, error: "El usuario ya existe" });
@@ -283,11 +265,7 @@ async function startServer() {
       const safeStatusMessage = statusMessage || "IA Asistente virtual";
 
       if (fdb) {
-         try {
-           await setDoc(doc(fdb, 'users', aiUsername), { username: aiUsername, profilePic: safeProfilePic, statusMessage: safeStatusMessage, role: "admin" }, { merge: true });
-         } catch (e) {
-           console.error(e);
-         }
+         await updateAiProfileInFirebase(aiUsername, { profilePic: safeProfilePic, statusMessage: safeStatusMessage });
       } else {
          if (!fallbackState.users[aiUsername]) fallbackState.users[aiUsername] = {};
          fallbackState.users[aiUsername].profilePic = safeProfilePic;
