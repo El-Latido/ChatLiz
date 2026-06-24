@@ -59,8 +59,8 @@ export function ProfileConfigModal({
       alert("¡Perfil guardado con éxito!");
       setIsConfigOpen(false);
     } catch (error) {
-      console.error("Error al guardar en Firebase:", error);
-      alert("Error al guardar: " + (error as Error).message);
+      // En lugar de console.error, usamos un alert para verlo en el móvil
+      alert("Error: " + (error as Error).message); 
     }
   };
 
