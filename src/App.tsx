@@ -5,6 +5,8 @@ import {
   Menu, X, Hash, MessageSquare, LogOut, Search,
   Paperclip, Smile, Globe
 } from 'lucide-react';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from './firebaseConfig';
 import { socket } from './socket';
 import { UserObj, MessageObj } from './types';
 import { Login } from './components/Login';
@@ -120,23 +122,35 @@ function MainApp() {
       const elizabeth = usersList.find(u => u.username === 'Elizabeth') || { username: 'Elizabeth', statusMessage: 'IA Asistente virtual', role: 'admin' };
       cleaned.unshift(elizabeth); 
       setUsersOnline(cleaned);
-
-      const me = usersList.find(u => u.username === user.username);
-      if (me) {
-         setUser(prev => ({
-             ...prev,
-             profilePic: me.profilePic,
-             statusMessage: me.statusMessage,
-             countryLanguage: me.countryLanguage,
-             role: me.role
-         }));
-      }
+      // Removed setUser from here, as onSnapshot will handle it.
+    });
+    
+    const unsubscribe = onSnapshot(query(collection(db, "users")), (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "modified" || change.type === "added") {
+                const updatedUser = change.doc.data() as UserObj;
+                if (updatedUser.username === user.username) {
+                    setUser(prev => ({
+                        ...prev,
+                        ...updatedUser
+                    }));
+                }
+                setUsersOnline(prevOnline => {
+                    const exists = prevOnline.find(u => u.username === updatedUser.username);
+                    if (exists) {
+                        return prevOnline.map(u => u.username === updatedUser.username ? { ...u, ...updatedUser } : u);
+                    }
+                    return prevOnline;
+                });
+            }
+        });
     });
 
     return () => {
       socket.off('receive_global');
       socket.off('receive_private');
       socket.off('active_users');
+      unsubscribe();
     };
   }, [isLoggedIn, activeChat, user.username]);
 

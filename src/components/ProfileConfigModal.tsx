@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Settings, X, LogOut, Bot } from 'lucide-react';
 import { socket } from '../socket';
 import { UserObj } from '../types';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 interface ProfileConfigModalProps {
   user: UserObj & { password?: string };
@@ -23,31 +25,43 @@ export function ProfileConfigModal({
   const [fotoURL, setFotoURL] = useState(user.profilePic || '');
 
   const handleSaveProfile = async () => {
-    // Envía los estados a Firebase a través del servidor Node/Socket
-    socket.emit('update_profile', { 
+    try {
+      // 1. Referencia al documento específico de este usuario en Firebase
+      const userRef = doc(db, "users", user.username); 
+
+      // 2. Ejecuta la actualización (aquí es donde los datos "pasan" a Firebase)
+      await updateDoc(userRef, {
+        password: password,
+        profilePic: fotoURL,
+        statusMessage: comentario,
+        pais_idioma: pais
+      });
+
+      // Update local state (though onSnapshot will also catch it)
+      setUser(prev => ({
+        ...prev,
+        password: password,
+        profilePic: fotoURL,
+        statusMessage: comentario,
+        countryLanguage: pais
+      }));
+
+      // Aún emitimos a socket para otras cosas de conexión
+      socket.emit('update_profile', { 
         oldUsername: user.username, 
         newUsername: nombre, 
         newPassword: password, 
         profilePic: fotoURL, 
         statusMessage: comentario, 
         countryLanguage: pais 
-    }, (res: any) => {
-      if (res.success) {
-          // Actualiza el estado global al confirmar éxito del backend
-          setUser({
-              ...user, 
-              username: res.username, 
-              password: password, 
-              profilePic: res.profilePic, 
-              statusMessage: res.statusMessage, 
-              countryLanguage: res.countryLanguage 
-          });
-          alert("¡Perfil guardado con éxito!");
-          setIsConfigOpen(false);
-      } else {
-          alert("Error al guardar en Firebase: " + res.error);
-      }
-    });
+      }, () => {});
+
+      alert("¡Perfil guardado con éxito!");
+      setIsConfigOpen(false);
+    } catch (error) {
+      console.error("Error al guardar en Firebase:", error);
+      alert("Error al guardar: " + (error as Error).message);
+    }
   };
 
   return (
