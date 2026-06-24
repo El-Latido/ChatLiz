@@ -11,8 +11,8 @@ interface LoginProps {
 
 export function Login({ user, setUser, handleLogin, setRecoveryModalOpen }: LoginProps) {
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen font-sans bg-[#050508] bg-[radial-gradient(circle_at_center,#131720_0%,#050508_100%),url('data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h1v1H0V0zm12 12h1v1h-1v-1z\' fill=\'rgba(255,255,255,0.02)\' fill-rule=\'evenodd\'/%3E%3C/svg%3E')]">
-      <div className="relative w-full max-w-[480px] px-5 mx-auto box-border">
+    <div className="fixed inset-0 flex flex-col items-center justify-center w-full h-full font-sans bg-[#050508] bg-[radial-gradient(circle_at_center,#131720_0%,#050508_100%),url('data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h1v1H0V0zm12 12h1v1h-1v-1z\' fill=\'rgba(255,255,255,0.02)\' fill-rule=\'evenodd\'/%3E%3C/svg%3E')]">
+      <div className="relative w-full max-w-[480px] px-5 box-border">
         <div className="relative z-10 p-[2px] rounded-[24px] bg-gradient-to-r from-[#00f2fe] via-[#4facfe] to-[#f5576c] shadow-[0_0_20px_rgba(0,242,254,0.4),0_0_40px_rgba(245,87,108,0.2)]">
            <div className="relative overflow-hidden bg-[rgba(13,17,26,0.95)] backdrop-blur-[10px] rounded-[22px] px-8 py-12">
               <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(rgba(255,255,255,1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>

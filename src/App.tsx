@@ -44,7 +44,6 @@ function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<UserObj & {password?: string, securityEmail?: string}>({ username: '', password: '', countryLanguage: 'es', securityEmail: '' });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState<UserObj & {password?: string}>({ username: '', password: '', profilePic: '', statusMessage: 'Disponible', countryLanguage: 'es' });
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
   const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'IA Asistente virtual' });
@@ -80,7 +79,6 @@ function MainApp() {
     socket.emit('register_or_login', user, (res: any) => {
       if (res.success) {
         setUser({ ...user, profilePic: res.profilePic, statusMessage: res.statusMessage, role: res.role, countryLanguage: res.countryLanguage || user.countryLanguage });
-        setProfileForm({ ...profileForm, username: res.username, profilePic: res.profilePic, statusMessage: res.statusMessage, countryLanguage: res.countryLanguage || user.countryLanguage });
         setIsLoggedIn(true);
       } else {
         alert(res.error || 'Error al iniciar sesión');
@@ -260,7 +258,7 @@ function MainApp() {
                  <span className="font-medium text-gray-200 text-sm tracking-wide">{user.username}</span>
              </div>
              <button 
-                onClick={() => { setProfileForm({ username: user.username, password: user.password }); setIsConfigOpen(true); }}
+                onClick={() => { setIsConfigOpen(true); }}
                 className="w-10 h-10 rounded-xl bg-[#13151f] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-all shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
              >
                 <Settings size={20} />
@@ -450,8 +448,6 @@ function MainApp() {
         <ProfileConfigModal
           user={user}
           setUser={setUser}
-          profileForm={profileForm}
-          setProfileForm={setProfileForm}
           setIsConfigOpen={setIsConfigOpen}
           setAdminConfigLizOpen={setAdminConfigLizOpen}
           usersOnline={usersOnline}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Settings, X, LogOut, Bot } from 'lucide-react';
 import { socket } from '../socket';
 import { UserObj } from '../types';
@@ -6,8 +6,6 @@ import { UserObj } from '../types';
 interface ProfileConfigModalProps {
   user: UserObj & { password?: string };
   setUser: React.Dispatch<React.SetStateAction<UserObj & { password?: string, securityEmail?: string }>>;
-  profileForm: UserObj & { password?: string };
-  setProfileForm: React.Dispatch<React.SetStateAction<UserObj & { password?: string }>>;
   setIsConfigOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setAdminConfigLizOpen: React.Dispatch<React.SetStateAction<boolean>>;
   usersOnline: UserObj[];
@@ -15,8 +13,43 @@ interface ProfileConfigModalProps {
 }
 
 export function ProfileConfigModal({
-  user, setUser, profileForm, setProfileForm, setIsConfigOpen, setAdminConfigLizOpen, usersOnline, setAiProfileForm
+  user, setUser, setIsConfigOpen, setAdminConfigLizOpen, usersOnline, setAiProfileForm
 }: ProfileConfigModalProps) {
+  // Local states as requested
+  const [nombre, setNombre] = useState(user.username || '');
+  const [comentario, setComentario] = useState(user.statusMessage || '');
+  const [pais, setPais] = useState(user.countryLanguage || 'es');
+  const [password, setPassword] = useState(user.password || '');
+  const [fotoURL, setFotoURL] = useState(user.profilePic || '');
+
+  const handleSaveProfile = async () => {
+    // Envía los estados a Firebase a través del servidor Node/Socket
+    socket.emit('update_profile', { 
+        oldUsername: user.username, 
+        newUsername: nombre, 
+        newPassword: password, 
+        profilePic: fotoURL, 
+        statusMessage: comentario, 
+        countryLanguage: pais 
+    }, (res: any) => {
+      if (res.success) {
+          // Actualiza el estado global al confirmar éxito del backend
+          setUser({
+              ...user, 
+              username: res.username, 
+              password: password, 
+              profilePic: res.profilePic, 
+              statusMessage: res.statusMessage, 
+              countryLanguage: res.countryLanguage 
+          });
+          alert("¡Perfil guardado con éxito!");
+          setIsConfigOpen(false);
+      } else {
+          alert("Error al guardar en Firebase: " + res.error);
+      }
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-[#12141c] p-6 lg:p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-white/10 max-h-[90vh] overflow-y-auto scrollbar-thin">
@@ -30,12 +63,12 @@ export function ProfileConfigModal({
         <div className="space-y-4">
           <div className="flex flex-col items-center mb-4">
             <div className="w-24 h-24 rounded-full border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden bg-black/30 relative">
-               <img src={profileForm.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
+               <img src={fotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
                <input type="file" title="Subir foto de perfil" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={e => {
                   const file = e.target.files?.[0];
                   if (file) {
                     const reader = new FileReader();
-                    reader.onload = () => setProfileForm({...profileForm, profilePic: reader.result as string});
+                    reader.onload = () => setFotoURL(reader.result as string);
                     reader.readAsDataURL(file);
                   }
                }} />
@@ -47,15 +80,15 @@ export function ProfileConfigModal({
             <label className="text-sm font-semibold text-gray-400">Usuario</label>
             <input 
                disabled
-               value={profileForm.username}
+               value={nombre}
                className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/5 outline-none text-gray-500 opacity-70 cursor-not-allowed" 
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-400">Estado / Comentario</label>
             <input 
-               value={profileForm.statusMessage || ''}
-               onChange={e => setProfileForm({...profileForm, statusMessage: e.target.value})}
+               value={comentario}
+               onChange={e => setComentario(e.target.value)}
                maxLength={60}
                placeholder="Ej: Hola a todos!"
                type="text"
@@ -65,8 +98,8 @@ export function ProfileConfigModal({
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-400">Contraseña</label>
             <input 
-               value={profileForm.password || ''}
-               onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+               value={password}
+               onChange={e => setPassword(e.target.value)}
                type="password"
                className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/10 outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all text-white" 
             />
@@ -76,8 +109,8 @@ export function ProfileConfigModal({
             <label className="text-sm font-semibold text-gray-400">País / Idioma</label>
             <div className="relative">
               <select
-                 value={profileForm.countryLanguage || 'es'}
-                 onChange={e => setProfileForm({...profileForm, countryLanguage: e.target.value})}
+                 value={pais}
+                 onChange={e => setPais(e.target.value)}
                  className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/10 outline-none focus:border-cyan-500 transition-all text-white appearance-none"
               >
                  <option value="es">Español</option>
@@ -104,16 +137,7 @@ export function ProfileConfigModal({
           )}
 
           <button 
-            onClick={() => {
-              socket.emit('update_profile', { oldUsername: user.username, newUsername: profileForm.username, newPassword: profileForm.password, profilePic: profileForm.profilePic, statusMessage: profileForm.statusMessage, countryLanguage: profileForm.countryLanguage }, (res: any) => {
-                if (res.success) {
-                    setUser({...user, username: res.username, password: profileForm.password, profilePic: res.profilePic, statusMessage: res.statusMessage, countryLanguage: res.countryLanguage });
-                    setIsConfigOpen(false);
-                } else {
-                    alert(res.error);
-                }
-              });
-            }}
+            onClick={handleSaveProfile}
             className="w-full mt-4 bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-xl font-bold transition-colors shadow-[0_4px_14px_rgba(6,182,212,0.3)]"
            >
              Guardar Cambios
