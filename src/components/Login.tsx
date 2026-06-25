@@ -13,7 +13,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen }: Logi
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center w-full h-full font-sans bg-[#050508] bg-[radial-gradient(circle_at_center,#131720_0%,#050508_100%),url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M54.627 0l.83.83v58.34l-.83.83H5.373l-.83-.83V.83l.83-.83h49.254zM53.5 2.5h-47v55h47v-55zM27 27h6v6h-6v-6zm-4-4h14v14H23V23zm-6-6h26v26H17V17z\' fill=\'rgba(255,255,255,0.03)\' fill-rule=\'evenodd\'/%3E%3C/svg%3E')]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center w-full h-full font-sans bg-[#050508] bg-[radial-gradient(circle_at_center,#131720_0%,#050508_100%),url('data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M10 10l10 10v20h20l10 10 M90 10l-10 10v20H60l-10 10 M10 90l10-10V60h20l10-10 M90 90l-10-10V60H60l-10-10\' fill=\'none\' stroke=\'rgba(255,255,255,0.04)\' stroke-width=\'1\'/%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3Ccircle cx=\'20\' cy=\'40\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3Ccircle cx=\'80\' cy=\'40\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3C/svg%3E')]">
       
       {/* Títulos sobre el panel */}
       <div className="mb-6 text-center z-10 flex flex-col items-center">
