@@ -92,9 +92,12 @@ function MainApp() {
     e?.preventDefault();
     if (!user.username || !user.password) return;
     
-    socket.emit('register_or_login', user, (res: any) => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const loginPayload = { ...user, timezone };
+
+    socket.emit('register_or_login', loginPayload, (res: any) => {
       if (res.success) {
-        setUser({ ...user, profilePic: res.profilePic, statusMessage: res.statusMessage, role: res.role, countryLanguage: res.countryLanguage || user.countryLanguage });
+        setUser({ ...user, profilePic: res.profilePic, statusMessage: res.statusMessage, role: res.role, countryLanguage: res.countryLanguage || user.countryLanguage, timezone });
         setIsLoggedIn(true);
       } else {
         alert(res.error || 'Error al iniciar sesión');

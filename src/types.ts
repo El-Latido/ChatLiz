@@ -5,6 +5,7 @@ export interface UserObj {
   role?: string;
   countryLanguage?: string;
   securityEmail?: string;
+  timezone?: string;
 }
 
 export interface MessageObj {
