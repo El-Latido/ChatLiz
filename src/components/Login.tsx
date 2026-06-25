@@ -13,94 +13,294 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen }: Logi
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center w-full h-full font-sans bg-[#050508] bg-[radial-gradient(circle_at_center,#131720_0%,#050508_100%),url('data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M10 10l10 10v20h20l10 10 M90 10l-10 10v20H60l-10 10 M10 90l10-10V60h20l10-10 M90 90l-10-10V60H60l-10-10\' fill=\'none\' stroke=\'rgba(255,255,255,0.04)\' stroke-width=\'1\'/%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3Ccircle cx=\'20\' cy=\'40\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3Ccircle cx=\'80\' cy=\'40\' r=\'2\' fill=\'rgba(255,255,255,0.04)\'/%3E%3C/svg%3E')]">
-      
-      {/* Títulos sobre el panel */}
-      <div className="mb-6 text-center z-10 flex flex-col items-center">
-         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-200 mb-2 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
-           ¡Bienvenido a ChatLiz!
-         </h1>
-         <p className="text-gray-300 text-sm font-medium tracking-wide">
-           Inicia sesión o regístrate para continuar.
-         </p>
-      </div>
+    <>
+      <style>{`
+        .login-container {
+          min-height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          background-color: #050508;
+          background-image: 
+            radial-gradient(circle at center, #131720 0%, #050508 100%),
+            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.83v58.34l-.83.83H5.373l-.83-.83V.83l.83-.83h49.254zM53.5 2.5h-47v55h47v-55zM27 27h6v6h-6v-6zm-4-4h14v14H23V23zm-6-6h26v26H17V17z' fill='rgba(255,255,255,0.03)' fill-rule='evenodd'/%3E%3C/svg%3E");
+          font-family: system-ui, -apple-system, sans-serif;
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 50;
+        }
 
-      <div className="relative w-full max-w-[420px] px-5 box-border">
-        {/* Panel Central de Vidrio con Brillo Neón */}
-        <div className="relative z-10 p-[2px] rounded-[24px] bg-gradient-to-r from-cyan-400 via-purple-500 to-fuchsia-500 shadow-[0_0_25px_rgba(34,211,238,0.5),0_0_40px_rgba(217,70,239,0.3)]">
-           <div className="relative overflow-hidden bg-[#0d111a]/90 backdrop-blur-md rounded-[22px] px-8 py-10 border border-white/5">
-              
-              {/* Esquinas decorativas futuristas */}
-              <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-cyan-400 rounded-tl-[22px] pointer-events-none opacity-80 shadow-[inset_2px_2px_8px_rgba(34,211,238,0.3)]"></div>
-              <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-fuchsia-500 rounded-tr-[22px] pointer-events-none opacity-80 shadow-[inset_-2px_2px_8px_rgba(217,70,239,0.3)]"></div>
-              <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-cyan-400 rounded-bl-[22px] pointer-events-none opacity-80 shadow-[inset_2px_-2px_8px_rgba(34,211,238,0.3)]"></div>
-              <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-fuchsia-500 rounded-br-[22px] pointer-events-none opacity-80 shadow-[inset_-2px_-2px_8px_rgba(217,70,239,0.3)]"></div>
+        .login-titles {
+          text-align: center;
+          margin-bottom: 1.5rem;
+          z-index: 10;
+        }
 
-              <div className="relative flex flex-col z-10 gap-6">
-                 {/* Input: Nombre de Usuario */}
-                 <div className="relative group">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 group-focus-within:text-cyan-300 transition-colors pointer-events-none z-10">
-                      <User size={18} strokeWidth={2.5} />
+        .login-title {
+          font-size: 1.875rem;
+          font-weight: 700;
+          color: transparent;
+          background-clip: text;
+          -webkit-background-clip: text;
+          background-image: linear-gradient(to right, #22d3ee, #99f6e4);
+          margin-bottom: 0.5rem;
+          text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        .login-subtitle {
+          color: #d1d5db;
+          font-size: 0.875rem;
+          font-weight: 500;
+          letter-spacing: 0.025em;
+        }
+
+        .login-panel-wrapper {
+          position: relative;
+          width: 100%;
+          max-width: 420px;
+          padding: 0 1.25rem;
+          box-sizing: border-box;
+          z-index: 10;
+        }
+
+        .login-panel-border {
+          position: relative;
+          padding: 2px;
+          border-radius: 24px;
+          background: linear-gradient(to right, #22d3ee, #a855f7, #d946ef);
+          box-shadow: 0 0 25px rgba(34, 211, 238, 0.5), 0 0 40px rgba(217, 70, 239, 0.3);
+        }
+
+        .login-panel-inner {
+          position: relative;
+          overflow: hidden;
+          background-color: rgba(13, 17, 26, 0.9);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-radius: 22px;
+          padding: 2.5rem 2rem;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .corner-tl, .corner-tr, .corner-bl, .corner-br {
+          position: absolute;
+          width: 3rem;
+          height: 3rem;
+          pointer-events: none;
+          opacity: 0.8;
+        }
+
+        .corner-tl { top: 0; left: 0; border-top: 2px solid #22d3ee; border-left: 2px solid #22d3ee; border-top-left-radius: 22px; box-shadow: inset 2px 2px 8px rgba(34, 211, 238, 0.3); }
+        .corner-tr { top: 0; right: 0; border-top: 2px solid #d946ef; border-right: 2px solid #d946ef; border-top-right-radius: 22px; box-shadow: inset -2px 2px 8px rgba(217, 70, 239, 0.3); }
+        .corner-bl { bottom: 0; left: 0; border-bottom: 2px solid #22d3ee; border-left: 2px solid #22d3ee; border-bottom-left-radius: 22px; box-shadow: inset 2px -2px 8px rgba(34, 211, 238, 0.3); }
+        .corner-br { bottom: 0; right: 0; border-bottom: 2px solid #d946ef; border-right: 2px solid #d946ef; border-bottom-right-radius: 22px; box-shadow: inset -2px -2px 8px rgba(217, 70, 239, 0.3); }
+
+        .input-group {
+          position: relative;
+          margin-bottom: 1.5rem;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 10;
+          pointer-events: none;
+          transition: color 0.3s;
+        }
+        
+        .icon-cyan { color: #22d3ee; }
+        .icon-magenta { color: #e879f9; }
+        .input-group:focus-within .icon-cyan { color: #67e8f9; }
+        .input-group:focus-within .icon-magenta { color: #f0abfc; }
+
+        .login-input {
+          width: 100%;
+          box-sizing: border-box;
+          background-color: rgba(19, 23, 34, 0.8);
+          padding: 0.875rem 1rem 0.875rem 3rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          outline: none;
+          color: #ffffff;
+          font-size: 0.9375rem;
+          box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+          transition: all 0.3s;
+          font-weight: 500;
+          letter-spacing: 0.025em;
+        }
+        
+        .login-input::placeholder { color: #6b7280; }
+
+        .input-cyan { border-color: rgba(34, 211, 238, 0.3); }
+        .input-magenta { border-color: rgba(217, 70, 239, 0.3); padding-right: 3rem; }
+
+        .input-cyan:focus { border-color: #22d3ee; box-shadow: 0 0 15px rgba(34, 211, 238, 0.2), inset 0 2px 10px rgba(0, 0, 0, 0.5); }
+        .input-magenta:focus { border-color: #d946ef; box-shadow: 0 0 15px rgba(217, 70, 239, 0.2), inset 0 2px 10px rgba(0, 0, 0, 0.5); }
+
+        .btn-eye {
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #9ca3af;
+          cursor: pointer;
+          transition: color 0.3s;
+          padding: 0;
+          display: flex;
+        }
+        .btn-eye:hover { color: #ffffff; }
+
+        .btn-submit {
+          position: relative;
+          width: 100%;
+          padding: 0.875rem;
+          margin-top: 0.5rem;
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 0.9375rem;
+          letter-spacing: 0.05em;
+          border-radius: 0.5rem;
+          background: linear-gradient(to right, #22d3ee, #d946ef);
+          box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+          border: none;
+          cursor: pointer;
+          overflow: hidden;
+          transition: box-shadow 0.3s;
+        }
+        .btn-submit:hover {
+          box-shadow: 0 0 30px rgba(217, 70, 239, 0.6);
+        }
+        .btn-submit span {
+          position: relative;
+          z-index: 10;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .btn-submit::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-color: rgba(255, 255, 255, 0.2);
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        .btn-submit:hover::after {
+          opacity: 1;
+        }
+
+        .links-container {
+          margin-top: 2rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+          z-index: 10;
+        }
+
+        .link-btn {
+          background: none;
+          border: none;
+          font-size: 0.875rem;
+          font-weight: 500;
+          letter-spacing: 0.025em;
+          cursor: pointer;
+          transition: all 0.3s;
+          text-decoration: none;
+        }
+        .link-cyan { color: #67e8f9; }
+        .link-cyan:hover { color: #a5f3fc; text-decoration: underline; text-underline-offset: 4px; }
+        .link-magenta { color: #f0abfc; }
+        .link-magenta:hover { color: #e879f9; text-decoration: underline; text-underline-offset: 4px; }
+      `}</style>
+
+      <div className="login-container">
+        {/* Títulos sobre el panel */}
+        <div className="login-titles">
+           <h1 className="login-title">¡Bienvenido a ChatLiz!</h1>
+           <p className="login-subtitle">Inicia sesión o regístrate para continuar.</p>
+        </div>
+
+        <div className="login-panel-wrapper">
+          {/* Panel Central de Vidrio con Brillo Neón */}
+          <div className="login-panel-border">
+             <div className="login-panel-inner">
+                
+                {/* Esquinas decorativas futuristas */}
+                <div className="corner-tl"></div>
+                <div className="corner-tr"></div>
+                <div className="corner-bl"></div>
+                <div className="corner-br"></div>
+
+                <div style={{ position: 'relative', zIndex: 10 }}>
+                   {/* Input: Nombre de Usuario */}
+                   <div className="input-group">
+                     <div className="input-icon icon-cyan">
+                        <User size={18} strokeWidth={2.5} />
+                     </div>
+                     <input 
+                       className="login-input input-cyan"
+                       placeholder="Nombre de Usuario..." 
+                       value={user.username}
+                       onChange={e => setUser({...user, username: e.target.value})} 
+                     />
                    </div>
-                   <input 
-                     className="w-full bg-[#131722]/80 pl-12 pr-4 py-3.5 rounded-lg border border-cyan-500/30 outline-none text-white text-[15px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-all duration-300 focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(34,211,238,0.2),inset_0_2px_10px_rgba(0,0,0,0.5)] placeholder:text-gray-500 font-medium tracking-wide"
-                     placeholder="Nombre de Usuario..." 
-                     value={user.username}
-                     onChange={e => setUser({...user, username: e.target.value})} 
-                   />
-                 </div>
 
-                 {/* Input: Contraseña */}
-                 <div className="relative group">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-fuchsia-400 group-focus-within:text-fuchsia-300 transition-colors pointer-events-none z-10">
-                      <Lock size={18} strokeWidth={2.5} />
+                   {/* Input: Contraseña */}
+                   <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                     <div className="input-icon icon-magenta">
+                        <Lock size={18} strokeWidth={2.5} />
+                     </div>
+                     <input 
+                       className="login-input input-magenta"
+                       type={showPassword ? "text" : "password"} 
+                       placeholder="Contraseña..." 
+                       value={user.password}
+                       onChange={e => setUser({...user, password: e.target.value})} 
+                       onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                     />
+                     <button 
+                       type="button"
+                       onClick={() => setShowPassword(!showPassword)}
+                       className="btn-eye"
+                     >
+                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                     </button>
                    </div>
-                   <input 
-                     className="w-full bg-[#131722]/80 pl-12 pr-12 py-3.5 rounded-lg border border-fuchsia-500/30 outline-none text-white text-[15px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-all duration-300 focus:border-fuchsia-400 focus:shadow-[0_0_15px_rgba(217,70,239,0.2),inset_0_2px_10px_rgba(0,0,0,0.5)] placeholder:text-gray-500 font-medium tracking-wide"
-                     type={showPassword ? "text" : "password"} 
-                     placeholder="Contraseña..." 
-                     value={user.password}
-                     onChange={e => setUser({...user, password: e.target.value})} 
-                     onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                   />
+
+                   {/* Botón ENTRAR AL CHAT */}
                    <button 
-                     type="button"
-                     onClick={() => setShowPassword(!showPassword)}
-                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                     onClick={handleLogin}
+                     className="btn-submit"
                    >
-                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      <span>ENTRAR AL CHAT</span>
                    </button>
-                 </div>
+                </div>
+             </div>
+          </div>
+        </div>
 
-                 {/* Botón ENTRAR AL CHAT */}
-                 <button 
-                   onClick={handleLogin}
-                   className="relative w-full py-3.5 mt-2 text-white font-bold text-[15px] tracking-wider rounded-lg bg-gradient-to-r from-cyan-400 to-fuchsia-500 shadow-[0_0_20px_rgba(34,211,238,0.4)] overflow-hidden hover:shadow-[0_0_30px_rgba(217,70,239,0.6)] transition-shadow group border-none cursor-pointer"
-                 >
-                    <span className="relative z-10 drop-shadow-md">ENTRAR AL CHAT</span>
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-white"></div>
-                 </button>
-              </div>
-           </div>
+        {/* Enlaces centrados debajo del panel */}
+        <div className="links-container">
+           <button 
+              onClick={handleLogin}
+              className="link-btn link-cyan"
+           >
+              Crear nueva cuenta
+           </button>
+           <button 
+              onClick={(e) => { e.preventDefault(); setRecoveryModalOpen(true); }} 
+              className="link-btn link-magenta"
+           >
+              ¿Olvidaste tu contraseña?
+           </button>
         </div>
       </div>
-
-      {/* Enlaces centrados debajo del panel */}
-      <div className="mt-8 flex flex-col items-center gap-3 z-10">
-         <button 
-            onClick={handleLogin} // Assuming it handles creation as well
-            className="text-[14px] text-cyan-300 hover:text-cyan-200 hover:underline underline-offset-4 transition-colors font-medium tracking-wide"
-         >
-            Crear nueva cuenta
-         </button>
-         <button 
-            onClick={(e) => { e.preventDefault(); setRecoveryModalOpen(true); }} 
-            className="text-[14px] text-fuchsia-300 hover:text-fuchsia-200 hover:underline underline-offset-4 transition-colors font-medium tracking-wide"
-         >
-            ¿Olvidaste tu contraseña?
-         </button>
-      </div>
-
-    </div>
+    </>
   );
 }
