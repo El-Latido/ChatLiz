@@ -1,17 +1,29 @@
-import React from 'react';
-import { Bot, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, X, CheckCircle } from 'lucide-react';
 import { socket } from '../socket';
 
 interface AdminConfigLizModalProps {
   setAdminConfigLizOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  aiProfileForm: { profilePic: string; statusMessage: string };
-  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string }>>;
+  aiProfileForm: { profilePic: string; statusMessage: string; systemInstruction?: string; };
+  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; }>>;
 }
 
 export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setAiProfileForm }: AdminConfigLizModalProps) {
+  const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+     if (successMsg) {
+        const timer = setTimeout(() => {
+           setSuccessMsg('');
+           setAdminConfigLizOpen(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+     }
+  }, [successMsg, setAdminConfigLizOpen]);
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-       <div className="bg-[#12141c] p-6 lg:p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-fuchsia-500/20">
+       <div className="bg-[#12141c] p-6 lg:p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-fuchsia-500/20 max-h-[90vh] overflow-y-auto scrollbar-thin">
          <button onClick={() => setAdminConfigLizOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
             <X size={20} />
          </button>
@@ -19,6 +31,14 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
             <Bot size={22} />
             Configurar HELIZABETH
          </h2>
+
+         {successMsg && (
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3 text-green-400 font-medium">
+               <CheckCircle size={20} />
+               <p className="text-sm">{successMsg}</p>
+            </div>
+         )}
+
          <div className="space-y-4">
            <p className="text-sm text-gray-400 leading-relaxed mb-4">
              Como administrador (AXISS), puedes modificar el perfil de la IA.
@@ -37,7 +57,7 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
                       const file = e.target.files?.[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = () => setAiProfileForm({...aiProfileForm, profilePic: reader.result as string});
+                        reader.onload = () => setAiProfileForm({...aiProfileForm, systemInstruction: aiProfileForm.systemInstruction || '', profilePic: reader.result as string});
                         reader.readAsDataURL(file);
                       }
                    }} />
@@ -50,7 +70,7 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
              <label className="text-sm font-semibold text-gray-400">Estado / Información</label>
              <input 
                 value={aiProfileForm.statusMessage || ''}
-                onChange={e => setAiProfileForm({...aiProfileForm, statusMessage: e.target.value})}
+                onChange={e => setAiProfileForm({...aiProfileForm, systemInstruction: aiProfileForm.systemInstruction || '', statusMessage: e.target.value})}
                 maxLength={60}
                 placeholder="Ej: IA Asistente virtual"
                 type="text"
@@ -58,12 +78,22 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
              />
            </div>
 
+           <div className="space-y-2">
+             <label className="text-sm font-semibold text-gray-400">Instrucciones de Identidad (system_instruction)</label>
+             <textarea 
+                value={aiProfileForm.systemInstruction || ''}
+                onChange={e => setAiProfileForm({...aiProfileForm, systemInstruction: e.target.value})}
+                placeholder="Ej: A partir de ahora hablarás solo en rimas..."
+                rows={4}
+                className="w-full bg-[#0a0a16] p-3 rounded-xl border border-white/10 outline-none focus:border-fuchsia-500 transition-all text-white text-sm resize-none scrollbar-thin" 
+             />
+           </div>
+
            <button 
              onClick={() => {
-               socket.emit('update_ai_config', { profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage }, (res: any) => {
+               socket.emit('update_ai_config', { profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
                    if (res.success) {
-                       alert("Perfil de HELIZABETH actualizado en el servidor.");
-                       setAdminConfigLizOpen(false);
+                       setSuccessMsg('¡Perfil de ELIZABETH actualizado con éxito por el Administrador!');
                    } else {
                        alert("Error: " + res.error);
                    }

@@ -48,7 +48,7 @@ function MainApp() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
   const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
-  const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora' });
+  const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
   
   const [activeChat, setActiveChat] = useState('global');
   const [messages, setMessages] = useState<any[]>([]);
@@ -352,7 +352,7 @@ function MainApp() {
                  <div className="relative mb-6 group cursor-pointer" onClick={() => {
                     const elizabethUser = usersOnline.find(u => u.username === 'Elizabeth') || {username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin'};
                     if (user.username.trim().toUpperCase() === "AXISS") {
-                        setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora' });
+                        setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora', systemInstruction: elizabethUser.systemInstruction || '' });
                         setAdminConfigLizOpen(true);
                     } else {
                         setSelectedUserModal(elizabethUser);
@@ -408,7 +408,7 @@ function MainApp() {
                                  className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer flex-shrink-0"
                                  onClick={() => {
                                     if (u.username === 'Elizabeth' && user.username.trim().toUpperCase() === "AXISS") {
-                                        setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora' });
+                                        setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora', systemInstruction: u.systemInstruction || '' });
                                         setAdminConfigLizOpen(true);
                                     } else {
                                         setSelectedUserModal(u);
@@ -578,7 +578,7 @@ function MainApp() {
                 className={`w-24 h-24 mx-auto mb-4 rounded-full border border-white/10 overflow-hidden shadow-lg relative ${selectedUserModal.username === 'Elizabeth' && user.username.trim().toUpperCase() === 'AXISS' ? 'cursor-pointer group' : ''}`}
                 onClick={() => {
                     if (selectedUserModal.username === 'Elizabeth' && user.username.trim().toUpperCase() === 'AXISS') {
-                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora' });
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora', systemInstruction: selectedUserModal.systemInstruction || '' });
                         setSelectedUserModal(null);
                         setAdminConfigLizOpen(true);
                     }

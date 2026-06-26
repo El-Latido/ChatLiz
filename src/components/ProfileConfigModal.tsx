@@ -11,7 +11,7 @@ interface ProfileConfigModalProps {
   setIsConfigOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setAdminConfigLizOpen: React.Dispatch<React.SetStateAction<boolean>>;
   usersOnline: UserObj[];
-  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string }>>;
+  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; }>>;
 }
 
 export function ProfileConfigModal({
@@ -142,7 +142,7 @@ export function ProfileConfigModal({
           {user.username === 'AXISS' && (
              <button onClick={() => { 
                 const aiUser = usersOnline.find(u => u.username === 'Elizabeth');
-                setAiProfileForm({ profilePic: aiUser?.profilePic || '', statusMessage: aiUser?.statusMessage || 'IA Asistente virtual' });
+                setAiProfileForm({ profilePic: aiUser?.profilePic || '', statusMessage: aiUser?.statusMessage || 'IA Asistente virtual', systemInstruction: aiUser?.systemInstruction || '' });
                 setIsConfigOpen(false); 
                 setAdminConfigLizOpen(true); 
              }} className="w-full flex items-center justify-center gap-2 text-fuchsia-400 border border-fuchsia-400 bg-fuchsia-500/10 p-3 rounded-xl font-bold mt-2 hover:bg-fuchsia-500/20 transition-all">
