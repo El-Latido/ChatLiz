@@ -349,7 +349,15 @@ function MainApp() {
 
               {/* Elizabeth Profile Area (Sidebar header) */}
               <div className="flex flex-col items-center pt-10 pb-6 relative z-10">
-                 <div className="relative mb-6 group cursor-pointer" onClick={() => setSelectedUserModal(usersOnline.find(u => u.username === 'Elizabeth') || {username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin'})}>
+                 <div className="relative mb-6 group cursor-pointer" onClick={() => {
+                    const elizabethUser = usersOnline.find(u => u.username === 'Elizabeth') || {username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin'};
+                    if (user.username.trim().toUpperCase() === "AXISS") {
+                        setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora' });
+                        setAdminConfigLizOpen(true);
+                    } else {
+                        setSelectedUserModal(elizabethUser);
+                    }
+                 }}>
                     <div className="absolute inset-0 bg-cyan-400 blur-2xl opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
                     <div className="w-28 h-28 rounded-full border border-cyan-400/50 p-1 relative z-10 bg-[#0a0a16] shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center overflow-hidden [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]">
                        {(usersOnline.find(u => u.username === 'Elizabeth')?.profilePic) ? (
@@ -398,7 +406,14 @@ function MainApp() {
                                <div 
                                  title="Ver perfil"
                                  className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer flex-shrink-0"
-                                 onClick={() => setSelectedUserModal(u)}
+                                 onClick={() => {
+                                    if (u.username === 'Elizabeth' && user.username.trim().toUpperCase() === "AXISS") {
+                                        setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora' });
+                                        setAdminConfigLizOpen(true);
+                                    } else {
+                                        setSelectedUserModal(u);
+                                    }
+                                 }}
                                >
                                    <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt="avatar" className="w-full h-full object-cover" />
                                </div>
@@ -559,8 +574,22 @@ function MainApp() {
              <button onClick={() => setSelectedUserModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
                 <X size={20} />
              </button>
-             <div className="w-24 h-24 mx-auto mb-4 rounded-full border border-white/10 overflow-hidden shadow-lg">
+             <div 
+                className={`w-24 h-24 mx-auto mb-4 rounded-full border border-white/10 overflow-hidden shadow-lg relative ${selectedUserModal.username === 'Elizabeth' && user.username.trim().toUpperCase() === 'AXISS' ? 'cursor-pointer group' : ''}`}
+                onClick={() => {
+                    if (selectedUserModal.username === 'Elizabeth' && user.username.trim().toUpperCase() === 'AXISS') {
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora' });
+                        setSelectedUserModal(null);
+                        setAdminConfigLizOpen(true);
+                    }
+                }}
+             >
                 <img src={selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`} className="w-full h-full object-cover" alt="Avatar" />
+                {selectedUserModal.username === 'Elizabeth' && user.username.trim().toUpperCase() === 'AXISS' && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] font-bold text-white uppercase text-center px-1">Cambiar Foto</span>
+                    </div>
+                )}
              </div>
              <h3 className="text-xl font-bold text-white mb-1 flex items-center justify-center gap-2">
                 {selectedUserModal.username}
