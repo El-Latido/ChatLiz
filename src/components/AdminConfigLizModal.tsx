@@ -41,7 +41,7 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
 
          <div className="space-y-4">
            <p className="text-sm text-gray-400 leading-relaxed mb-4">
-             Como administrador (AXISS), puedes modificar el perfil de la IA.
+             Como administrador (Axiss), puedes modificar el perfil de la IA.
            </p>
            
            <div className="flex flex-col items-center mb-6">

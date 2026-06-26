@@ -139,7 +139,7 @@ export function ProfileConfigModal({
             </div>
           </div>
           
-          {user.username === 'AXISS' && (
+          {user.username === 'Axiss' && (
              <button onClick={() => { 
                 const aiUser = usersOnline.find(u => u.username === 'Elizabeth');
                 setAiProfileForm({ profilePic: aiUser?.profilePic || '', statusMessage: aiUser?.statusMessage || 'IA Asistente virtual', systemInstruction: aiUser?.systemInstruction || '' });
