@@ -472,6 +472,8 @@ async function startServer() {
 
       if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
         try {
+          io.emit("typing", { username: "Elizabeth", chat: "global" });
+          
           let contextMsgs = [];
           if (fdb) {
              const recentQ = query(collection(fdb, 'messages'), orderBy('createdAt', 'desc'), limit(15));
@@ -503,8 +505,6 @@ Privacidad Absoluta: NUNCA revelarás contraseñas de usuarios ni datos del admi
 Tareas Avanzadas: Eres experta analizando imágenes, audios, programando código, resolviendo problemas y dando soporte técnico. Si te pasan una foto o código, descríbela y bromea o ayuda según corresponda.
 Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
-          io.emit("typing", { username: "Elizabeth", chat: "global" });
-
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: parts,
@@ -516,48 +516,49 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const cleanText = rawText.replace(/^Elizabeth:\s*/i, '').trim();
           
           const wordCount = cleanText.split(/\s+/).length;
-          const typingDelay = Math.min(Math.max(wordCount * 120, 2000), 6000);
+          const typingDelay = Math.min(Math.max(wordCount * 120, 2000), 4000); // Max 4 seconds as requested
+          
+          await new Promise(resolve => setTimeout(resolve, typingDelay));
 
-          setTimeout(async () => {
-              io.emit("stop_typing", { username: "Elizabeth", chat: "global" });
-              const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString() };
-              
-              if (fdb) {
-                eliMsg.createdAt = serverTimestamp();
-                await addDoc(collection(fdb, 'messages'), eliMsg);
-              } else {
-                fallbackState.globalMessages.push(eliMsg);
-                saveFallbackDB();
-              }
-              
-              const eliSenderLanguage = 'es';
-              const eliTranslationCache = new Map<string, string>();
+          const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString() };
+          
+          if (fdb) {
+            eliMsg.createdAt = serverTimestamp();
+            await addDoc(collection(fdb, 'messages'), eliMsg);
+          } else {
+            fallbackState.globalMessages.push(eliMsg);
+            saveFallbackDB();
+          }
+          
+          const eliSenderLanguage = 'es';
+          const eliTranslationCache = new Map<string, string>();
 
-              for (const [uname, userData] of Object.entries(activeUsers)) {
-                 const receiverLanguage = userData.pais_idioma || 'es';
-                 let finalMsgText = eliMsg.text;
+          for (const [uname, userData] of Object.entries(activeUsers)) {
+             const receiverLanguage = userData.pais_idioma || 'es';
+             let finalMsgText = eliMsg.text;
 
-                 if (eliMsg.text && eliSenderLanguage !== receiverLanguage) {
-                    if (eliTranslationCache.has(receiverLanguage)) {
-                       finalMsgText = eliTranslationCache.get(receiverLanguage);
-                    } else {
-                       try {
-                          const resp = await ai.models.generateContent({
-                             model: "gemini-2.5-flash",
-                             contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${eliMsg.text}`,
-                          });
-                          finalMsgText = resp.text || eliMsg.text;
-                          eliTranslationCache.set(receiverLanguage, finalMsgText as string);
-                       } catch (e) {
-                          finalMsgText = eliMsg.text;
-                       }
-                    }
-                 }
-                 io.to(userData.socketId).emit("receive_global", { ...eliMsg, text: finalMsgText });
-              }
-          }, typingDelay);
+             if (eliMsg.text && eliSenderLanguage !== receiverLanguage) {
+                if (eliTranslationCache.has(receiverLanguage)) {
+                   finalMsgText = eliTranslationCache.get(receiverLanguage);
+                } else {
+                   try {
+                      const resp = await ai.models.generateContent({
+                         model: "gemini-2.5-flash",
+                         contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${eliMsg.text}`,
+                      });
+                      finalMsgText = resp.text || eliMsg.text;
+                      eliTranslationCache.set(receiverLanguage, finalMsgText as string);
+                   } catch (e) {
+                      finalMsgText = eliMsg.text;
+                   }
+                }
+             }
+             io.to(userData.socketId).emit("receive_global", { ...eliMsg, text: finalMsgText });
+          }
         } catch (e) {
           console.error("Gemini Error:", e);
+        } finally {
+          io.emit("stop_typing", { username: "Elizabeth", chat: "global" });
         }
       }
     });
@@ -664,6 +665,8 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
       if (toUser === "Elizabeth") {
         try {
+          io.emit("typing", { username: "Elizabeth", chat: currentUsername });
+          
           const userTz = activeUsers[currentUsername]?.timezone || 'UTC';
           const userTimeStr = new Date().toLocaleString("es-ES", { timeZone: userTz });
 
@@ -675,8 +678,6 @@ Privacidad Absoluta: NUNCA revelarás contraseñas de usuarios ni datos del admi
 Tareas Avanzadas: Eres experta analizando imágenes, audios, programando código, resolviendo problemas y dando soporte técnico. Si te pasan una foto o código, descríbela y bromea o ayuda según corresponda.
 Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
-          io.emit("typing", { username: "Elizabeth", chat: currentUsername });
-          
           let contextMsgs: any[] = [];
           if (fdb) {
              const participants = [currentUsername, "Elizabeth"].sort();
@@ -703,22 +704,23 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const cleanText = rawText.replace(/^Elizabeth:\s*/i, '').trim();
           
           const wordCount = cleanText.split(/\s+/).length;
-          const typingDelay = Math.min(Math.max(wordCount * 120, 2000), 6000);
+          const typingDelay = Math.min(Math.max(wordCount * 120, 2000), 4000); // Max 4 seconds as requested
+          
+          await new Promise(resolve => setTimeout(resolve, typingDelay));
 
-          setTimeout(async () => {
-              io.emit("stop_typing", { username: "Elizabeth", chat: currentUsername });
-              const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-              
-              if (fdb) {
-                const participants = [currentUsername, "Elizabeth"].sort();
-                const convoId = participants.join("_");
-                await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, createdAt: serverTimestamp() });
-              }
-              
-              socket.emit("receive_private", eliMsg, "Elizabeth");
-          }, typingDelay);
+          const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          
+          if (fdb) {
+            const participants = [currentUsername, "Elizabeth"].sort();
+            const convoId = participants.join("_");
+            await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, createdAt: serverTimestamp() });
+          }
+          
+          socket.emit("receive_private", eliMsg, "Elizabeth");
         } catch (e) {
           console.error("Gemini Error:", e);
+        } finally {
+          io.emit("stop_typing", { username: "Elizabeth", chat: currentUsername });
         }
       }
     });

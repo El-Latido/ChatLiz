@@ -150,6 +150,16 @@ function MainApp() {
           }
           return prev;
        });
+       // Límite estricto de 4 segundos a la animación
+       setTimeout(() => {
+          setTypingUsers(prev => {
+             const chatTyping = prev[data.chat] || [];
+             if (chatTyping.includes(data.username)) {
+                return { ...prev, [data.chat]: chatTyping.filter(u => u !== data.username) };
+             }
+             return prev;
+          });
+       }, 4000);
     });
 
     socket.on('stop_typing', (data: { username: string, chat: string }) => {
