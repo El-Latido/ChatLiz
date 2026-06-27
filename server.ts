@@ -43,7 +43,56 @@ function saveFallbackDB() {
   }
 }
 
+import axios from "axios";
+import AdmZip from "adm-zip";
+
+async function downloadModels() {
+  const token = "1827ea4eab5943a5a52b7a6fa6f38819";
+  const models = [
+    { id: "2ca503f70c0f4709a464bdbfa1b7db0b", name: "mapa1" },
+    { id: "b8784396e5f6424e88b036949164a473", name: "mapa2" }
+  ];
+
+  const assetsDir = path.join(process.cwd(), "public", "assets");
+  if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true });
+  }
+
+  for (const model of models) {
+    const targetFolder = path.join(assetsDir, model.name);
+    if (fs.existsSync(targetFolder)) {
+      console.log(`[VR] Model ${model.name} already exists. Skipping download.`);
+      continue;
+    }
+
+    try {
+      console.log(`[VR] Fetching download URL for model ${model.name}...`);
+      const res = await axios.get(`https://api.sketchfab.com/v3/models/${model.id}/download`, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      const gltfUrl = res.data.gltf.url;
+      
+      console.log(`[VR] Downloading ZIP for model ${model.name}...`);
+      const zipRes = await axios.get(gltfUrl, { responseType: "arraybuffer" });
+      
+      const zipPath = path.join(assetsDir, `${model.name}.zip`);
+      fs.writeFileSync(zipPath, zipRes.data);
+      
+      console.log(`[VR] Extracting ZIP for model ${model.name}...`);
+      const zip = new AdmZip(zipPath);
+      zip.extractAllTo(targetFolder, true);
+      fs.unlinkSync(zipPath);
+      console.log(`[VR] Model ${model.name} ready.`);
+    } catch (err: any) {
+      console.error(`[VR] Error downloading model ${model.name}:`, err.message);
+    }
+  }
+}
+
 async function startServer() {
+  // Try to download models asynchronously
+  downloadModels().catch(console.error);
+
   const app = express();
   const PORT = parseInt(process.env.PORT as string, 10) || 3000;
 

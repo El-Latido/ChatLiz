@@ -340,10 +340,10 @@ function MainApp() {
              </button>
              <button 
                 onClick={() => setActiveChat('vr')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${activeChat === 'vr' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-[#13151f] border-white/10 text-gray-400 hover:text-white hover:border-white/30'} shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${activeChat === 'vr' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'bg-[#13151f] border-cyan-500/30 text-cyan-500 hover:text-cyan-300 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)]'} shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}
              >
-                <Box size={20} />
-                <span className="font-bold text-sm hidden sm:inline">Sala VR</span>
+                <Box size={20} className={activeChat === 'vr' ? "animate-pulse" : ""} />
+                <span className="font-bold text-sm hidden sm:inline uppercase tracking-widest text-[11px]">Sala VR</span>
              </button>
              <div className="flex items-center gap-3 bg-[#13151f] border border-white/10 px-4 py-1.5 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-xs font-bold border border-white/5 overflow-hidden">

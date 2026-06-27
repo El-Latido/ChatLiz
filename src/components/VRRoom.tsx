@@ -1,7 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sky, Environment, Box, Capsule, Text } from '@react-three/drei';
+import { OrbitControls, Sky, Environment, Box, Capsule, Text, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+
+const MapLoader = () => {
+  const map1 = useGLTF('/assets/mapa1/scene.gltf');
+  const map2 = useGLTF('/assets/mapa2/scene.gltf');
+  
+  // Apply a gentle sway animation to the whole environment as requested
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.position.y = Math.sin(state.clock.elapsedTime) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={ref}>
+      <primitive object={map1.scene} position={[0, -1, 0]} scale={[1, 1, 1]} />
+      <primitive object={map2.scene} position={[28, -1, 0]} scale={[1, 1, 1]} />
+    </group>
+  );
+};
 import { Backpack, Camera, MessageSquare, Send } from 'lucide-react';
 import { create } from 'zustand';
 
@@ -15,6 +35,8 @@ type VRState = {
   setPhoneOpen: (v: boolean) => void;
   isSkinsOpen: boolean;
   setSkinsOpen: (v: boolean) => void;
+  joystickVector: { x: number, y: number };
+  setJoystickVector: (v: { x: number, y: number }) => void;
 };
 
 const useVRStore = create<VRState>((set) => ({
@@ -26,6 +48,8 @@ const useVRStore = create<VRState>((set) => ({
   setPhoneOpen: (v) => set({ isPhoneOpen: v }),
   isSkinsOpen: false,
   setSkinsOpen: (v) => set({ isSkinsOpen: v }),
+  joystickVector: { x: 0, y: 0 },
+  setJoystickVector: (v) => set({ joystickVector: v }),
 }));
 
 // --- 3D Player Controller ---
@@ -49,9 +73,11 @@ const Player = ({ socket, username }: { socket: any, username: string }) => {
   useFrame((state, delta) => {
     if (!ref.current) return;
     
+    const joystick = useVRStore.getState().joystickVector;
+    
     const speed = keys.current['ShiftLeft'] ? 10 : 5;
-    const moveZ = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0);
-    const moveX = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0);
+    const moveZ = (keys.current['KeyS'] ? 1 : 0) - (keys.current['KeyW'] ? 1 : 0) + joystick.y;
+    const moveX = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0) + joystick.x;
     
     // Determine movement direction relative to camera
     const euler = new THREE.Euler(0, camera.rotation.y, 0, 'YXZ');
@@ -162,18 +188,19 @@ export default function VRRoom({ socket, user }: { socket: any, user: any }) {
       <div className="flex-1 w-full relative">
          <Canvas shadows camera={{ position: [0, 3, 6], fov: 60 }}>
            <Sky distance={450000} sunPosition={[0, 1, 0]} inclination={0} azimuth={0.25} />
-           <ambientLight intensity={0.5} />
+           {/* Unificación de Texturas mediante Iluminación */}
+           <ambientLight color="#fff5ea" intensity={0.6} />
            <directionalLight position={[10, 10, 10]} castShadow intensity={1} />
            
-           {/* Simple Environment */}
-           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-             <planeGeometry args={[100, 100]} />
-             <meshStandardMaterial color="#fcd34d" /> {/* Sand */}
-           </mesh>
-           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[50, -0.6, 0]}>
-             <planeGeometry args={[100, 100]} />
-             <meshStandardMaterial color="#0284c7" /> {/* Water */}
-           </mesh>
+           {/* MapLoader inside Suspense */}
+           <React.Suspense fallback={
+             <mesh position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+               <planeGeometry args={[100, 100]} />
+               <meshStandardMaterial color="#fcd34d" />
+             </mesh>
+           }>
+             <MapLoader />
+           </React.Suspense>
 
            {/* Local Player */}
            <Player socket={socket} username={user.username} />
@@ -201,16 +228,65 @@ export default function VRRoom({ socket, user }: { socket: any, user: any }) {
          </div>
          
          {/* Actions Bar */}
-         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2">
-            {['Caminar', 'Correr', 'Sentarse', 'Saltar', 'Acostarse'].map(act => (
-               <button key={act} className="px-4 py-2 bg-black/50 text-white text-sm rounded-full backdrop-blur border border-white/10 hover:bg-white/10 transition-colors">
+         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+            {['Saltar', 'Sentarse', 'Correr', 'Acostarse'].map(act => (
+               <button key={act} 
+                 onClick={() => {
+                    // Simulating action logic
+                    if (act === 'Saltar') {
+                        // Normally we would apply physics here, for now just emit
+                        socket.emit('vr_move', { action: 'Jump' });
+                    }
+                 }}
+                 className="px-4 py-3 bg-black/50 text-white text-sm rounded-xl backdrop-blur border border-white/10 hover:bg-white/10 transition-colors shadow-lg">
                   {act}
                </button>
             ))}
          </div>
 
+         {/* Virtual Joystick */}
+         <div 
+            className="absolute bottom-10 left-10 w-24 h-24 bg-white/10 rounded-full border border-white/20 touch-none flex items-center justify-center"
+            onPointerDown={(e) => {
+               e.currentTarget.setPointerCapture(e.pointerId);
+               const rect = e.currentTarget.getBoundingClientRect();
+               const cx = rect.left + rect.width / 2;
+               const cy = rect.top + rect.height / 2;
+               
+               const handleMove = (ev: PointerEvent) => {
+                  const dx = ev.clientX - cx;
+                  const dy = ev.clientY - cy;
+                  const distance = Math.min(rect.width / 2, Math.sqrt(dx * dx + dy * dy));
+                  const angle = Math.atan2(dy, dx);
+                  
+                  const nx = (Math.cos(angle) * distance) / (rect.width / 2);
+                  const ny = (Math.sin(angle) * distance) / (rect.height / 2);
+                  
+                  // Update thumb position visually
+                  const thumb = e.currentTarget.firstChild as HTMLElement;
+                  thumb.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`;
+                  
+                  useVRStore.getState().setJoystickVector({ x: nx, y: ny });
+               };
+               
+               const handleUp = () => {
+                  useVRStore.getState().setJoystickVector({ x: 0, y: 0 });
+                  const thumb = e.currentTarget.firstChild as HTMLElement;
+                  thumb.style.transform = `translate(0px, 0px)`;
+                  e.currentTarget.removeEventListener('pointermove', handleMove as any);
+                  e.currentTarget.removeEventListener('pointerup', handleUp);
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+               };
+               
+               e.currentTarget.addEventListener('pointermove', handleMove as any);
+               e.currentTarget.addEventListener('pointerup', handleUp);
+            }}
+         >
+            <div className="w-10 h-10 bg-white/40 rounded-full shadow-lg transition-transform duration-75" />
+         </div>
+
          {/* Local Chat VR */}
-         <div className="absolute bottom-4 left-4 w-72 bg-black/40 backdrop-blur rounded-xl border border-white/10 flex flex-col overflow-hidden max-h-64">
+         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-80 bg-black/40 backdrop-blur rounded-xl border border-white/10 flex flex-col overflow-hidden max-h-64 pointer-events-auto shadow-2xl">
              <div className="p-2 border-b border-white/10 text-xs font-bold text-white flex items-center gap-2">
                 <MessageSquare size={14} /> CHAT DE SALA
              </div>
