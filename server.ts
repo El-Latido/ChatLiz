@@ -43,59 +43,7 @@ function saveFallbackDB() {
   }
 }
 
-import axios from "axios";
-import AdmZip from "adm-zip";
-
-async function downloadModels() {
-  const token = "1827ea4eab5943a5a52b7a6fa6f38819";
-  const models = [
-    { id: "2ca503f70c0f4709a464bdbfa1b7db0b", name: "mapa1" },
-    { id: "b8784396e5f6424e88b036949164a473", name: "mapa2" }
-  ];
-
-  const staticDir = path.join(process.cwd(), "static");
-  const assetsDir = path.join(staticDir, "assets");
-  if (!fs.existsSync(assetsDir)) {
-    fs.mkdirSync(assetsDir, { recursive: true });
-  }
-
-  for (const model of models) {
-    const targetFolder = path.join(assetsDir, model.name);
-    if (fs.existsSync(targetFolder)) {
-      console.log(`[VR] Model ${model.name} already exists. Skipping download.`);
-      continue;
-    }
-
-    try {
-      console.log(`[VR] Fetching download URL for model ${model.name}...`);
-      const res = await axios.get(`https://api.sketchfab.com/v3/models/${model.id}/download`, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      if (res.status === 200) {
-        const gltfUrl = res.data.gltf.url;
-        
-        console.log(`[VR] Downloading ZIP for model ${model.name}...`);
-        const zipRes = await axios.get(gltfUrl, { responseType: "arraybuffer" });
-        
-        const zipPath = path.join(assetsDir, `${model.name}.zip`);
-        fs.writeFileSync(zipPath, zipRes.data);
-        
-        console.log(`[VR] Extracting ZIP for model ${model.name}...`);
-        const zip = new AdmZip(zipPath);
-        zip.extractAllTo(targetFolder, true);
-        fs.unlinkSync(zipPath);
-        console.log(`[VR] Download success (200), extracted to: ${targetFolder}`);
-      }
-    } catch (err: any) {
-      console.error(`[VR] Error downloading model ${model.name}:`, err.message);
-    }
-  }
-}
-
 async function startServer() {
-  // Try to download models asynchronously
-  downloadModels().catch(console.error);
-
   const app = express();
   const PORT = parseInt(process.env.PORT as string, 10) || 3000;
 
@@ -107,12 +55,6 @@ async function startServer() {
 
   app.use(express.json({ limit: "50mb" }));
 
-  const staticDir = path.join(process.cwd(), "static");
-  if (!fs.existsSync(staticDir)) {
-    fs.mkdirSync(staticDir, { recursive: true });
-  }
-  app.use('/static', express.static(staticDir));
-
   const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -120,7 +62,6 @@ async function startServer() {
   app.use('/uploads', express.static(uploadsDir));
 
   let activeUsers: Record<string, { socketId: string; status: string; username: string; profilePic?: string; statusMessage?: string; role?: string; pais_idioma?: string; timezone?: string }> = {};
-  let vrUsers: Record<string, { x: number, y: number, z: number, rx: number, ry: number, rz: number, action: string, skin?: string }> = {};
 
   const bannedUsers: Record<string, number> = {};
 
@@ -786,45 +727,8 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       }
     });
 
-    socket.on("vr_join", (data) => {
-      if (currentUsername) {
-        socket.join("vr_room");
-        vrUsers[currentUsername] = { x: 0, y: 1, z: 0, rx: 0, ry: 0, rz: 0, action: "Idle", skin: data?.skin || "" };
-        io.to("vr_room").emit("vr_users", vrUsers);
-      }
-    });
-
-    socket.on("vr_leave", () => {
-      if (currentUsername) {
-        socket.leave("vr_room");
-        delete vrUsers[currentUsername];
-        io.to("vr_room").emit("vr_users", vrUsers);
-      }
-    });
-
-    socket.on("vr_move", (data) => {
-      if (currentUsername && vrUsers[currentUsername]) {
-        vrUsers[currentUsername] = { ...vrUsers[currentUsername], ...data };
-        // Broadcas to others to save bandwidth
-        socket.to("vr_room").emit("vr_update", { username: currentUsername, ...vrUsers[currentUsername] });
-      }
-    });
-
-    socket.on("send_vr", (msg) => {
-      if (currentUsername) {
-         msg.sender = currentUsername;
-         msg.id = Date.now().toString();
-         msg.createdAt = Date.now();
-         io.to("vr_room").emit("receive_vr", msg);
-      }
-    });
-
     socket.on("disconnect", () => {
       if (currentUsername) {
-        if (vrUsers[currentUsername]) {
-          delete vrUsers[currentUsername];
-          io.to("vr_room").emit("vr_users", vrUsers);
-        }
         if (activeUsers[currentUsername]) {
           delete activeUsers[currentUsername];
           emitActiveUsers();
