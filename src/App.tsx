@@ -58,7 +58,6 @@ function MainApp() {
   const [usersOnline, setUsersOnline] = useState<UserObj[]>([{ username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' }]); 
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Recovery States
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
@@ -72,6 +71,7 @@ function MainApp() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<BlobPart[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -251,49 +251,12 @@ function MainApp() {
     setAudioUrl(null);
   };
 
-  const handleUrlUpload = async () => {
-    const url = window.prompt("Ingresa la URL del archivo (Drive, Mediafire, enlace directo):");
-    if (url) {
-      setIsUploading(true);
-      try {
-        const res = await fetch('/api/upload-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ url })
-        });
-        const data = await res.json();
-        if (data.url) {
-          const msgId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-          const fileTypeCategory = data.mimetype.startsWith('image/') ? 'image' : (data.mimetype.startsWith('video/') ? 'video' : 'file');
-          
-          const payload: any = { 
-            text: `Envió un archivo: ${data.filename}`, 
-            id: msgId,
-            fileUrl: data.url,
-            fileName: data.filename,
-            fileType: fileTypeCategory
-          };
-
-          if (fileTypeCategory === 'image') {
-            payload.image = data.url;
-          }
-
-          if (activeChat === 'global') {
-            socket.emit('send_global', payload);
-          } else {
-            socket.emit('send_private', payload, activeChat, (res: any) => {});
-          }
-        } else {
-          alert('Error al descargar el archivo: ' + (data.error || 'Desconocido'));
-        }
-      } catch (err) {
-        console.error("Upload error:", err);
-        alert('Error al procesar la URL');
-      } finally {
-        setIsUploading(false);
-      }
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setSelectedImage(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -524,35 +487,10 @@ function MainApp() {
                                {isLiz ? `"${m.text}"` : m.text}
                             </span>
                             {m.image && <div className="mt-3 ml-2"><img src={m.image} className="rounded-xl border border-white/10 max-w-[300px] shadow-lg" alt="adjunto"/></div>}
-                            {m.fileType === 'video' && m.fileUrl && (
-                                <div className="mt-3 ml-2">
-                                    <video src={m.fileUrl} controls className="chat-video rounded-xl border border-white/10 max-w-[300px] shadow-lg" />
-                                </div>
-                            )}
-                            {m.fileType === 'file' && m.fileUrl && (
-                                <div className="mt-3 ml-2 bg-[#1a1c29] border border-white/10 rounded-xl p-4 flex items-center gap-4 max-w-[300px] shadow-lg">
-                                    <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center shrink-0">
-                                        <Paperclip size={20} className="text-cyan-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm text-gray-200 font-medium truncate" title={m.fileName}>{m.fileName || 'Archivo adjunto'}</div>
-                                    </div>
-                                    <a href={m.fileUrl} download={m.fileName || 'archivo'} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-2 px-3 py-2 bg-cyan-500/20 text-cyan-400 font-bold text-xs rounded-lg hover:bg-cyan-500/30 transition-colors uppercase tracking-wider">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                                        Descargar
-                                    </a>
-                                </div>
-                            )}
                             {(m.type === 'audio' || m.audio) && <div className="mt-3 ml-2 bg-[#13151f] p-2 rounded-xl inline-block border border-white/5 shadow-inner"><audio src={m.audio} controls className="h-8 max-w-[250px] filter opacity-90" /></div>}
                          </div>
                      );
                   })}
-
-                  {isUploading && (
-                     <div className="text-cyan-400 text-sm font-medium italic flex items-center mb-4">
-                        Subiendo archivo<span className="ml-1 flex gap-1"><span className="animate-bounce">.</span><span className="animate-bounce" style={{animationDelay: '0.2s'}}>.</span><span className="animate-bounce" style={{animationDelay: '0.4s'}}>.</span></span>
-                     </div>
-                  )}
 
                   {/* Typing Indicator */}
                   {typingUsers[activeChat] && typingUsers[activeChat].length > 0 && (
@@ -593,6 +531,7 @@ function MainApp() {
                   )}
 
                   <div className="flex items-center gap-3">
+                      <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
                       <div className="flex-1 bg-transparent border border-gray-600 rounded-full flex items-center px-4 py-1.5 relative shadow-inner focus-within:border-cyan-500/50 transition-all">
                           <input 
                              value={inputValue}
@@ -605,7 +544,7 @@ function MainApp() {
                           />
                           <div className="flex items-center gap-3 text-gray-400 ml-3 mr-2">
                               <Smile size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
-                              <Paperclip onClick={handleUrlUpload} size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
+                              <Paperclip onClick={() => fileInputRef.current?.click()} size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
                           </div>
                       </div>
                       <button 

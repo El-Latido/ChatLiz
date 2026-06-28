@@ -16,8 +16,5 @@ export interface MessageObj {
   createdAt: number | Date | any;
   audio?: string;
   image?: string;
-  fileUrl?: string;
-  fileName?: string;
-  fileType?: string;
   type?: string;
 }
