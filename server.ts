@@ -6,7 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, addDoc, query, orderBy, limitToLast, limit, serverTimestamp, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import fs from "fs";
-import multer from "multer";
+import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { fdb, fStorage } from "./server/firebase";
@@ -62,25 +62,47 @@ async function startServer() {
   }
   app.use('/static/uploads', express.static(uploadsDir));
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-      // Clean up filename to avoid special characters
-      const originalName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '');
+  app.post('/api/upload-url', async (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: "No URL provided" });
+    }
+    
+    try {
+      const response = await axios.get(url, { responseType: 'stream' });
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      
+      let filename = 'downloaded_file';
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition.split('filename=')[1].replace(/["']/g, '');
+      } else {
+        const urlParts = new URL(url).pathname.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        if (lastPart) filename = lastPart;
+      }
+      
+      filename = filename.replace(/[^a-zA-Z0-9.\-_]/g, '');
+      if (!filename) filename = 'downloaded_file';
+      
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + originalName);
+      const finalFilename = uniqueSuffix + '-' + filename;
+      const filePath = path.join(uploadsDir, finalFilename);
+      
+      const writer = fs.createWriteStream(filePath);
+      response.data.pipe(writer);
+      
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+      
+      const fileUrl = `/static/uploads/${finalFilename}`;
+      res.json({ url: fileUrl, filename: filename, mimetype: contentType });
+    } catch (error) {
+      console.error("Error downloading from URL:", error);
+      res.status(500).json({ error: "Failed to download from URL" });
     }
-  });
-  const upload = multer({ storage });
-
-  app.post('/api/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    const fileUrl = `/static/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl, filename: req.file.originalname, mimetype: req.file.mimetype });
   });
 
   let activeUsers: Record<string, { socketId: string; status: string; username: string; profilePic?: string; statusMessage?: string; role?: string; pais_idioma?: string; timezone?: string }> = {};

@@ -72,7 +72,6 @@ function MainApp() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<BlobPart[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -252,16 +251,17 @@ function MainApp() {
     setAudioUrl(null);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const handleUrlUpload = async () => {
+    const url = window.prompt("Ingresa la URL del archivo (Drive, Mediafire, enlace directo):");
+    if (url) {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('file', file);
       try {
-        const res = await fetch('/api/upload', {
+        const res = await fetch('/api/upload-url', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url })
         });
         const data = await res.json();
         if (data.url) {
@@ -285,9 +285,12 @@ function MainApp() {
           } else {
             socket.emit('send_private', payload, activeChat, (res: any) => {});
           }
+        } else {
+          alert('Error al descargar el archivo: ' + (data.error || 'Desconocido'));
         }
       } catch (err) {
         console.error("Upload error:", err);
+        alert('Error al procesar la URL');
       } finally {
         setIsUploading(false);
       }
@@ -590,7 +593,6 @@ function MainApp() {
                   )}
 
                   <div className="flex items-center gap-3">
-                      <input type="file" accept="*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
                       <div className="flex-1 bg-transparent border border-gray-600 rounded-full flex items-center px-4 py-1.5 relative shadow-inner focus-within:border-cyan-500/50 transition-all">
                           <input 
                              value={inputValue}
@@ -603,7 +605,7 @@ function MainApp() {
                           />
                           <div className="flex items-center gap-3 text-gray-400 ml-3 mr-2">
                               <Smile size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
-                              <Paperclip onClick={() => fileInputRef.current?.click()} size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
+                              <Paperclip onClick={handleUrlUpload} size={20} className="hover:text-cyan-400 cursor-pointer transition-colors" />
                           </div>
                       </div>
                       <button 
