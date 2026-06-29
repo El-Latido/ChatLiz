@@ -421,52 +421,19 @@ function MainApp() {
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-[#07090e] text-gray-200 flex flex-col font-sans">
       
-      {/* Top Navigation Bar (Mobile-First Ultra-Compact) */}
-      <nav className="flex items-center justify-between px-3 py-2 bg-[#07090e] shrink-0 border-b border-white/5 relative z-50">
-         <div className="flex items-center gap-2">
-             <div className="relative">
-                 <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
-                     <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
-                 </div>
-                 <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-[#07090e]"></div>
+      {/* Consolidated Navigation Bar */}
+      <nav className="flex items-center justify-between px-6 py-4 bg-white/5 backdrop-blur-lg border-b border-white/10 shrink-0">
+         <div className="flex items-center gap-4">
+             <div className="w-10 h-10 rounded-full border border-white/20 overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500">
+                 <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
              </div>
-             <div className="flex flex-col justify-center">
-                 <h1 className="text-base font-bold text-white leading-none">Chat-Liz</h1>
-                 <span className="text-[10px] text-cyan-400 font-medium">En línea</span>
-             </div>
+             <h1 className="text-xl font-bold text-white tracking-tight">Chat-Liz</h1>
          </div>
 
          <div className="flex items-center gap-2">
-             <button 
-                onClick={() => { setActiveChat('global'); setUnreadPMs(prev => ({ ...prev, global: false })); }}
-                className={`p-2 rounded-xl transition-all ${activeChat === 'global' ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Globe size={24} strokeWidth={1.5} />
-             </button>
-             <button 
-                onClick={() => { setActiveChat('pluma'); }}
-                className={`p-2 rounded-xl transition-all relative ${activeChat === 'pluma' ? 'text-fuchsia-400 bg-fuchsia-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Bot size={24} strokeWidth={1.5} />
-                {plumaState.isActive && <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-black"></div>}
-             </button>
-             <button 
-                onClick={() => { setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}
-                className={`p-2 rounded-xl transition-all relative ${(Object.values(unreadPMs).some(v => v) || (user.friend_requests && user.friend_requests.length > 0)) ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Users size={24} strokeWidth={1.5} />
-                {(Object.values(unreadPMs).some(v => v) || (user.friend_requests && user.friend_requests.length > 0)) && (
-                   <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-cyan-500 rounded-full border border-[#07090e] shadow-[0_0_10px_rgba(6,182,212,1)] animate-pulse"></div>
-                )}
-             </button>
-             <div className="relative">
-                 <button 
-                    onClick={() => setIsConfigOpen(true)}
-                    className="p-2 rounded-xl text-gray-400 hover:text-white transition-all"
-                 >
-                    <Menu size={24} strokeWidth={1.5} />
-                 </button>
-             </div>
+             <button onClick={() => setActiveChat('global')} className={`px-4 py-2 rounded-xl transition-all ${activeChat === 'global' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>Global</button>
+             <button onClick={() => setIsFriendsSidebarOpen(!isFriendsSidebarOpen)} className={`px-4 py-2 rounded-xl transition-all ${isFriendsSidebarOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>Amigos</button>
+             <button onClick={() => setIsConfigOpen(true)} className="px-4 py-2 rounded-xl text-gray-400 hover:text-white transition-all">Perfil</button>
          </div>
       </nav>
 
@@ -474,10 +441,10 @@ function MainApp() {
       <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden p-4 md:p-6 pt-0 gap-6">
           
           {/* Sidebar */}
-          <aside className={`w-[280px] bg-[#12141c] rounded-3xl border border-white/5 flex flex-col min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-40 h-full left-0' : 'hidden md:flex'}`}>
+          <aside className={`w-[280px] bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 flex flex-col min-h-0 shadow-2xl relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-40 h-full left-0' : 'hidden md:flex'}`}>
               
               {/* Inner ambient glow for sidebar */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-cyan-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none"></div>
 
               {/* Elizabeth Profile Area (Sidebar header) */}
               <div className="flex flex-col items-center pt-10 pb-6 relative z-10">
@@ -569,13 +536,11 @@ function MainApp() {
           </aside>
 
           {/* Main Chat Container */}
-          <main className="flex-1 min-w-0 min-h-0 rounded-3xl relative flex flex-col bg-[#0f111a] overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.1)] border"
-                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : '#0f111a', borderColor: 'rgba(255, 255, 255, 0.05)' }}>
-              
-              {/* Outer gradient border illusion via linear-gradient using a wrapper, but implemented directly on container above with box-shadow */}
+          <main className="flex-1 min-w-0 min-h-0 rounded-3xl relative flex flex-col bg-white/5 backdrop-blur-lg overflow-hidden shadow-2xl border border-white/10"
+                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : 'rgba(255, 255, 255, 0.05)' }}>
               
               {/* Chat Header */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-[#0f111a]/80 backdrop-blur-md z-10 shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md z-10 shrink-0">
                   <div className="flex items-center gap-2">
                      <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-gray-400 hover:text-white">
                        <Menu size={20} />
