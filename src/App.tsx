@@ -75,7 +75,7 @@ function MainApp() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
   const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
-  const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
+  const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'online', systemInstruction: '' });
   
   const [activeChat, setActiveChat] = useState('global');
   const [messages, setMessages] = useState<any[]>([]);
@@ -83,7 +83,7 @@ function MainApp() {
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
   
-  const [usersOnline, setUsersOnline] = useState<UserObj[]>([{ username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' }]); 
+  const [usersOnline, setUsersOnline] = useState<UserObj[]>([{ username: 'HELIZABETH', statusMessage: 'online', role: 'admin' }]); 
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
@@ -190,17 +190,8 @@ function MainApp() {
   useEffect(() => {
     if (!isLoggedIn) return;
     
-    if (activeChat === 'global') {
-      socket.emit('get_global_history', (historyMsgs: any[]) => {
-        setMessages(historyMsgs.slice(-15));
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      });
-    } else {
-      socket.emit('get_private_history', activeChat, (historyMsgs: any[]) => {
-        setMessages(historyMsgs.slice(-15));
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      });
-    }
+    // History loading removed to keep UI clean as requested
+    setMessages([]);
     
     socket.on('receive_global', (msg: any) => {
       if (activeChat === 'global') {
@@ -237,8 +228,8 @@ function MainApp() {
     });
 
     socket.on('active_users', (usersList: UserObj[]) => {
-      const cleaned = usersList.filter(u => u.username !== 'Elizabeth' && u.username !== user.username);
-      const elizabeth = usersList.find(u => u.username === 'Elizabeth') || { username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' };
+      const cleaned = usersList.filter(u => u.username !== 'HELIZABETH' && u.username !== user.username);
+      const elizabeth = usersList.find(u => u.username === 'HELIZABETH') || { username: 'HELIZABETH', statusMessage: 'online', role: 'admin' };
       cleaned.unshift(elizabeth); 
       setUsersOnline(cleaned);
       // Removed setUser from here, as onSnapshot will handle it.
@@ -441,181 +432,77 @@ function MainApp() {
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-[#07090e] text-gray-200 flex flex-col font-sans">
       
       {/* Top Navigation Bar (Mobile-First Ultra-Compact) */}
-      <nav className="flex items-center justify-between px-3 py-2 bg-[#07090e] shrink-0 border-b border-white/5 relative z-50">
-         <div className="flex items-center gap-2">
-             <div className="relative">
-                 <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
-                     <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
-                 </div>
-                 <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-[#07090e]"></div>
+      <nav className="flex items-center justify-between px-6 py-4 bg-[#0a0a16] shrink-0 border-b border-[#00f3ff]/20 relative z-50 shadow-[0_2px_15px_rgba(0,243,255,0.1)]">
+         <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full border border-[#00f3ff]/50 overflow-hidden flex items-center justify-center bg-[#12141c] shadow-[0_0_10px_rgba(0,243,255,0.3)]">
+                <MessageCircle size={18} className="text-[#00f3ff]" />
              </div>
-             <div className="flex flex-col justify-center">
-                 <h1 className="text-base font-bold text-white leading-none">Chat-Liz</h1>
-                 <span className="text-[10px] text-cyan-400 font-medium">En línea</span>
-             </div>
+             <h1 className="text-xl font-bold text-white tracking-wider">Chat-Liz</h1>
          </div>
 
-         <div className="flex items-center gap-2">
-             <button 
-                onClick={() => { setActiveChat('global'); setUnreadPMs(prev => ({ ...prev, global: false })); }}
-                className={`p-2 rounded-xl transition-all ${activeChat === 'global' ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Globe size={24} strokeWidth={1.5} />
-             </button>
-             <button 
-                onClick={() => { setActiveChat('pluma'); }}
-                className={`p-2 rounded-xl transition-all relative ${activeChat === 'pluma' ? 'text-fuchsia-400 bg-fuchsia-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Bot size={24} strokeWidth={1.5} />
-                {plumaState.isActive && <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-black"></div>}
-             </button>
-             <button 
-                onClick={() => { 
-                   setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
-                   if (!isFriendsSidebarOpen) {
-                       setMobileView('buzon');
-                   }
-                }}
-                className={`p-2 rounded-xl transition-all relative ${(Object.values(unreadPMs).some(v => v) || (user.friend_requests && user.friend_requests.length > 0)) ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400 hover:text-white'}`}
-             >
-                <Users size={24} strokeWidth={1.5} />
-                {(Object.values(unreadPMs).some(v => v) || (user.friend_requests && user.friend_requests.length > 0)) && (
-                   <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-cyan-500 rounded-full border border-[#07090e] shadow-[0_0_10px_rgba(6,182,212,1)] animate-pulse"></div>
-                )}
+         <div className="flex items-center gap-4">
+             <button className="text-gray-400 hover:text-[#00f3ff] transition-colors p-2">
+                <Search size={22} strokeWidth={1.5} />
              </button>
              <button 
                 onClick={() => setIsConfigOpen(true)}
-                className="p-2 rounded-xl text-gray-400 hover:text-white transition-all"
+                className="text-gray-400 hover:text-[#00f3ff] transition-colors p-2"
              >
-                <Menu size={24} strokeWidth={1.5} />
+                <Settings size={22} strokeWidth={1.5} />
              </button>
          </div>
       </nav>
 
       {/* Main Content Layout */}
-      <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden p-4 md:p-6 pt-0 gap-6">
+      <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden p-6 pt-6 gap-6 bg-gradient-to-b from-[#0a0a16] to-[#050608]">
           
           {/* Sidebar */}
-          <aside className={`w-[280px] bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 flex flex-col min-h-0 shadow-2xl relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-40 h-full left-0' : 'hidden md:flex'}`}>
+          <aside className={`w-[280px] bg-[#0a0a16]/40 backdrop-blur-3xl rounded-3xl border border-[#00f3ff]/20 flex flex-col min-h-0 shadow-[0_0_30px_rgba(0,0,0,0.8)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-40 h-full left-0' : 'hidden md:flex'}`}>
               
               {/* Inner ambient glow for sidebar */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-purple-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+              <div className="absolute inset-0 bg-[#00f3ff]/5 pointer-events-none"></div>
 
-              {/* Elizabeth Profile Area (Sidebar header) */}
+              {/* HELIZABETH Profile Area (Sidebar header) */}
               <div className="flex flex-col items-center pt-10 pb-6 relative z-10">
-                 <div className="relative mb-6 group cursor-pointer" onClick={() => {
-                    const elizabethUser = usersOnline.find(u => u.username === 'Elizabeth') || {username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin'};
+                 <div className="relative mb-4 group cursor-pointer" onClick={() => {
+                    const elizabethUser = usersOnline.find(u => u.username === 'HELIZABETH') || {username: 'HELIZABETH', statusMessage: 'online', role: 'admin'};
                     if (user.username.trim() === "Axiss") {
-                        setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora', systemInstruction: elizabethUser.systemInstruction || '' });
+                        setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'online', systemInstruction: elizabethUser.systemInstruction || '' });
                         setAdminConfigLizOpen(true);
                     } else {
                         setSelectedUserModal(elizabethUser);
                     }
                  }}>
                     <div className="absolute inset-0 bg-cyan-400 blur-2xl opacity-20 rounded-full group-hover:opacity-40 transition-opacity"></div>
-                    <div className="w-28 h-28 rounded-full border border-cyan-400/50 p-1 relative z-10 bg-[#0a0a16] shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center overflow-hidden [clip-path:polygon(50%_0%,100%_25%,100%_75%,50%_100%,0%_75%,0%_25%)]">
-                       {(usersOnline.find(u => u.username === 'Elizabeth')?.profilePic) ? (
-                         <img src={usersOnline.find(u => u.username === 'Elizabeth')?.profilePic} className="w-full h-full object-cover rounded-full" alt="Elizabeth" />
+                    <div className="w-28 h-28 rounded-full border-2 border-[#00f3ff] p-1 relative z-10 bg-[#0a0a16] shadow-[0_0_20px_rgba(0,243,255,0.5)] flex items-center justify-center overflow-hidden">
+                       {(usersOnline.find(u => u.username === 'HELIZABETH')?.profilePic) ? (
+                         <img src={usersOnline.find(u => u.username === 'HELIZABETH')?.profilePic} className="w-full h-full object-cover rounded-full" alt="HELIZABETH" />
                        ) : (
-                         <Bot size={54} className="text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
+                         <Bot size={54} className="text-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.8)]" />
                        )}
                     </div>
                     {/* Glowing dot for online status */}
-                    <div className="absolute bottom-2 right-2 w-4 h-4 bg-cyan-400 rounded-full border-2 border-[#12141c] shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
+                    <div className="absolute bottom-2 right-2 w-4 h-4 bg-[#00f3ff] rounded-full border-2 border-[#12141c] shadow-[0_0_8px_rgba(0,243,255,0.8)]"></div>
                  </div>
-
-                 {/* Elizabeth Tab */}
-                 <div className="px-4 w-full">
-                    <button 
-                       onClick={() => setActiveChat('Elizabeth')}
-                       className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border ${activeChat === 'Elizabeth' || activeChat === 'global' ? 'shadow-[0_0_15px_rgba(6,182,212,0.15)]' : 'border-transparent hover:bg-white/5'} transition-all`}
-                       style={ (activeChat === 'Elizabeth' || activeChat === 'global') ? { background: 'linear-gradient(#1a1c26, #1a1c26) padding-box, linear-gradient(to right, #06b6d4, #a855f7) border-box', border: '1px solid transparent' } : {} }
-                    >
-                        <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full bg-cyan-900/50 border border-cyan-500/50 flex items-center justify-center overflow-hidden">
-                              {(usersOnline.find(u => u.username === 'Elizabeth')?.profilePic) ? (
-                                <img src={usersOnline.find(u => u.username === 'Elizabeth')?.profilePic} className="w-full h-full object-cover" />
-                              ) : (
-                                <Bot size={16} className="text-cyan-300" />
-                              )}
-                           </div>
-                           <div className="flex flex-col items-start leading-tight">
-                              <span className="font-bold text-white text-[15px]">ELIZABETH <span className="text-cyan-400 font-normal">~</span></span>
-                              <span className="text-[12px] text-cyan-400">online</span>
-                           </div>
-                        </div>
-                    </button>
+                 <div className="flex flex-col items-center leading-tight">
+                    <span className="font-bold text-white text-lg tracking-wide">HELIZABETH</span>
+                    <span className="text-sm text-[#00f3ff] mt-1">online</span>
                  </div>
               </div>
               
               <div className="w-full h-px bg-white/5 my-2"></div>
 
-              {/* Users List */}
+              {/* Users List (Empty as requested) */}
               <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">
-                 {usersOnline.map(u => {
-                    if (u.username === 'Elizabeth') return null;
-                    return (
-                        <div key={u.username} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl transition-all ${activeChat === u.username ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-                           <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                               <div 
-                                 title="Ver perfil"
-                                 className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 flex items-center justify-center overflow-hidden cursor-pointer flex-shrink-0"
-                                 onClick={() => {
-                                    if (u.username === 'Elizabeth' && user.username.trim() === "Axiss") {
-                                        setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora', systemInstruction: u.systemInstruction || '' });
-                                        setAdminConfigLizOpen(true);
-                                    } else {
-                                        setSelectedUserModal(u);
-                                    }
-                                 }}
-                               >
-                                   <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt="avatar" className="w-full h-full object-cover" />
-                               </div>
-                               <button className="text-left flex-1 truncate flex items-center gap-1" onClick={(e) => {
-                                 e.stopPropagation();
-                                 setActiveChat(u.username);
-                                 setIsFriendsSidebarOpen(false);
-                               }}>
-                                 <span className="font-medium text-gray-300 text-[15px] truncate block">{u.username}</span>
-                                 {u.awards && u.awards.map((award, idx) => (
-                                     <span key={idx} className="text-xs">{award}</span>
-                                 ))}
-                                 <span className="text-gray-500">~</span>
-                               </button>
-                           </div>
-                           <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] flex-shrink-0"></div>
-                        </div>
-                    )
-                 })}
               </div>
           </aside>
 
           {/* Main Chat Container */}
-          <main className={`flex-1 min-w-0 min-h-0 rounded-3xl relative flex flex-col bg-white/5 backdrop-blur-lg overflow-hidden shadow-2xl border border-white/10 ${mobileView === 'chat' ? 'fixed inset-0 top-[49px] z-[60] sm:static sm:inset-auto sm:z-auto sm:top-auto' : 'hidden sm:flex'}`}
-                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : 'rgba(255, 255, 255, 0.05)' }}>
+          <main className={`flex-1 min-w-0 min-h-0 rounded-3xl relative flex flex-col bg-[#0a0a16]/40 backdrop-blur-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-[#00f3ff]/20 ${mobileView === 'chat' ? 'fixed inset-0 top-[49px] z-[60] sm:static sm:inset-auto sm:z-auto sm:top-auto' : 'hidden sm:flex'}`}
+                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : 'rgba(10, 10, 22, 0.4)' }}>
               
-              {/* Chat Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md z-10 shrink-0">
-                  <div className="flex items-center gap-2">
-                     <button onClick={() => { setMobileView('buzon'); }} className="sm:hidden text-gray-400 hover:text-white mr-1 transition-colors">
-                       <ChevronLeft size={24} />
-                     </button>
-                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white mr-2">
-                       <Menu size={20} />
-                     </button>
-                     <h2 className="text-sm font-bold text-white flex items-center gap-2 truncate">
-                        {activeChat === 'global' ? 'CHAT GLOBAL #1' : `Private Chat: ${activeChat}`}
-                        {activeChat === 'global' && <span className="text-xs font-normal text-gray-500">({usersOnline.filter(u => u.username !== 'Elizabeth').length + 1} on)</span>}
-                     </h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                     <button id="music-toggle" onClick={() => setIsMusicPlaying(!isMusicPlaying)} className="text-gray-400 hover:text-cyan-400 p-2 rounded-full hover:bg-white/5">
-                        {isMusicPlaying ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                     </button>
-                  </div>
-              </div>
-
-
+              {/* Inner Glow */}
+              <div className="absolute inset-0 bg-[#00f3ff]/5 pointer-events-none"></div>
 
               {activeChat === 'pluma' ? (
                  <div className="flex-1 flex flex-col items-center justify-start p-4 overflow-y-auto bg-black/60 relative">
@@ -647,13 +534,13 @@ function MainApp() {
                     {plumaState.isActive && (
                         <div className="w-full max-w-3xl mt-14 flex-1 flex flex-col pb-4">
                             <div className="bg-[#12141c]/80 backdrop-blur-sm border border-fuchsia-500/30 p-4 rounded-2xl mb-4 shadow-xl flex-1 overflow-y-auto scrollbar-thin">
-                                <h4 className="text-center text-gray-500 font-bold mb-3 uppercase text-[10px] tracking-widest">
+                                <h4 className="text-center text-gray-500 font-bold mb-3  text-[10px] tracking-widest">
                                     {plumaState.lastWriter === null ? 'Turno Libre' : `Último turno: ${plumaState.lastWriter}`}
                                 </h4>
                                 <div className="space-y-3">
                                     {plumaState.phrases.map((p: any, i: number) => (
                                         <p key={i} className="text-base text-gray-200 leading-relaxed font-serif animate-in slide-in-from-bottom-2 fade-in">
-                                            <span className="text-fuchsia-400 font-bold font-sans text-[10px] mr-2 uppercase tracking-wider">{p.sender}</span>
+                                            <span className="text-fuchsia-400 font-bold font-sans text-[10px] mr-2  tracking-wider">{p.sender}</span>
                                             {p.text}
                                         </p>
                                     ))}
@@ -688,29 +575,20 @@ function MainApp() {
                   {/* Chat Feed */}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scrollbar-thin">
                   {messages.filter((m, i, arr) => 
-                     m && m.sender && !(i > 0 && m.sender === 'Elizabeth' && arr[i-1] && m.text === arr[i-1].text)
+                     m && m.sender && !(i > 0 && m.sender === 'HELIZABETH' && arr[i-1] && m.text === arr[i-1].text)
                   ).slice(-15).map((m, idx) => {
                      const isMine = m.sender === user.username;
-                     const isLiz = m.sender === 'Elizabeth' || m.isAi;
+                     const isLiz = m.sender === 'HELIZABETH' || m.isAi;
                      const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
                      const timeStr = isNaN(date.getTime()) ? `10:0${idx % 10}` : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                      const senderUser = usersOnline.find(u => u.username === m.sender);
 
                      return (
                          <div key={m.id || idx} className={`flex flex-col mb-4 ${isMine ? 'items-end' : 'items-start'}`}>
-                            <div className="flex items-center gap-2 mb-1 px-1">
-                               <span className={`text-[10px] font-bold uppercase tracking-wider ${isMine ? 'text-[var(--text-accent)]' : isLiz ? 'text-[var(--text-accent)]' : 'text-[var(--text-secondary)]'}`}>
-                                  {isLiz ? 'ELIZABETH' : m.sender}
-                                  {!isLiz && senderUser?.awards?.map((award, i) => (
-                                     <span key={i} className="text-[10px] ml-1">{award}</span>
-                                  ))}
-                               </span>
-                               <span className="text-[9px] text-[var(--text-secondary)] opacity-70">{timeStr}</span>
-                            </div>
-                            <div className={`px-4 py-2.5 max-w-[85%] sm:max-w-[70%] break-words shadow-sm border border-[var(--border-color)] ${isMine ? 'bg-[var(--bubble-sent)] text-[var(--bubble-text)] rounded-2xl rounded-tr-sm' : 'bg-[var(--bubble-recv)] text-[var(--bubble-text)] rounded-2xl rounded-tl-sm'}`}>
+                            <div className={`px-4 py-2.5 max-w-[85%] sm:max-w-[70%] break-words shadow-[0_0_15px_rgba(0,0,0,0.5)] border border-[#00f3ff]/20 ${isMine ? 'bg-[#00f3ff]/10 text-white rounded-2xl rounded-tr-sm mt-1' : 'bg-white/5 text-gray-200 rounded-2xl rounded-tl-sm mt-1'}`}>
                                {m.text}
-                               {m.image && <div className="mt-2"><img src={m.image} className="rounded-xl border border-[var(--border-color)] max-w-[200px] shadow-sm" alt="adjunto"/></div>}
-                               {(m.type === 'audio' || m.audio) && <div className="mt-2 bg-[var(--bg-input)] p-1 rounded-xl inline-block border border-[var(--border-color)]"><audio src={m.audio} controls className="h-6 max-w-[200px] filter opacity-90" /></div>}
+                               {m.image && <div className="mt-2"><img src={m.image} className="rounded-xl border border-[#00f3ff]/20 max-w-[200px] shadow-sm" alt="adjunto"/></div>}
+                               {(m.type === 'audio' || m.audio) && <div className="mt-2 bg-black/50 p-1 rounded-xl inline-block border border-[#00f3ff]/20"><audio src={m.audio} controls className="h-6 max-w-[200px] filter opacity-90" /></div>}
                             </div>
                          </div>
                      );
@@ -719,14 +597,14 @@ function MainApp() {
                   {/* Typing Indicator */}
                   {typingUsers[activeChat] && typingUsers[activeChat].length > 0 && (
                      <div className="flex flex-col gap-0.5 mb-2 px-2">
-                        {typingUsers[activeChat].includes("Elizabeth") && (
+                        {typingUsers[activeChat].includes("HELIZABETH") && (
                            <div className="text-[var(--text-accent)] text-xs font-medium italic flex items-center">
                               ELIZABETH escribiendo<span className="ml-1 flex gap-0.5"><span className="animate-bounce">.</span><span className="animate-bounce" style={{animationDelay: '0.2s'}}>.</span><span className="animate-bounce" style={{animationDelay: '0.4s'}}>.</span></span>
                            </div>
                         )}
-                        {typingUsers[activeChat].filter(u => u !== "Elizabeth").length > 0 && (
+                        {typingUsers[activeChat].filter(u => u !== "HELIZABETH").length > 0 && (
                            <div className="text-[var(--text-secondary)] text-xs font-medium italic">
-                              {typingUsers[activeChat].filter(u => u !== "Elizabeth").join(", ")} escribiendo...
+                              {typingUsers[activeChat].filter(u => u !== "HELIZABETH").join(", ")} escribiendo...
                            </div>
                         )}
                      </div>
@@ -775,21 +653,21 @@ function MainApp() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 relative">
+                  <div className="flex items-center gap-3 relative p-4 bg-[#0a0a16]/80 backdrop-blur-xl border-t border-[#00f3ff]/20">
                       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-                      <div className="flex-1 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl flex items-center px-3 py-1 relative focus-within:border-[var(--text-accent)] transition-all">
+                      <div className="flex-1 bg-[#12141c]/90 border border-[#00f3ff]/30 rounded-full flex items-center px-4 py-3 relative focus-within:border-[#00f3ff] focus-within:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all">
                           <input 
                              value={inputValue}
                              onChange={handleInputChange}
                              onKeyDown={e => {
                                 if (e.key === 'Enter') handleSendMessage();
                              }}
-                             className="w-full bg-transparent outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] text-sm py-1" 
-                             placeholder="Mensaje..."
+                             className="w-full bg-transparent outline-none text-white placeholder-gray-400 text-sm" 
+                             placeholder="Escribe tu mensaje..."
                           />
-                          <div className="flex items-center gap-2 text-[var(--text-secondary)] ml-2">
-                              <Smile onClick={() => setShowEmojiPicker(!showEmojiPicker)} size={18} className="hover:text-[var(--text-accent)] cursor-pointer transition-colors" />
-                              <Paperclip onClick={() => fileInputRef.current?.click()} size={18} className="hover:text-[var(--text-accent)] cursor-pointer transition-colors" />
+                          <div className="flex items-center gap-3 text-[#00f3ff]/70 ml-2">
+                              <Smile onClick={() => setShowEmojiPicker(!showEmojiPicker)} size={20} className="hover:text-[#00f3ff] hover:drop-shadow-[0_0_8px_rgba(0,243,255,0.8)] cursor-pointer transition-all" />
+                              <Paperclip onClick={() => fileInputRef.current?.click()} size={20} className="hover:text-[#00f3ff] hover:drop-shadow-[0_0_8px_rgba(0,243,255,0.8)] cursor-pointer transition-all" />
                           </div>
                       </div>
                       
@@ -808,12 +686,9 @@ function MainApp() {
                       <button 
                         onClick={handleSendMessage} 
                         disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
-                        className="bg-[var(--text-accent)] rounded-xl h-9 w-9 flex items-center justify-center disabled:opacity-50 shrink-0"
+                        className="bg-[#00f3ff]/10 border border-[#00f3ff] rounded-full h-12 w-12 flex items-center justify-center disabled:opacity-50 shrink-0 hover:bg-[#00f3ff]/20 hover:shadow-[0_0_20px_rgba(0,243,255,0.5)] transition-all"
                       >
-                        <Send size={16} className="text-white ml-0.5" />
-                      </button>
-                      <button onClick={isRecording ? stopRecording : startRecording} className={`flex items-center justify-center rounded-xl h-9 w-9 bg-[var(--bg-input)] border border-[var(--border-color)] shrink-0 transition-all ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                          {isRecording ? <StopCircle size={16} className="animate-pulse" /> : <Mic size={16} />}
+                        <Send size={20} className="text-[#00f3ff] ml-1 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]" />
                       </button>
                   </div>
               </div>
@@ -852,19 +727,19 @@ function MainApp() {
                 <X size={20} />
              </button>
              <div 
-                className={`w-20 h-20 mx-auto mb-3 rounded-full border border-white/10 overflow-hidden shadow-lg relative ${selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`}
+                className={`w-20 h-20 mx-auto mb-3 rounded-full border border-white/10 overflow-hidden shadow-lg relative ${selectedUserModal.username === 'HELIZABETH' && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`}
                 onClick={() => {
-                    if (selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss') {
-                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora', systemInstruction: selectedUserModal.systemInstruction || '' });
+                    if (selectedUserModal.username === 'HELIZABETH' && user.username.trim() === 'Axiss') {
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'online', systemInstruction: selectedUserModal.systemInstruction || '' });
                         setSelectedUserModal(null);
                         setAdminConfigLizOpen(true);
                     }
                 }}
              >
                 <img src={selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`} className="w-full h-full object-cover" alt="Avatar" />
-                {selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' && (
+                {selectedUserModal.username === 'HELIZABETH' && user.username.trim() === 'Axiss' && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-bold text-white uppercase text-center px-1">Cambiar Foto</span>
+                        <span className="text-[10px] font-bold text-white  text-center px-1">Cambiar Foto</span>
                     </div>
                 )}
              </div>
@@ -880,7 +755,7 @@ function MainApp() {
              </p>
              
              <div className="bg-[#0a0a16] border border-white/5 p-4 rounded-2xl relative mb-4">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#12141c] px-2 text-xs text-gray-500 font-semibold uppercase">Estado</div>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#12141c] px-2 text-xs text-gray-500 font-semibold ">Estado</div>
                 <p className="text-gray-300 italic text-sm">
                    "{selectedUserModal.statusMessage || 'Disponible'}"
                 </p>
@@ -888,7 +763,7 @@ function MainApp() {
              
              {/* Friends Banner */}
              <div className="bg-[#0a0a16] border border-cyan-500/20 p-4 rounded-2xl relative mb-4">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#12141c] px-2 text-xs text-cyan-400 font-semibold uppercase flex items-center gap-1">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#12141c] px-2 text-xs text-cyan-400 font-semibold  flex items-center gap-1">
                    <Users size={12} /> Amigos
                 </div>
                 {selectedUserModal.username === user.username || selectedUserModal.is_friends_public ? (
@@ -913,7 +788,7 @@ function MainApp() {
                      <MessageCircle size={18} />
                      Enviar mensaje
                    </button>
-                   {selectedUserModal.username !== 'Elizabeth' && (
+                   {selectedUserModal.username !== 'HELIZABETH' && (
                      <div className="flex gap-2">
                          {user.friends_list?.includes(selectedUserModal.username) ? (
                              <button 
@@ -992,7 +867,7 @@ function MainApp() {
                <div className="flex-1 overflow-y-auto p-2 space-y-1">
                    {user.friend_requests && user.friend_requests.length > 0 && (
                            <div className="mb-4">
-                               <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 px-2">Solicitudes Pendientes</h3>
+                               <h3 className="text-[10px] text-gray-500 font-bold  tracking-wider mb-2 px-2">Solicitudes Pendientes</h3>
                                {user.friend_requests.map(reqUsername => (
                                    <div key={`req-${reqUsername}`} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 mb-2">
                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 overflow-hidden relative shrink-0">
@@ -1016,7 +891,7 @@ function MainApp() {
                        )}
 
                        {user.friends_list && user.friends_list.length > 0 && (
-                          <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 px-2">Amigos</h3>
+                          <h3 className="text-[10px] text-gray-500 font-bold  tracking-wider mb-2 px-2">Amigos</h3>
                        )}
                        {(!user.friends_list || user.friends_list.length === 0) ? (
                            <p className="text-gray-500 text-center text-sm mt-10">No tienes amigos agregados aún.</p>
@@ -1074,7 +949,7 @@ function MainApp() {
                             <div key={i} className="bg-gradient-to-br from-[#1c1822] to-[#12141c] border border-yellow-500/20 p-5 rounded-2xl shadow-xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full blur-2xl"></div>
                                 <h3 className="text-xl font-bold text-white mb-1 relative z-10">{story.title}</h3>
-                                <p className="text-xs text-yellow-500/80 font-bold mb-4 italic uppercase tracking-wider relative z-10">Autores: {story.authors.join(', ')}</p>
+                                <p className="text-xs text-yellow-500/80 font-bold mb-4 italic  tracking-wider relative z-10">Autores: {story.authors.join(', ')}</p>
                                 <div className="space-y-1 mb-4 text-gray-300 font-serif leading-relaxed border-l-2 border-yellow-500/30 pl-4 text-sm relative z-10">
                                     {story.phrases.map((p: any, j: number) => (
                                         <span key={j}>{p.text} </span>
