@@ -42,8 +42,8 @@ export function EmojiGifPicker({ onSelect, onClose }: EmojiGifPickerProps) {
   };
 
   return (
-    <div className="absolute -bottom-2 right-10 w-72 bg-white/10 backdrop-blur-lg border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] p-3">
-      <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white/10 backdrop-blur-lg border-r border-b border-white/10 rotate-45"></div>
+    <div className="relative w-72 bg-[#12141c]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col p-3 z-[9999]">
+      <div className="absolute -bottom-2 right-4 w-4 h-4 bg-[#12141c] border-r border-b border-white/10 rotate-45 z-[-1]"></div>
       <div className="flex border-b border-white/10 pb-2">
         <button 
           onClick={() => setActiveTab('emoji')} 

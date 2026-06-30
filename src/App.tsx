@@ -3,7 +3,7 @@ import {
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search,
-  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
+  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle, ChevronLeft
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
@@ -14,6 +14,7 @@ import { RecoveryModal } from './components/RecoveryModal';
 import { ProfileConfigModal } from './components/ProfileConfigModal';
 import { AdminConfigLizModal } from './components/AdminConfigLizModal';
 import { EmojiGifPicker } from './components/EmojiGifPicker';
+import { AudioVisualizer } from './components/AudioVisualizer';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -86,6 +87,7 @@ function MainApp() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<'chat' | 'buzon'>('chat');
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
   const [plumaState, setPlumaState] = useState<any>({ isActive: false, timerEndTime: 0, phrases: [] });
   const [hallOfFame, setHallOfFame] = useState<any[]>([]);
@@ -105,14 +107,13 @@ function MainApp() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioData, setAudioData] = useState<Uint8Array | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const requestAnimationFrameRef = useRef<number | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioChunks = useRef<BlobPart[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -191,7 +192,7 @@ function MainApp() {
     
     if (activeChat === 'global') {
       socket.emit('get_global_history', (historyMsgs: any[]) => {
-        setMessages(historyMsgs);
+        setMessages(historyMsgs.slice(-15));
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       });
     } else {
@@ -389,17 +390,8 @@ function MainApp() {
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
 
-      const updateVisualizer = () => {
-         if (!analyserRef.current) return;
-         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-         analyserRef.current.getByteFrequencyData(dataArray);
-         setAudioData(new Uint8Array(dataArray));
-         requestAnimationFrameRef.current = requestAnimationFrame(updateVisualizer);
-      };
-
       mediaRecorderRef.current.start();
       setIsRecording(true);
-      updateVisualizer();
     } catch (err) {
       alert("Error al acceder al micrófono");
     }
@@ -411,13 +403,10 @@ function MainApp() {
       setIsRecording(false);
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
-    if (requestAnimationFrameRef.current) {
-        cancelAnimationFrame(requestAnimationFrameRef.current);
-    }
     if (audioContextRef.current) {
         audioContextRef.current.close();
     }
-    setAudioData(null);
+    analyserRef.current = null;
   };
 
   if (!isLoggedIn) {
@@ -452,7 +441,7 @@ function MainApp() {
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-[#07090e] text-gray-200 flex flex-col font-sans">
       
       {/* Top Navigation Bar (Mobile-First Ultra-Compact) */}
-      <nav className="flex items-center justify-between px-3 py-2 bg-[#07090e] shrink-0 border-b border-white/5 relative z-50">
+      <nav className="flex items-center justify-between px-3 py-2 bg-[#07090e] shrink-0 border-b border-white/5 relative z-[70]">
          <div className="flex items-center gap-2">
              <div className="relative">
                  <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
@@ -481,7 +470,13 @@ function MainApp() {
                 {plumaState.isActive && <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-black"></div>}
              </button>
              <button 
-                onClick={() => { setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}
+                onClick={() => { 
+                   if (window.innerWidth < 640) {
+                       setMobileView(mobileView === 'buzon' ? 'chat' : 'buzon');
+                   } else {
+                       setIsFriendsSidebarOpen(!isFriendsSidebarOpen); 
+                   }
+                }}
                 className={`p-2 rounded-xl transition-all relative ${(Object.values(unreadPMs).some(v => v) || (user.friend_requests && user.friend_requests.length > 0)) ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-400 hover:text-white'}`}
              >
                 <Users size={24} strokeWidth={1.5} />
@@ -597,13 +592,16 @@ function MainApp() {
           </aside>
 
           {/* Main Chat Container */}
-          <main className="flex-1 min-w-0 min-h-0 rounded-3xl relative flex flex-col bg-white/5 backdrop-blur-lg overflow-hidden shadow-2xl border border-white/10"
-                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : 'rgba(255, 255, 255, 0.05)' }}>
+          <main className={`flex-1 min-w-0 min-h-0 sm:rounded-3xl relative flex flex-col bg-[#07090e] sm:bg-white/5 sm:backdrop-blur-lg overflow-hidden sm:shadow-2xl sm:border border-white/10 ${mobileView === 'chat' ? 'fixed inset-0 top-[49px] z-[60] sm:static sm:inset-auto sm:z-auto sm:top-auto' : 'hidden sm:flex'}`}
+                style={{ background: chatBg ? `url(${chatBg}) center/cover no-repeat` : undefined }}>
               
               {/* Chat Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md z-10 shrink-0">
                   <div className="flex items-center gap-2">
-                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-gray-400 hover:text-white">
+                     <button onClick={() => { setMobileView('buzon'); setIsFriendsSidebarOpen(true); }} className="md:hidden text-gray-400 hover:text-white mr-1">
+                       <ChevronLeft size={24} />
+                     </button>
+                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-400 hover:text-white mr-2">
                        <Menu size={20} />
                      </button>
                      <h2 className="text-sm font-bold text-white flex items-center gap-2 truncate">
@@ -692,7 +690,7 @@ function MainApp() {
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scrollbar-thin">
                   {messages.filter((m, i, arr) => 
                      m && m.sender && !(i > 0 && m.sender === 'Elizabeth' && arr[i-1] && m.text === arr[i-1].text)
-                  ).map((m, idx) => {
+                  ).slice(-15).map((m, idx) => {
                      const isMine = m.sender === user.username;
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
                      const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
@@ -767,18 +765,9 @@ function MainApp() {
                         </div>
                       )}
                       {isRecording && (
-                        <div className="flex gap-1 items-end h-8 px-3 bg-[#12141c]/80 rounded-xl py-1 border border-cyan-500/30 animate-in fade-in">
-                           {audioData ? (
-                              Array.from(audioData).slice(0, 24).map((val, i) => (
-                                 <div 
-                                    key={i}
-                                    className="w-1 bg-cyan-400 rounded-full transition-all duration-75"
-                                    style={{ 
-                                       height: `${Math.max(4, (Number(val) / 255) * 24)}px`,
-                                       boxShadow: '0 0 10px #00f3ff, 0 0 20px #00f3ff'
-                                    }}
-                                 />
-                              ))
+                        <div className="flex items-center justify-center h-10 px-3 bg-[#12141c]/80 rounded-xl py-1 border border-cyan-500/30 animate-in fade-in absolute -top-12 right-0">
+                           {analyserRef.current ? (
+                              <AudioVisualizer analyser={analyserRef.current} />
                            ) : (
                               <div className="text-cyan-400 text-xs font-bold animate-pulse">Escuchando...</div>
                            )}
@@ -806,7 +795,7 @@ function MainApp() {
                       </div>
                       
                       {showEmojiPicker && (
-                         <div className="absolute bottom-full right-0 mb-2 z-50">
+                         <div className="absolute bottom-[80px] right-[10px] z-[9999]">
                              <EmojiGifPicker 
                                onSelect={(type, val) => {
                                   if (type === 'emoji') setInputValue(prev => prev + val);
@@ -987,24 +976,22 @@ function MainApp() {
          </div>
        )}
 
-       {/* Friends Sidebar (Bottom Sheet) */}
-       {isFriendsSidebarOpen && (
-           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in" onClick={() => setIsFriendsSidebarOpen(false)}>
-               <div className="bg-[#12141c] rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl relative border-t border-x sm:border-b border-white/10 flex flex-col h-[85vh] animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
-                   <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0">
-                       <div className="flex flex-col gap-2">
-                           <div className="w-12 h-1 bg-white/20 rounded-full sm:hidden"></div>
-                           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                               <Users size={20} className="text-cyan-400" />
-                               Mis Amigos
-                           </h2>
-                       </div>
-                       <button onClick={() => setIsFriendsSidebarOpen(false)} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
-                           <X size={20} />
-                       </button>
+       {/* Friends Sidebar / Buzón (State Stack on Mobile, Modal on Desktop) */}
+       <div className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 transition-all duration-300 ${mobileView === 'buzon' || isFriendsSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none delay-100'} ${isFriendsSidebarOpen && mobileView !== 'buzon' ? 'bg-black/60 backdrop-blur-sm' : 'bg-[#07090e] sm:bg-transparent'}`} onClick={() => { setIsFriendsSidebarOpen(false); if(mobileView === 'buzon') setMobileView('chat'); }}>
+           <div className={`bg-[#12141c] rounded-none sm:rounded-3xl w-full sm:max-w-md shadow-2xl relative border-0 sm:border border-white/10 flex flex-col h-full sm:h-[85vh] transition-transform duration-300 ${mobileView === 'buzon' || isFriendsSidebarOpen ? 'translate-x-0 sm:translate-y-0' : '-translate-x-full sm:-translate-y-10 sm:translate-x-0'}`} onClick={e => e.stopPropagation()}>
+               <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 bg-[#0a0a16] sm:bg-transparent">
+                   <div className="flex flex-col gap-2">
+                       <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                           <Users size={20} className="text-cyan-400" />
+                           Buzón de Amigos
+                       </h2>
                    </div>
-                   <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                       {user.friend_requests && user.friend_requests.length > 0 && (
+                   <button onClick={() => { setIsFriendsSidebarOpen(false); setMobileView('chat'); }} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+                       <X size={20} />
+                   </button>
+               </div>
+               <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                   {user.friend_requests && user.friend_requests.length > 0 && (
                            <div className="mb-4">
                                <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 px-2">Solicitudes Pendientes</h3>
                                {user.friend_requests.map(reqUsername => (
@@ -1042,7 +1029,11 @@ function MainApp() {
                                return (
                                    <div 
                                        key={friendUsername} 
-                                       onClick={() => { setActiveChat(friendUsername); setUnreadPMs(prev => ({...prev, [friendUsername]: false})); }}
+                                       onClick={() => { 
+                                           setActiveChat(friendUsername); 
+                                           setUnreadPMs(prev => ({...prev, [friendUsername]: false})); 
+                                           setMobileView('chat');
+                                       }}
                                        className={`flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 cursor-pointer transition-colors border group ${hasNewMsg ? 'border-cyan-500/50 bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.15)]' : 'border-transparent hover:border-white/5'}`}
                                    >
                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 overflow-hidden relative shrink-0">
@@ -1063,7 +1054,6 @@ function MainApp() {
                    </div>
                </div>
            </div>
-       )}
        {/* Fama Modal (Bottom Sheet) */}
        {showFamaModal && (
            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in" onClick={() => setShowFamaModal(false)}>

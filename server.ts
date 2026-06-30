@@ -88,7 +88,7 @@ async function startServer() {
     res.json({ url: fileUrl, filename: req.file.originalname, mimetype: req.file.mimetype });
   });
 
-  let activeUsers: Record<string, { socketId: string; status: string; username: string; profilePic?: string; statusMessage?: string; role?: string; pais_idioma?: string; timezone?: string }> = {};
+  let activeUsers: Record<string, any> = {};
 
   const bannedUsers: Record<string, number> = {};
 
@@ -555,7 +555,7 @@ async function startServer() {
     socket.on("get_global_history", async (callback) => {
       if (fdb) {
         try {
-          const q = query(collection(fdb, 'messages'), orderBy('createdAt', 'asc'), limitToLast(100));
+          const q = query(collection(fdb, 'messages'), orderBy('createdAt', 'asc'), limitToLast(15));
           const snapshot = await getDocs(q);
           const msgs = snapshot.docs.map(doc => doc.data());
           callback(msgs);
@@ -957,7 +957,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             try {
                 const participants = [currentUsername, otherUser].sort();
                 const convoId = participants.join("_");
-                const q = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'asc'), limitToLast(100));
+                const q = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'asc'), limitToLast(15));
                 const snapshot = await getDocs(q);
                 callback(snapshot.docs.map(doc => doc.data()));
             } catch(e) {
