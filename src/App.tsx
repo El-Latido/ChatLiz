@@ -86,7 +86,14 @@ function MainApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
-  const [plumaState, setPlumaState] = useState<any>({ isActive: false, timerEndTime: 0, phrases: [] });
+  const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {} });
+  const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+     const interval = setInterval(() => setNow(Date.now()), 1000);
+     return () => clearInterval(interval);
+  }, []);
   const [hallOfFame, setHallOfFame] = useState<any[]>([]);
   const chatBg = localStorage.getItem('chatBg');
 
@@ -175,7 +182,7 @@ function MainApp() {
   useEffect(() => {
     if (!isLoggedIn) return;
     
-    if (activeChat === 'global') {
+    if (activeChat === 'global' || activeChat === 'tutifrutti') {
       socket.emit('get_global_history', (historyMsgs: any[]) => {
         setMessages(historyMsgs);
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -188,7 +195,7 @@ function MainApp() {
     }
     
     socket.on('receive_global', (msg: any) => {
-      if (activeChat === 'global') {
+      if (activeChat === 'global' || activeChat === 'tutifrutti') {
           setMessages(prev => {
              if (prev.some(m => m.id === msg.id)) return prev;
              return [...prev, msg];
@@ -209,8 +216,8 @@ function MainApp() {
       }
     });
 
-    socket.on('pluma_state', (state: any) => {
-      setPlumaState(state);
+    socket.on('tutifrutti_state', (state: any) => {
+      setTutiFruttiState(state);
     });
 
     socket.emit('get_hall_of_fame', (data: any[]) => {
@@ -301,7 +308,7 @@ function MainApp() {
     if (selectedGif) payload.image = selectedGif;
     if (audioUrl) payload.audio = audioUrl;
 
-    if (activeChat === 'global') {
+    if (activeChat === 'global' || activeChat === 'tutifrutti') {
       const optimisticMsg = { ...payload, sender: user.username, createdAt: Date.now() };
       setMessages(prev => [...prev, optimisticMsg]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -513,9 +520,9 @@ function MainApp() {
                         <Globe size={16} strokeWidth={1.5} />
                         Mundo
                      </button>
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'pluma' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setActiveChat('pluma')}>
+                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'tutifrutti' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setActiveChat('tutifrutti')}>
                         <Bot size={16} strokeWidth={1.5} />
-                        Pluma
+                        Tuti Frutti
                      </button>
                      <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setIsFriendsSidebarOpen(!isFriendsSidebarOpen)}>
                         <Users size={16} strokeWidth={1.5} />
@@ -572,96 +579,175 @@ function MainApp() {
               <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
                   <div className="hidden"></div>
 
-              {activeChat === 'pluma' ? (
-                 <div className="flex-1 flex flex-col items-center justify-start p-6 overflow-y-auto bg-black/60 relative">
-                    <div className="absolute top-0 left-0 right-0 w-full bg-gradient-to-r from-fuchsia-600 to-cyan-600 p-3 flex justify-between items-center shadow-lg z-20">
-                       <h2 className="text-white font-bold text-xl drop-shadow-md">La Pluma Infinita</h2>
-                       <div className="flex gap-4">
-                           <button onClick={() => setActiveChat('fama')} className="text-white font-medium hover:text-cyan-200 transition">🏆 Salón de la Fama</button>
-                           {plumaState.isActive && (
-                               <div className={`px-4 py-1 rounded-full font-bold text-white shadow-inner flex items-center gap-2 ${
-                                   plumaState.timerEndTime - Date.now() < 10000 ? 'bg-red-500 animate-pulse' : 'bg-black/40'
-                               }`}>
-                                   ⏱️ {Math.max(0, Math.floor((plumaState.timerEndTime - Date.now()) / 1000))}s
-                               </div>
-                           )}
-                       </div>
+              {activeChat === 'tutifrutti' ? (
+                 <div className="flex-1 flex flex-col items-center justify-start p-6 overflow-y-auto bg-[#FFF5F8] relative">
+                    {/* Header Kawaii */}
+                    <div className="absolute top-0 left-0 right-0 w-full bg-gradient-to-r from-pink-300 to-purple-300 p-4 flex justify-between items-center shadow-md z-20 rounded-b-3xl border-b-4 border-white">
+                       <h2 className="text-white font-extrabold text-2xl drop-shadow-sm flex items-center gap-2">
+                           🍓 Tuti Frutti Kawaii 🍉
+                       </h2>
+                       <button onClick={() => { socket.emit('leave_tutifrutti'); setActiveChat('global'); }} className="bg-white text-pink-500 font-bold hover:bg-pink-50 px-5 py-2 rounded-full transition-colors shadow-sm">
+                           Abandonar Partida
+                       </button>
                     </div>
 
-                    {!plumaState.isActive && (
-                        <div className="text-center mt-32 flex-1 flex flex-col items-center justify-center">
-                            <Bot size={80} className="mx-auto text-fuchsia-500 mb-6 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]" />
-                            <h3 className="text-3xl font-bold text-white mb-4">Comienza una Nueva Historia</h3>
-                            <p className="text-gray-400 mb-8 max-w-md text-lg">Escribe la primera frase. Tienes 59 segundos por turno. Alcanza 20 frases entre todos para ganar y entrar al Salón de la Fama.</p>
-                            <button onClick={() => socket.emit('start_pluma_game')} className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white px-8 py-4 rounded-full text-xl font-bold shadow-[0_0_20px_rgba(217,70,239,0.5)] transition-transform hover:scale-105 active:scale-95">
-                                Empezar Juego
-                            </button>
-                        </div>
-                    )}
-
-                    {plumaState.isActive && (
-                        <div className="w-full max-w-3xl mt-20 flex-1 flex flex-col pb-6">
-                            <div className="bg-[#12141c]/80 backdrop-blur-sm border border-fuchsia-500/30 p-6 rounded-2xl mb-6 shadow-xl flex-1 overflow-y-auto scrollbar-thin">
-                                <h4 className="text-center text-gray-500 font-bold mb-4 uppercase text-xs tracking-widest">
-                                    {plumaState.lastWriter === null ? 'Turno Libre' : `Último turno: ${plumaState.lastWriter} (Turno Libre)`}
-                                </h4>
-                                <div className="space-y-4">
-                                    {plumaState.phrases.map((p: any, i: number) => (
-                                        <p key={i} className="text-xl text-gray-200 leading-relaxed font-serif animate-in slide-in-from-bottom-2 fade-in">
-                                            <span className="text-fuchsia-400 font-bold font-sans text-sm mr-3 uppercase tracking-wider">{p.sender}</span>
-                                            {p.text}
-                                        </p>
-                                    ))}
+                    <div className="mt-24 w-full max-w-4xl flex flex-col md:flex-row gap-6">
+                        {/* Main Game Area */}
+                        <div className="flex-1 bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-pink-100 flex flex-col">
+                            {!tutiFruttiState.isActive ? (
+                                <div className="text-center flex-1 flex flex-col items-center justify-center">
+                                    <div className="text-6xl mb-4 animate-bounce">🎨</div>
+                                    <h3 className="text-3xl font-bold text-pink-500 mb-2">¡Sala de Espera!</h3>
+                                    <p className="text-gray-500 mb-8 text-lg">Únete a la partida y demuestra tu rapidez mental.</p>
+                                    
+                                    {!tutiFruttiState.players.includes(user.username) ? (
+                                        <button onClick={() => socket.emit('join_tutifrutti')} className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                            Unirme al Juego ✨
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => socket.emit('start_tutifrutti_round')} className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                            ¡Comenzar Ronda! 🚀
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
-                            <div className="flex gap-3">
-                                <input 
-                                    disabled={plumaState.lastWriter === user.username}
-                                    value={inputValue}
-                                    onChange={e => setInputValue(e.target.value)}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter' && inputValue.trim()) {
-                                            socket.emit('send_pluma_phrase', inputValue.trim(), () => setInputValue(''));
-                                        }
-                                    }}
-                                    className="flex-1 bg-[#12141c] p-4 rounded-xl border border-white/10 outline-none text-white focus:border-fuchsia-500 transition-colors disabled:opacity-50 text-lg shadow-inner"
-                                    placeholder={plumaState.lastWriter === user.username ? 'Debes esperar al siguiente turno...' : 'Aporta la siguiente frase...'}
-                                />
-                                <button 
-                                    disabled={plumaState.lastWriter === user.username || !inputValue.trim()}
-                                    onClick={() => { socket.emit('send_pluma_phrase', inputValue.trim(), () => setInputValue('')); }}
-                                    className="bg-fuchsia-600 hover:bg-fuchsia-500 disabled:bg-gray-700 text-white px-8 rounded-xl font-bold transition-colors shadow-lg disabled:shadow-none"
-                                >
-                                    Enviar
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                 </div>
-              ) : activeChat === 'fama' ? (
-                 <div className="flex-1 overflow-y-auto p-6 bg-black/80 relative">
-                    <div className="max-w-4xl mx-auto mt-4">
-                        <div className="flex justify-between items-center mb-10">
-                            <h2 className="text-4xl font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] flex items-center gap-4">
-                                <span className="text-5xl">🏆</span> El Legado
-                            </h2>
-                            <button onClick={() => setActiveChat('pluma')} className="text-gray-300 hover:text-white px-6 py-2 border border-white/10 rounded-full hover:bg-white/10 transition-colors bg-white/5 font-medium">Volver al Juego</button>
-                        </div>
-                        <div className="space-y-8">
-                            {hallOfFame.length === 0 ? <p className="text-gray-400 text-center text-xl mt-20 italic">Aún no hay historias legendarias.</p> : null}
-                            {hallOfFame.map((story, i) => (
-                                <div key={i} className="bg-gradient-to-br from-[#1c1822] to-[#12141c] border border-yellow-500/20 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl"></div>
-                                    <h3 className="text-2xl font-bold text-white mb-2 relative z-10">{story.title}</h3>
-                                    <p className="text-sm text-yellow-500/80 font-bold mb-6 italic uppercase tracking-wider relative z-10">Escrito por: {story.authors.join(', ')}</p>
-                                    <div className="space-y-2 mb-6 text-gray-300 font-serif leading-relaxed border-l-4 border-yellow-500/30 pl-6 text-lg relative z-10">
-                                        {story.phrases.map((p: any, j: number) => (
-                                            <span key={j}>{p.text} </span>
+                            ) : (
+                                <div className="flex flex-col flex-1">
+                                    <div className="flex justify-between items-center mb-6 bg-pink-50 p-4 rounded-2xl border-2 border-pink-100">
+                                        <div className="text-center">
+                                            <p className="text-pink-400 font-bold text-sm uppercase tracking-wider mb-1">Letra Actual</p>
+                                            <p className="text-5xl font-black text-purple-600 drop-shadow-sm">{tutiFruttiState.currentLetter}</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-pink-400 font-bold text-sm uppercase tracking-wider mb-1">Tiempo</p>
+                                            <p className={`text-4xl font-black ${tutiFruttiState.roundEndTime - now < 10000 ? 'text-red-500 animate-pulse' : 'text-pink-500'}`}>
+                                                {Math.max(0, Math.floor((tutiFruttiState.roundEndTime - now) / 1000))}s
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-4 flex-1">
+                                        {['name', 'color', 'animal', 'fruit', 'thing'].map((cat) => (
+                                            <div key={cat} className="flex flex-col">
+                                                <label className="text-purple-500 font-bold text-sm mb-1 ml-2 capitalize">
+                                                    {cat === 'name' ? 'Nombre' : cat === 'color' ? 'Color' : cat === 'animal' ? 'Animal' : cat === 'fruit' ? 'Fruta' : 'Cosa'}
+                                                </label>
+                                                <input 
+                                                    disabled={!tutiFruttiState.players.includes(user.username)}
+                                                    value={(tfAnswers as any)[cat]}
+                                                    onChange={e => setTfAnswers({...tfAnswers, [cat]: e.target.value})}
+                                                    className="bg-white border-2 border-pink-200 p-3 rounded-2xl outline-none text-gray-700 focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all font-medium text-lg placeholder-pink-200"
+                                                    placeholder={`Escribe un(a) ${cat}...`}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
-                                    <p className="text-xs text-gray-500 text-right font-medium relative z-10">{new Date(story.date).toLocaleDateString()}</p>
+                                    
+                                    <button 
+                                        disabled={!tutiFruttiState.players.includes(user.username)}
+                                        onClick={() => {
+                                            socket.emit('submit_tutifrutti', tfAnswers);
+                                            socket.emit('stop_tutifrutti');
+                                            setTfAnswers({ name: '', color: '', animal: '', fruit: '', thing: '' });
+                                        }}
+                                        className="mt-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-4 rounded-2xl font-black text-2xl shadow-xl transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                    >
+                                        ¡TUTI FRUTTI! 🛑
+                                    </button>
                                 </div>
-                            ))}
+                            )}
+                        </div>
+
+                        {/* Sidebar (Scoreboard & Players) */}
+                        <div className="w-full md:w-72 flex flex-col gap-6">
+                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-purple-100 flex-1">
+                                <h3 className="text-xl font-bold text-purple-600 mb-4 flex items-center gap-2">
+                                    🏆 Tabla de Puntos
+                                </h3>
+                                <div className="space-y-3">
+                                    {Object.entries(tutiFruttiState.scores || {}).sort((a: any, b: any) => b[1] - a[1]).map(([p, score]: any, i) => (
+                                        <div key={p} className="flex justify-between items-center p-3 bg-purple-50 rounded-2xl border border-purple-100">
+                                            <span className="font-bold text-purple-700 flex items-center gap-2">
+                                                {i === 0 ? '👑' : '⭐'} {p}
+                                            </span>
+                                            <span className="font-black text-pink-500 bg-white px-3 py-1 rounded-full shadow-sm">{score}</span>
+                                        </div>
+                                    ))}
+                                    {Object.keys(tutiFruttiState.scores || {}).length === 0 && (
+                                        <p className="text-pink-300 text-center italic text-sm mt-4">Aún no hay puntos.</p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-blue-100">
+                                <h3 className="text-lg font-bold text-blue-500 mb-3 flex items-center gap-2">
+                                    🎮 Jugadores ({tutiFruttiState.players?.length || 0})
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {tutiFruttiState.players?.map((p: string) => (
+                                        <span key={p} className="bg-blue-50 text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border border-blue-100">
+                                            {p}
+                                        </span>
+                                    ))}
+                                    {(!tutiFruttiState.players || tutiFruttiState.players.length === 0) && (
+                                        <span className="text-blue-300 text-sm italic">Esperando jugadores...</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-blue-100 flex flex-col flex-1 min-h-[300px]">
+                                <h3 className="text-lg font-bold text-blue-500 mb-3 flex items-center gap-2">
+                                    💬 Chat del Juego
+                                </h3>
+                                <div className="flex-1 overflow-y-auto mb-3 space-y-2 pr-2 scrollbar-thin">
+                                    {messages.slice(-15).map((m: any, idx) => (
+                                        <div key={idx} className="bg-blue-50/50 p-2 rounded-2xl">
+                                            <span className="font-bold text-blue-600 text-xs mr-2">{m.sender}:</span>
+                                            {m.image ? (
+                                                <img src={m.image} className="h-20 rounded-lg mt-1" alt="Adjunto" />
+                                            ) : m.audio ? (
+                                                <audio src={m.audio} controls className="h-6 mt-1 w-full max-w-[200px]" />
+                                            ) : (
+                                                <span className="text-gray-700 text-sm font-medium">{m.text}</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {(selectedImage || audioUrl || selectedGif) && (
+                                    <div className="flex gap-2 mb-2">
+                                        {selectedImage && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">📷 Imagen lista</div>}
+                                        {selectedGif && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">🎞️ GIF listo</div>}
+                                        {audioUrl && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">🎙️ Audio listo</div>}
+                                    </div>
+                                )}
+                                
+                                <div className="flex gap-2 relative mt-auto items-center">
+                                    <div className="flex-1 flex items-center bg-white border-2 border-blue-200 rounded-full px-3 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
+                                        <input 
+                                            value={inputValue}
+                                            onChange={e => setInputValue(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && inputValue.trim()) handleSendMessage();
+                                            }}
+                                            className="flex-1 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent"
+                                            placeholder="Escribe un mensaje..."
+                                        />
+                                        <div className="flex items-center gap-1 text-blue-400">
+                                            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
+                                            <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
+                                            <button onClick={isRecording ? stopRecording : startRecording} className={`p-1 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-pink-500'}`}>
+                                                {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={handleSendMessage}
+                                        disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
+                                        className="bg-gradient-to-r from-blue-400 to-pink-400 hover:from-blue-500 hover:to-pink-500 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-md shrink-0 transform hover:scale-105 active:scale-95"
+                                    >
+                                        <Send size={16} strokeWidth={2.5} className="ml-1" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                  </div>

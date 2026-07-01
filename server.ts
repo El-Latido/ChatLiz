@@ -146,19 +146,21 @@ async function startServer() {
 
   let recoveryCodes: Record<string, string> = {};
 
-  let plumaGameState = {
+  let tutiFruttiState = {
       isActive: false,
-      lastWriter: null as string | null,
-      timerEndTime: 0,
-      phrases: [] as { sender: string, text: string }[]
+      players: [] as string[],
+      currentLetter: '',
+      scores: {} as Record<string, number>,
+      roundEndTime: 0,
+      answers: {} as Record<string, any>
   };
 
   setInterval(() => {
-     if (plumaGameState.isActive && plumaGameState.timerEndTime > 0 && Date.now() > plumaGameState.timerEndTime) {
-         // Time is up
-         plumaGameState.isActive = false;
-         plumaGameState.timerEndTime = 0;
-         io.emit("pluma_state", plumaGameState);
+     if (tutiFruttiState.isActive && tutiFruttiState.roundEndTime > 0 && Date.now() > tutiFruttiState.roundEndTime) {
+         // Auto end round if time is up
+         tutiFruttiState.isActive = false;
+         tutiFruttiState.roundEndTime = 0;
+         io.emit("tutifrutti_state", tutiFruttiState);
      }
   }, 1000);
 
@@ -467,89 +469,58 @@ async function startServer() {
         }
     });
 
-    socket.on("start_pluma_game", () => {
+    socket.on("join_tutifrutti", () => {
         if (!currentUsername) return;
-        if (!plumaGameState.isActive) {
-            plumaGameState = {
-                isActive: true,
-                lastWriter: null,
-                timerEndTime: 0,
-                phrases: []
-            };
-            io.emit("pluma_state", plumaGameState);
+        if (!tutiFruttiState.players.includes(currentUsername)) {
+            tutiFruttiState.players.push(currentUsername);
+            if (!tutiFruttiState.scores[currentUsername]) {
+               tutiFruttiState.scores[currentUsername] = 0;
+            }
+            io.emit("tutifrutti_state", tutiFruttiState);
         }
     });
 
-    socket.on("send_pluma_phrase", async (text, callback) => {
-        if (!currentUsername) return callback({ success: false });
-        if (!plumaGameState.isActive) return callback({ success: false, error: "Juego no activo" });
-        if (plumaGameState.lastWriter === currentUsername) return callback({ success: false, error: "Debes esperar al siguiente turno" });
-
-        plumaGameState.phrases.push({ sender: currentUsername, text });
-        plumaGameState.lastWriter = currentUsername;
-        plumaGameState.timerEndTime = Date.now() + 59000;
-
-        if (plumaGameState.phrases.length >= 20) {
-            plumaGameState.isActive = false;
-            plumaGameState.timerEndTime = 0;
-            const uniqueAuthors = Array.from(new Set(plumaGameState.phrases.map(p => p.sender)));
-            const story = {
-                id: Date.now().toString(),
-                title: `Historia Épica de ${uniqueAuthors.join(', ')}`,
-                phrases: [...plumaGameState.phrases],
-                authors: uniqueAuthors,
-                date: Date.now()
-            };
-
-            // Awards and Hall of fame
-            if (fdb) {
-                await addDoc(collection(fdb, 'hall_of_fame'), story);
-                for (const author of uniqueAuthors) {
-                    const uRef = doc(fdb, 'users', author);
-                    const docSnap = await getDoc(uRef);
-                    if (docSnap.exists()) {
-                        const existingAwards = docSnap.data().awards || [];
-                        if (!existingAwards.includes('🖋️')) {
-                            await updateDoc(uRef, { awards: [...existingAwards, '🖋️'] });
-                        }
-                    }
-                    if (activeUsers[author]) {
-                        if (!activeUsers[author].awards) activeUsers[author].awards = [];
-                        if (!activeUsers[author].awards.includes('🖋️')) activeUsers[author].awards.push('🖋️');
-                    }
-                }
-            } else {
-                if (!fallbackState.hallOfFame) fallbackState.hallOfFame = [];
-                fallbackState.hallOfFame.unshift(story);
-                if (fallbackState.hallOfFame.length > 5) fallbackState.hallOfFame = fallbackState.hallOfFame.slice(0, 5);
-                
-                for (const author of uniqueAuthors) {
-                    if (fallbackState.users[author]) {
-                        if (!fallbackState.users[author].awards) fallbackState.users[author].awards = [];
-                        if (!fallbackState.users[author].awards.includes('🖋️')) fallbackState.users[author].awards.push('🖋️');
-                    }
-                    if (activeUsers[author]) {
-                        if (!activeUsers[author].awards) activeUsers[author].awards = [];
-                        if (!activeUsers[author].awards.includes('🖋️')) activeUsers[author].awards.push('🖋️');
-                    }
-                }
-                saveFallbackDB();
-            }
-
-            emitActiveUsers();
-            
-            const msg = { text: `¡Una nueva obra entró al Salón de la Fama! Los autores ${uniqueAuthors.join(', ')} fueron premiados por: ${story.title}`, sender: "Elizabeth", id: Date.now().toString(), createdAt: fdb ? serverTimestamp() : Date.now() };
-            if (fdb) {
-               await addDoc(collection(fdb, 'messages'), msg);
-            } else {
-               fallbackState.globalMessages.push(msg);
-               saveFallbackDB();
-            }
-            io.emit("receive_global", msg);
+    socket.on("leave_tutifrutti", () => {
+        if (!currentUsername) return;
+        tutiFruttiState.players = tutiFruttiState.players.filter(p => p !== currentUsername);
+        if (tutiFruttiState.players.length === 0) {
+            tutiFruttiState.isActive = false;
         }
+        io.emit("tutifrutti_state", tutiFruttiState);
+    });
 
-        io.emit("pluma_state", plumaGameState);
-        callback({ success: true });
+    socket.on("start_tutifrutti_round", () => {
+        if (!currentUsername) return;
+        tutiFruttiState.isActive = true;
+        tutiFruttiState.answers = {};
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        tutiFruttiState.currentLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        tutiFruttiState.roundEndTime = Date.now() + 60000;
+        io.emit("tutifrutti_state", tutiFruttiState);
+    });
+
+    socket.on("stop_tutifrutti", () => {
+        if (!currentUsername) return;
+        if (tutiFruttiState.isActive) {
+           tutiFruttiState.isActive = false;
+           tutiFruttiState.roundEndTime = 0;
+           io.emit("tutifrutti_state", tutiFruttiState);
+        }
+    });
+
+    socket.on("submit_tutifrutti", (answers) => {
+        if (!currentUsername) return;
+        tutiFruttiState.answers[currentUsername] = answers;
+        
+        let points = 0;
+        ['name', 'color', 'animal', 'fruit', 'thing'].forEach(cat => {
+            if (answers[cat] && answers[cat].trim().toUpperCase().startsWith(tutiFruttiState.currentLetter)) {
+                points += 10;
+            }
+        });
+        
+        tutiFruttiState.scores[currentUsername] = (tutiFruttiState.scores[currentUsername] || 0) + points;
+        io.emit("tutifrutti_state", tutiFruttiState);
     });
 
     socket.on("get_global_history", async (callback) => {

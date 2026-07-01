@@ -18,11 +18,13 @@ export interface UserObj {
   isAi?: boolean;
 }
 
-export interface PlumaGameState {
+export interface TutiFruttiState {
   isActive: boolean;
-  lastWriter: string | null;
-  timerEndTime: number;
-  phrases: { sender: string, text: string }[];
+  players: string[];
+  currentLetter: string;
+  scores: Record<string, number>;
+  roundEndTime: number;
+  answers: Record<string, any>;
 }
 
 export interface HallOfFameEntry {
