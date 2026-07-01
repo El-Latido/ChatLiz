@@ -16,6 +16,9 @@ export interface UserObj {
   preferred_background?: string;
   preferred_theme?: string;
   isAi?: boolean;
+  lizCoins?: number;
+  activeDecoration?: string | null;
+  ownedDecorations?: string[];
 }
 
 export interface TutiFruttiState {

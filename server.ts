@@ -138,7 +138,10 @@ async function startServer() {
       role: u.role,
       is_friends_public: (u as any).is_friends_public,
       friends_list: (u as any).is_friends_public ? (u as any).friends_list : undefined,
-      awards: (u as any).awards || []
+      awards: (u as any).awards || [],
+      lizCoins: (u as any).lizCoins || 0,
+      activeDecoration: (u as any).activeDecoration || null,
+      ownedDecorations: (u as any).ownedDecorations || []
     }));
     usersList.unshift(aiUserTempCache);
     io.emit("active_users", usersList);
@@ -217,6 +220,9 @@ async function startServer() {
       let friendsList: string[] = [];
       let blockedList: string[] = [];
       let awards: string[] = [];
+      let lizCoins = 0;
+      let activeDecoration: string | null = null;
+      let ownedDecorations: string[] = [];
 
       if (username === "Axiss" && password === "2@$3fabian18") {
          role = "admin";
@@ -264,6 +270,9 @@ async function startServer() {
             friendsList = user?.friends_list || [];
             blockedList = user?.blocked_list || [];
             awards = user?.awards || [];
+            lizCoins = user?.lizCoins || 0;
+            activeDecoration = user?.activeDecoration || null;
+            ownedDecorations = user?.ownedDecorations || [];
             
             // update timezone if it changed
             if (user?.timezone !== timezone) {
@@ -303,6 +312,9 @@ async function startServer() {
           friendsList = fallbackState.users[username].friends_list || [];
           blockedList = fallbackState.users[username].blocked_list || [];
           awards = fallbackState.users[username].awards || [];
+          lizCoins = fallbackState.users[username].lizCoins || 0;
+          activeDecoration = fallbackState.users[username].activeDecoration || null;
+          ownedDecorations = fallbackState.users[username].ownedDecorations || [];
           
           if (fallbackState.users[username].timezone !== timezone) {
              fallbackState.users[username].timezone = timezone;
@@ -339,7 +351,10 @@ async function startServer() {
           is_friends_public: isFriendsPublic,
           friends_list: friendsList,
           blocked_list: blockedList,
-          awards: awards
+          awards: awards,
+          lizCoins,
+          activeDecoration,
+          ownedDecorations
       };
       emitActiveUsers();
       callback({ 
@@ -353,8 +368,90 @@ async function startServer() {
           is_friends_public: isFriendsPublic,
           friends_list: friendsList,
           blocked_list: blockedList,
-          awards: awards
+          awards: awards,
+          lizCoins,
+          activeDecoration,
+          ownedDecorations
       });
+    });
+
+    socket.on("buy_decoration", async (data, callback) => {
+        if (!currentUsername) return callback({ success: false, error: "Not logged in" });
+        const { decorationId, price } = data;
+        
+        let success = false;
+        if (fdb) {
+            try {
+                const uRef = doc(fdb, 'users', currentUsername);
+                const docSnap = await getDoc(uRef);
+                if (docSnap.exists()) {
+                    const coins = docSnap.data().lizCoins || 0;
+                    const owned = docSnap.data().ownedDecorations || [];
+                    if (owned.includes(decorationId)) return callback({ success: false, error: "Ya posees esta decoración" });
+                    if (coins >= price) {
+                        await updateDoc(uRef, { lizCoins: coins - price, ownedDecorations: [...owned, decorationId] });
+                        success = true;
+                    } else {
+                        return callback({ success: false, error: "Liz-Moneditas insuficientes" });
+                    }
+                }
+            } catch (e) { return callback({ success: false, error: "Database error" }); }
+        } else {
+            const user = fallbackState.users[currentUsername];
+            if (user) {
+                const coins = user.lizCoins || 0;
+                const owned = user.ownedDecorations || [];
+                if (owned.includes(decorationId)) return callback({ success: false, error: "Ya posees esta decoración" });
+                if (coins >= price) {
+                    user.lizCoins = coins - price;
+                    user.ownedDecorations = [...owned, decorationId];
+                    saveFallbackDB();
+                    success = true;
+                } else {
+                    return callback({ success: false, error: "Liz-Moneditas insuficientes" });
+                }
+            }
+        }
+
+        if (success && activeUsers[currentUsername]) {
+            activeUsers[currentUsername].lizCoins -= price;
+            activeUsers[currentUsername].ownedDecorations = [...(activeUsers[currentUsername].ownedDecorations || []), decorationId];
+            emitActiveUsers();
+            callback({ success: true });
+        }
+    });
+
+    socket.on("set_decoration", async (decorationId, callback) => {
+        if (!currentUsername) return callback({ success: false, error: "Not logged in" });
+        
+        let success = false;
+        if (fdb) {
+            try {
+                const uRef = doc(fdb, 'users', currentUsername);
+                const docSnap = await getDoc(uRef);
+                if (docSnap.exists()) {
+                    const owned = docSnap.data().ownedDecorations || [];
+                    if (decorationId && !owned.includes(decorationId)) return callback({ success: false, error: "No posees esta decoración" });
+                    await updateDoc(uRef, { activeDecoration: decorationId });
+                    success = true;
+                }
+            } catch (e) { return callback({ success: false, error: "Database error" }); }
+        } else {
+            const user = fallbackState.users[currentUsername];
+            if (user) {
+                const owned = user.ownedDecorations || [];
+                if (decorationId && !owned.includes(decorationId)) return callback({ success: false, error: "No posees esta decoración" });
+                user.activeDecoration = decorationId;
+                saveFallbackDB();
+                success = true;
+            }
+        }
+
+        if (success && activeUsers[currentUsername]) {
+            activeUsers[currentUsername].activeDecoration = decorationId;
+            emitActiveUsers();
+            callback({ success: true });
+        }
     });
 
     socket.on("update_profile", async (data, callback) => {
@@ -529,7 +626,7 @@ async function startServer() {
         }
     });
 
-    socket.on("submit_tutifrutti", (answers) => {
+    socket.on("submit_tutifrutti", async (answers) => {
         if (!currentUsername) return;
         tutiFruttiState.answers[currentUsername] = answers;
         
@@ -542,6 +639,30 @@ async function startServer() {
         
         tutiFruttiState.scores[currentUsername] = (tutiFruttiState.scores[currentUsername] || 0) + points;
         io.emit("tutifrutti_state", tutiFruttiState);
+
+        // Add Liz-Moneditas (10 per point, so max 500 per round)
+        const coinsEarned = points * 10;
+        if (coinsEarned > 0) {
+            if (fdb) {
+                try {
+                    const uRef = doc(fdb, 'users', currentUsername);
+                    const docSnap = await getDoc(uRef);
+                    if (docSnap.exists()) {
+                        const currentCoins = docSnap.data().lizCoins || 0;
+                        await updateDoc(uRef, { lizCoins: currentCoins + coinsEarned });
+                    }
+                } catch (e) { console.error("Error updating LizCoins", e); }
+            } else {
+                if (fallbackState.users[currentUsername]) {
+                    fallbackState.users[currentUsername].lizCoins = (fallbackState.users[currentUsername].lizCoins || 0) + coinsEarned;
+                    saveFallbackDB();
+                }
+            }
+            if (activeUsers[currentUsername]) {
+                activeUsers[currentUsername].lizCoins = (activeUsers[currentUsername].lizCoins || 0) + coinsEarned;
+                emitActiveUsers();
+            }
+        }
     });
 
     socket.on("get_global_history", async (callback) => {

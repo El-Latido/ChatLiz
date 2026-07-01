@@ -14,7 +14,10 @@ export interface DBState {
     awards?: string[],
     friend_requests?: any[],
     preferred_background?: string,
-    preferred_theme?: string
+    preferred_theme?: string,
+    lizCoins?: number,
+    activeDecoration?: string | null,
+    ownedDecorations?: string[]
   }>;
   globalMessages: any[];
   hallOfFame?: any[];

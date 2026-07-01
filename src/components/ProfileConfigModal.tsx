@@ -104,7 +104,13 @@ export function ProfileConfigModal({
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--text-secondary)]">Usuario</label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-[var(--text-secondary)]">Usuario</label>
+              <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                 <span className="text-amber-500 font-bold text-xs">{user.lizCoins || 0}</span>
+                 <span className="text-[10px] text-amber-500/70">Liz-Moneditas</span>
+              </div>
+            </div>
             <input 
                disabled
                value={nombre}

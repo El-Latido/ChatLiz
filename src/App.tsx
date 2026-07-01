@@ -15,6 +15,8 @@ import { ProfileConfigModal } from './components/ProfileConfigModal';
 import { AdminConfigLizModal } from './components/AdminConfigLizModal';
 import { EmojiGifPicker } from './components/EmojiGifPicker';
 
+import { StoreModal } from './components/StoreModal';
+
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
     super(props);
@@ -47,6 +49,26 @@ class ErrorBoundary extends React.Component<any, any> {
     return this.props.children;
   }
 }
+
+const DECORATIONS = [
+  // Básico (500 Liz-Moneditas)
+  { id: 'dec_b1', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=flower1' },
+  { id: 'dec_b2', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=star' },
+  { id: 'dec_b3', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=heart' },
+  { id: 'dec_b4', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=leaf' },
+  { id: 'dec_b5', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cloud' },
+  // Intermedio (1200 Liz-Moneditas)
+  { id: 'dec_i1', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cat' },
+  { id: 'dec_i2', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dog' },
+  { id: 'dec_i3', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=rabbit' },
+  { id: 'dec_i4', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=bird' },
+  { id: 'dec_i5', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=fish' },
+  // Premium (2500 Liz-Moneditas)
+  { id: 'dec_p1', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=crown' },
+  { id: 'dec_p2', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=diamond' },
+  { id: 'dec_p3', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dragon' },
+  { id: 'dec_p4', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=unicorn' },
+];
 
 let currentVersion: string | null = null;
 
@@ -111,6 +133,8 @@ function MainApp() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  
+  const [isStoreOpen, setIsStoreOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -229,7 +253,10 @@ function MainApp() {
       const elizabeth = usersList.find(u => u.username === 'Elizabeth') || { username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' };
       cleaned.unshift(elizabeth); 
       setUsersOnline(cleaned);
-      // Removed setUser from here, as onSnapshot will handle it.
+      const me = usersList.find(u => u.username === user.username);
+      if (me) {
+          setUser(prev => ({ ...prev, ...me }));
+      }
     });
 
     socket.on('typing', (data: { username: string, chat: string }) => {
@@ -445,6 +472,10 @@ function MainApp() {
 
          {/* Right: Avatar, Name, Settings */}
          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
+             <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors" onClick={() => setIsStoreOpen(true)}>
+                 <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
+                 <span className="text-xs text-amber-200">LM</span>
+             </div>
              <div className="flex items-center gap-2">
                  <div className="w-7 h-7 rounded-full border border-[#D4AF37]/50 overflow-hidden shrink-0">
                     <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
@@ -787,8 +818,12 @@ function MainApp() {
               <div className="flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin">
                   {messages.filter(m => m && m.sender).map((m, idx) => {
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
+                     const isMe = m.sender === user.username;
                      const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
                      const timeStr = isNaN(date.getTime()) ? `10:0${idx % 10}` : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                     const senderInfo = isMe ? user : usersOnline.find(u => u.username === m.sender);
+                     const decId = senderInfo?.activeDecoration;
+                     const decUrl = decId ? DECORATIONS.find(d => d.id === decId)?.url : null;
 
                      return (
                          <div key={m.id || idx} className="flex justify-start px-1 md:px-2">
@@ -796,8 +831,15 @@ function MainApp() {
                                  <div className="pl-2.5 py-0.5 flex flex-col max-w-[98%] border-l-[3px] border-[#D4AF37]/20 ml-1">
                                      <div className="flex items-baseline flex-wrap">
                                          <span className="text-[#8B98B0] mr-1.5 text-[13px] font-mono">[{timeStr}]</span>
-                                         <span className="font-bold text-[#D4AF37] mr-1.5 text-[14px]">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
-                                         <span className="text-[#E8D9B0] text-[14px] leading-snug">{m.text}</span>
+                                         <div className="flex items-center relative mr-1.5 shrink-0">
+                                            {decUrl && (
+                                                <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
+                                                    <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                </div>
+                                            )}
+                                            <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
+                                         </div>
+                                         <span className="text-[#E8D9B0] text-[14px] leading-snug ml-1">{m.text}</span>
                                      </div>
                                      {m.image && <div className="mt-1"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                      {(m.type === 'audio' || m.audio) && <div className="mt-1 bg-[#13151f] p-1.5 rounded-xl border border-white/5 shadow-inner"><audio src={m.audio} controls className="h-6 max-w-[160px] opacity-90" /></div>}
@@ -805,8 +847,15 @@ function MainApp() {
                              ) : (
                                  <div className="bg-[#F2E3C6] rounded-[20px] px-3.5 py-1 max-w-[95%] shadow-sm flex items-baseline flex-wrap">
                                      <span className="text-[#6B7280] mr-1.5 text-[13px] font-mono">[{timeStr}]</span>
-                                     <span className="font-bold text-[#5A52A5] mr-1.5 text-[14px]">{m.sender}:</span>
-                                     <span className="text-[#1A2035] text-[14px] leading-snug">{m.text}</span>
+                                     <div className="flex items-center relative mr-1.5 shrink-0">
+                                        {decUrl && (
+                                            <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
+                                                <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
+                                            </div>
+                                        )}
+                                        <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
+                                     </div>
+                                     <span className="text-[#1A2035] text-[14px] leading-snug ml-1">{m.text}</span>
                                      {m.image && <div className="w-full mt-1"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                      {(m.type === 'audio' || m.audio) && <div className="w-full mt-1 bg-white/50 p-1.5 rounded-xl border border-black/5 shadow-inner"><audio src={m.audio} controls className="h-6 max-w-[160px]" /></div>}
                                  </div>
@@ -1081,6 +1130,15 @@ function MainApp() {
                    )}
                </div>
            </div>
+       )}
+
+       {/* Store Modal */}
+       {isStoreOpen && (
+           <StoreModal 
+               onClose={() => setIsStoreOpen(false)} 
+               user={user} 
+               decorations={DECORATIONS} 
+           />
        )}
     </div>
   );
