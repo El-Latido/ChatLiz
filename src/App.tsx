@@ -551,10 +551,20 @@ function MainApp() {
               
               {/* Chat Header */}
               <div className="flex items-center justify-between px-6 pt-5 pb-3 z-10 shrink-0 bg-transparent">
-                  <div className="flex-1 flex items-center">
+                  <div className="flex-1 flex items-center gap-2">
                       <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-2 rounded-full hover:bg-white/5 transition-colors">
                           <Menu size={22} strokeWidth={1.5} />
                       </button>
+                      <button id="music-toggle" onClick={() => setIsMusicPlaying(!isMusicPlaying)} className="text-[#D4AF37] hover:text-[#E8D9B0] transition-colors p-2 rounded-full hover:bg-white/5 hidden sm:flex">
+                          {isMusicPlaying ? <Volume2 size={22} strokeWidth={1.5} /> : <VolumeX size={22} strokeWidth={1.5} />}
+                      </button>
+                      {activeChat === 'global' && (
+                          <button className="hidden md:flex items-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm">
+                             <MessageSquare size={16} strokeWidth={1.5} />
+                             Private chat
+                             <Search size={16} className="ml-1 opacity-50" strokeWidth={1.5} />
+                          </button>
+                      )}
                   </div>
                   
                   <div className="flex items-center justify-center flex-1">
@@ -688,7 +698,7 @@ function MainApp() {
                              {isLiz ? (
                                  <div className="bg-[#151C2C] border border-[#2B354C] rounded-[24px] px-5 py-2.5 max-w-[95%] md:max-w-[85%] shadow-md">
                                      <span className="text-[#8B98B0] mr-2 text-[14px]">[{timeStr}]</span>
-                                     <span className="font-bold text-[#E8D9B0] mr-2 text-[15px]">ELIZABETH {isAi && '(IA Administradora Gemini ✨)'}:</span>
+                                     <span className="font-bold text-[#E8D9B0] mr-2 text-[15px]">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
                                      <span className="text-[#E8D9B0] text-[15px]">{m.text}</span>
                                      {m.image && <div className="mt-2"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-lg" alt="adjunto"/></div>}
                                      {(m.type === 'audio' || m.audio) && <div className="mt-2 bg-[#13151f] p-2 rounded-xl border border-white/5 shadow-inner"><audio src={m.audio} controls className="h-8 max-w-[200px] opacity-90" /></div>}
@@ -762,9 +772,12 @@ function MainApp() {
                              className="w-full bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[15px] py-1.5" 
                              placeholder="Escribe tu mensaje... @Elizabeth para IA carismática"
                           />
-                          <div className="flex items-center gap-1 text-[#D4AF37] ml-2">
+                          <div className="flex items-center gap-1 text-[#D4AF37] ml-2 shrink-0">
                               <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors"><Smile size={22} strokeWidth={1.5} /></button>
-                              <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors"><Paperclip size={22} strokeWidth={1.5} /></button>
+                              <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors hidden sm:block"><Paperclip size={22} strokeWidth={1.5} /></button>
+                              <button onClick={isRecording ? stopRecording : startRecording} className={`p-1.5 rounded-full transition-colors ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'hover:text-[#E8D9B0] hover:bg-white/5'}`}>
+                                 {isRecording ? <StopCircle size={22} strokeWidth={1.5} /> : <Mic size={22} strokeWidth={1.5} />}
+                              </button>
                           </div>
                       </div>
                       
@@ -784,9 +797,6 @@ function MainApp() {
                         className="bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 text-[#D4AF37] hover:text-[#E8D9B0] rounded-full h-[54px] w-[54px] flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.2)] disabled:opacity-50 disabled:shadow-none transition-all shrink-0 ml-1"
                       >
                         <Send size={24} className="ml-1" strokeWidth={1.5} />
-                      </button>
-                      <button onClick={isRecording ? stopRecording : startRecording} className={`ml-1 flex items-center justify-center rounded-full h-[54px] w-[54px] bg-[#121927]/60 backdrop-blur-md border border-[#D4AF37]/40 shrink-0 transition-all ${isRecording ? 'text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] bg-red-500/10 border-red-500/50' : 'text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-white/5'}`}>
-                          {isRecording ? <StopCircle size={24} className="animate-pulse" strokeWidth={1.5} /> : <Mic size={24} strokeWidth={1.5} />}
                       </button>
                   </div>
               </div>

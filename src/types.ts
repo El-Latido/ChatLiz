@@ -4,6 +4,7 @@ export interface UserObj {
   statusMessage?: string;
   role?: string;
   countryLanguage?: string;
+  pais_idioma?: string;
   securityEmail?: string;
   timezone?: string;
   systemInstruction?: string;
@@ -11,6 +12,10 @@ export interface UserObj {
   blocked_list?: string[];
   is_friends_public?: boolean;
   awards?: string[];
+  friend_requests?: any[];
+  preferred_background?: string;
+  preferred_theme?: string;
+  isAi?: boolean;
 }
 
 export interface PlumaGameState {
@@ -36,4 +41,5 @@ export interface MessageObj {
   audio?: string;
   image?: string;
   type?: string;
+  isAi?: boolean;
 }
