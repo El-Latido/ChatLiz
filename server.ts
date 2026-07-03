@@ -1456,6 +1456,17 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
         // Deduct
         activeUsers[currentUsername].lizCoins -= bet;
         activeUsers[hostName].lizCoins -= bet;
+
+        if (fdb) {
+            try {
+                await updateDoc(doc(fdb, 'users', currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins });
+                await updateDoc(doc(fdb, 'users', hostName), { lizCoins: activeUsers[hostName].lizCoins });
+            } catch(e) {}
+        } else {
+            if (fallbackState.users[currentUsername]) fallbackState.users[currentUsername].lizCoins = activeUsers[currentUsername].lizCoins;
+            if (fallbackState.users[hostName]) fallbackState.users[hostName].lizCoins = activeUsers[hostName].lizCoins;
+            saveFallbackDB();
+        }
         
         chessGames[gameId] = {
             id: gameId,
@@ -1525,7 +1536,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             if (fdb) {
                 try {
                     await updateDoc(doc(fdb, 'users', winnerName), { lizCoins: activeUsers[winnerName]?.lizCoins, elo: activeUsers[winnerName]?.elo });
-                    await updateDoc(doc(fdb, 'users', loserName), { elo: activeUsers[loserName]?.elo });
+                    await updateDoc(doc(fdb, 'users', loserName), { lizCoins: activeUsers[loserName]?.lizCoins, elo: activeUsers[loserName]?.elo });
                 } catch(e) {}
             } else {
                 if (fallbackState.users[winnerName]) {
@@ -1533,6 +1544,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                     fallbackState.users[winnerName].elo = activeUsers[winnerName]?.elo;
                 }
                 if (fallbackState.users[loserName]) {
+                    fallbackState.users[loserName].lizCoins = activeUsers[loserName]?.lizCoins;
                     fallbackState.users[loserName].elo = activeUsers[loserName]?.elo;
                 }
                 saveFallbackDB();
