@@ -931,6 +931,19 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       }
 
       if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
+        let isPlayingChess = false;
+        for (const gId in chessGames) {
+            const g = chessGames[gId];
+            if (g.host === currentUsername || g.guest === currentUsername) {
+                isPlayingChess = true;
+            }
+        }
+        
+        if (tutiFruttiState.isActive || isPlayingChess) {
+            // Modo Silencio durante juegos
+            return;
+        }
+
         try {
           io.emit("typing", { username: "Elizabeth", chat: "global" });
           
@@ -1522,6 +1535,21 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                 if (fallbackState.users[loserName]) {
                     fallbackState.users[loserName].elo = activeUsers[loserName]?.elo;
                 }
+                saveFallbackDB();
+            }
+        } else {
+            // Refund bets
+            if (activeUsers[game.host]) activeUsers[game.host].lizCoins += game.bet;
+            if (activeUsers[game.guest]) activeUsers[game.guest].lizCoins += game.bet;
+            
+            if (fdb) {
+                try {
+                    if (activeUsers[game.host]) await updateDoc(doc(fdb, 'users', game.host), { lizCoins: activeUsers[game.host].lizCoins });
+                    if (activeUsers[game.guest]) await updateDoc(doc(fdb, 'users', game.guest), { lizCoins: activeUsers[game.guest].lizCoins });
+                } catch(e) {}
+            } else {
+                if (fallbackState.users[game.host] && activeUsers[game.host]) fallbackState.users[game.host].lizCoins = activeUsers[game.host].lizCoins;
+                if (fallbackState.users[game.guest] && activeUsers[game.guest]) fallbackState.users[game.guest].lizCoins = activeUsers[game.guest].lizCoins;
                 saveFallbackDB();
             }
         }

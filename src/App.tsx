@@ -108,6 +108,7 @@ function MainApp() {
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
   
   const [usersOnline, setUsersOnline] = useState<UserObj[]>([{ username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' }]); 
+  const [userCache, setUserCache] = useState<Record<string, UserObj>>({});
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
@@ -115,7 +116,6 @@ function MainApp() {
   const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {}, maxPlayers: 5 });
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
   
-  const [showStoreModal, setShowStoreModal] = useState(false);
   const [showChessInvite, setShowChessInvite] = useState(false);
   const [chessBet, setChessBet] = useState(10);
   const [activeChessGame, setActiveChessGame] = useState<any>(null);
@@ -162,6 +162,7 @@ function MainApp() {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
   const [isStoreOpen, setIsStoreOpen] = useState(false);
+  const [storeCategory, setStoreCategory] = useState<string | undefined>(undefined);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -284,6 +285,13 @@ function MainApp() {
       const elizabeth = usersList.find(u => u.username === 'Elizabeth') || { username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' };
       cleaned.unshift(elizabeth); 
       setUsersOnline(cleaned);
+      setUserCache(prev => {
+          const newCache = { ...prev };
+          usersList.forEach(u => {
+              newCache[u.username] = u;
+          });
+          return newCache;
+      });
       const me = usersList.find(u => u.username === user.username);
       if (me) {
           setUser(prev => ({ ...prev, ...me }));
@@ -519,10 +527,17 @@ function MainApp() {
 
          {/* Right: Avatar, Name, Settings */}
          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
-             <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors" onClick={() => setIsStoreOpen(true)}>
+             <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors" onClick={() => { setStoreCategory(undefined); setIsStoreOpen(true); }}>
                  <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
                  <span className="text-xs text-amber-200">LM</span>
              </div>
+             <button onClick={() => { setStoreCategory('juegos'); setIsStoreOpen(true); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
+                 <Gamepad2 size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                 <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
+             </button>
+             <button onClick={() => { setStoreCategory('juegos'); setIsStoreOpen(true); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
+                 <Gamepad2 size={20} strokeWidth={1.5} />
+             </button>
              <div className="flex items-center gap-2">
                  <div className="w-8 h-8 rounded-full overflow-visible shrink-0 relative flex justify-center items-center">
                     {user.activeDecoration && (
@@ -927,7 +942,7 @@ function MainApp() {
                      const isMe = m.sender === user.username;
                      const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
                      const timeStr = isNaN(date.getTime()) ? `10:0${idx % 10}` : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                     const senderInfo = isMe ? user : usersOnline.find(u => u.username === m.sender);
+                     const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;
                      const decUrl = decId ? DECORATIONS.find(d => d.id === decId)?.url : null;
 
@@ -1320,7 +1335,24 @@ function MainApp() {
            <StoreModal 
                onClose={() => setIsStoreOpen(false)} 
                user={user} 
-               decorations={DECORATIONS} 
+               decorations={DECORATIONS}
+               initialCategory={storeCategory}
+               onSelectGame={(gameId) => {
+                   if (gameId === 'tutifrutti') {
+                       setActiveChat('tutifrutti');
+                   } else if (gameId.startsWith('chess_')) {
+                       const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                       if ((user.lizCoins || 0) < bet) {
+                           alert("No tienes suficientes Liz-Moneditas.");
+                           return;
+                       }
+                       socket.emit('send_global', { 
+                           text: `¡Reto de Ajedrez por ${bet * 2} LM!`,
+                           type: 'chess_invite',
+                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
+                       });
+                   }
+               }}
            />
        )}
     </div>

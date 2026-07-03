@@ -7,12 +7,22 @@ interface StoreModalProps {
   onClose: () => void;
   user: UserObj;
   decorations: any[];
+  initialCategory?: string;
+  onSelectGame?: (gameId: string) => void;
 }
 
-export function StoreModal({ onClose, user, decorations }: StoreModalProps) {
+export function StoreModal({ onClose, user, decorations, initialCategory, onSelectGame }: StoreModalProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  const [chessBet, setChessBet] = useState(10);
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(() => {
+     if (initialCategory) {
+         const cats = ['marcos', 'emblemas', 'mascotas', 'efectos', 'juegos'];
+         const idx = cats.indexOf(initialCategory);
+         return idx >= 0 ? idx : 0;
+     }
+     return 0;
+  });
 
   const handleBuy = (dec: any) => {
     setLoading(true);
@@ -40,7 +50,8 @@ export function StoreModal({ onClose, user, decorations }: StoreModalProps) {
     { id: 'marcos', label: 'Marcos', icon: '🖼️', color: 'from-blue-400 to-cyan-400' },
     { id: 'emblemas', label: 'Emblemas', icon: '🛡️', color: 'from-purple-400 to-pink-400' },
     { id: 'mascotas', label: 'Mascotas', icon: '🐾', color: 'from-green-400 to-emerald-400' },
-    { id: 'efectos', label: 'Efectos', icon: '✨', color: 'from-amber-400 to-orange-400' }
+    { id: 'efectos', label: 'Efectos', icon: '✨', color: 'from-amber-400 to-orange-400' },
+    { id: 'juegos', label: 'Juegos', icon: '🎮', color: 'from-indigo-400 to-purple-400' }
   ];
 
   const currentCategory = categories[currentCategoryIndex];
@@ -91,6 +102,40 @@ export function StoreModal({ onClose, user, decorations }: StoreModalProps) {
             </div>
           )}
           
+          {currentCategory.id === 'juegos' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="relative flex flex-col items-center p-6 rounded-[24px] bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-400/30 transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(236,72,153,0.2)]">
+                      <div className="w-24 h-24 mb-4 flex items-center justify-center bg-pink-500/20 rounded-full">
+                          <span className="text-5xl drop-shadow-md">🍓</span>
+                      </div>
+                      <h4 className="text-xl font-bold text-white mb-2">Tuti Frutti Kawaii</h4>
+                      <p className="text-pink-200/80 text-sm text-center mb-6">Juega con tus amigos a descubrir palabras. 5 rondas, validación estricta y puntos.</p>
+                      <button onClick={() => { onSelectGame?.('tutifrutti'); onClose(); }} className="w-full mt-auto py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold transition-transform hover:scale-105 shadow-md">
+                          Jugar Ahora
+                      </button>
+                  </div>
+
+                  <div className="relative flex flex-col items-center p-6 rounded-[24px] bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border border-indigo-400/30 transition-all hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)]">
+                      <div className="w-24 h-24 mb-4 flex items-center justify-center bg-indigo-500/20 rounded-full">
+                          <span className="text-5xl drop-shadow-md">♟️</span>
+                      </div>
+                      <h4 className="text-xl font-bold text-white mb-2">Ajedrez 3D</h4>
+                      <p className="text-indigo-200/80 text-sm text-center mb-4">Compite y sube tu nivel ELO (Cobre a Oro). Apuestas duplicadas y chat de voz/emoticones.</p>
+                      <div className="flex w-full gap-2 mb-4">
+                          <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="bg-[#121B2A] border border-indigo-500/30 rounded-xl text-indigo-300 font-bold p-2 w-1/3 outline-none">
+                              <option value={5}>5 LM</option>
+                              <option value={10}>10 LM</option>
+                              <option value={20}>20 LM</option>
+                              <option value={30}>30 LM</option>
+                              <option value={40}>40 LM</option>
+                          </select>
+                          <button onClick={() => { onSelectGame?.(`chess_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md text-sm">
+                              Retar a Alguien
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {items.map(dec => {
               const isOwned = user.ownedDecorations?.includes(dec.id);
@@ -147,6 +192,7 @@ export function StoreModal({ onClose, user, decorations }: StoreModalProps) {
                 </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

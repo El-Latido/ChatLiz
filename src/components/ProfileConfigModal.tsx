@@ -63,12 +63,25 @@ export function ProfileConfigModal({
         statusMessage: comentario, 
         countryLanguage: pais,
         is_friends_public: isFriendsPublic,
-        preferred_background: backgroundBase64
-      }, () => {});
-
-      setSaveStatus("Tema guardado correctamente");
-      setTimeout(() => setSaveStatus(null), 3000);
-      // No longer reloading the page
+        preferred_theme: backgroundBase64
+      }, (res: any) => {
+          if (res.success) {
+              setUser(prev => ({ 
+                  ...prev, 
+                  username: res.username, 
+                  profilePic: res.profilePic, 
+                  statusMessage: res.statusMessage, 
+                  countryLanguage: res.countryLanguage, 
+                  is_friends_public: res.is_friends_public,
+                  preferred_theme: backgroundBase64
+              }));
+              setSaveStatus("Tema guardado correctamente");
+              setTimeout(() => setSaveStatus(null), 3000);
+          } else {
+              setSaveStatus("Error al guardar: " + res.error);
+              setTimeout(() => setSaveStatus(null), 3000);
+          }
+      });
     } catch (error) {
       setSaveStatus("Error al guardar");
       setTimeout(() => setSaveStatus(null), 3000);
