@@ -89,6 +89,7 @@ async function startServer() {
   });
 
   let activeUsers: Record<string, any> = {};
+  const chessGames: Record<string, any> = {};
 
   const bannedUsers: Record<string, number> = {};
 
@@ -375,6 +376,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       let lizCoins = 0;
       let activeDecoration: string | null = null;
       let ownedDecorations: string[] = [];
+      let elo = 0;
 
       if (username === "Axiss" && password === "2@$3fabian18") {
          role = "admin";
@@ -425,6 +427,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
             lizCoins = user?.lizCoins || 0;
             activeDecoration = user?.activeDecoration || null;
             ownedDecorations = user?.ownedDecorations || [];
+            elo = user?.elo || 0;
             
             // update timezone if it changed
             if (user?.timezone !== timezone) {
@@ -467,6 +470,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           lizCoins = fallbackState.users[username].lizCoins || 0;
           activeDecoration = fallbackState.users[username].activeDecoration || null;
           ownedDecorations = fallbackState.users[username].ownedDecorations || [];
+          elo = fallbackState.users[username].elo || 0;
           
           if (fallbackState.users[username].timezone !== timezone) {
              fallbackState.users[username].timezone = timezone;
@@ -506,7 +510,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           awards: awards,
           lizCoins,
           activeDecoration,
-          ownedDecorations
+          ownedDecorations,
+          elo
       };
       emitActiveUsers();
       callback({ 
@@ -646,6 +651,10 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       const existingAwards = activeUsers[oldUsername]?.awards || [];
       const existingFriends = activeUsers[oldUsername]?.friends_list || [];
       const existingBlocked = activeUsers[oldUsername]?.blocked_list || [];
+      const existingLizCoins = activeUsers[oldUsername]?.lizCoins || 0;
+      const existingOwnedDecorations = activeUsers[oldUsername]?.ownedDecorations || [];
+      const existingActiveDecoration = activeUsers[oldUsername]?.activeDecoration;
+      const existingElo = activeUsers[oldUsername]?.elo || 0;
 
       delete activeUsers[oldUsername];
       currentUsername = safeNewUsername;
@@ -661,7 +670,11 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
          preferred_theme: safePreferredTheme,
          awards: existingAwards,
          friends_list: existingFriends,
-         blocked_list: existingBlocked
+         blocked_list: existingBlocked,
+         lizCoins: existingLizCoins,
+         ownedDecorations: existingOwnedDecorations,
+         activeDecoration: existingActiveDecoration,
+         elo: existingElo
       };
       if (currentUsername === "Axiss") activeUsers[currentUsername].role = "admin";
       
@@ -1411,8 +1424,138 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       }
     });
 
+    // --- CHESS LOGIC ---
+    socket.on('accept_chess_invite', async (inviteData, callback) => {
+        if (!currentUsername) return callback({ success: false, error: 'Not logged in' });
+        const hostName = inviteData.host;
+        const bet = inviteData.bet;
+        const gameId = inviteData.gameId;
+
+        // Check if both have enough coins
+        const guestCoins = activeUsers[currentUsername]?.lizCoins || 0;
+        const hostCoins = activeUsers[hostName]?.lizCoins || 0;
+
+        if (guestCoins < bet) return callback({ success: false, error: 'No tienes suficientes monedas.' });
+        if (hostCoins < bet) return callback({ success: false, error: 'El anfitrión ya no tiene suficientes monedas.' });
+        if (!activeUsers[hostName]) return callback({ success: false, error: 'El anfitrión ya no está en línea.' });
+        if (chessGames[gameId]) return callback({ success: false, error: 'El juego ya empezó.' });
+
+        // Deduct
+        activeUsers[currentUsername].lizCoins -= bet;
+        activeUsers[hostName].lizCoins -= bet;
+        
+        chessGames[gameId] = {
+            id: gameId,
+            host: hostName,
+            guest: currentUsername,
+            bet: bet,
+            moves: 0
+        };
+
+        // Notify Host
+        if (activeUsers[hostName]?.socketId) {
+            io.to(activeUsers[hostName].socketId).emit('chess_invite_accepted', {
+                gameId, opponent: currentUsername, bet
+            });
+        }
+        
+        emitActiveUsers();
+        callback({ success: true });
+    });
+
+    socket.on('join_chess_game', (gameId) => {
+        socket.join(gameId);
+    });
+
+    socket.on('leave_chess_game', (gameId) => {
+        socket.leave(gameId);
+    });
+
+    socket.on('chess_move', (data) => {
+        if (chessGames[data.gameId]) {
+            chessGames[data.gameId].moves++;
+        }
+        socket.to(data.gameId).emit('chess_move', data);
+    });
+
+    socket.on('chess_chat', (data) => {
+        io.to(data.gameId).emit('chess_chat', { sender: currentUsername, text: data.text });
+    });
+
+    const calculateElo = (winnerElo: number, loserElo: number) => {
+        const expectedScore = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+        const k = 32;
+        return Math.round(k * (1 - expectedScore));
+    };
+
+    const handleChessGameOver = async (gameId: string, winnerName: string | null, reason: string) => {
+        const game = chessGames[gameId];
+        if (!game) return;
+        
+        if (winnerName) {
+            const loserName = winnerName === game.host ? game.guest : game.host;
+            
+            // Give prize
+            if (activeUsers[winnerName]) {
+                activeUsers[winnerName].lizCoins += (game.bet * 2);
+            }
+            
+            // ELO changes
+            const winnerElo = activeUsers[winnerName]?.elo || 0;
+            const loserElo = activeUsers[loserName]?.elo || 0;
+            const eloChange = calculateElo(winnerElo, loserElo);
+
+            if (activeUsers[winnerName]) activeUsers[winnerName].elo = winnerElo + eloChange;
+            if (activeUsers[loserName]) activeUsers[loserName].elo = Math.max(0, loserElo - eloChange);
+            
+            // Persist
+            if (fdb) {
+                try {
+                    await updateDoc(doc(fdb, 'users', winnerName), { lizCoins: activeUsers[winnerName]?.lizCoins, elo: activeUsers[winnerName]?.elo });
+                    await updateDoc(doc(fdb, 'users', loserName), { elo: activeUsers[loserName]?.elo });
+                } catch(e) {}
+            } else {
+                if (fallbackState.users[winnerName]) {
+                    fallbackState.users[winnerName].lizCoins = activeUsers[winnerName]?.lizCoins;
+                    fallbackState.users[winnerName].elo = activeUsers[winnerName]?.elo;
+                }
+                if (fallbackState.users[loserName]) {
+                    fallbackState.users[loserName].elo = activeUsers[loserName]?.elo;
+                }
+                saveFallbackDB();
+            }
+        }
+        
+        io.to(gameId).emit('chess_end', { reason, winner: winnerName });
+        delete chessGames[gameId];
+        emitActiveUsers();
+    };
+
+    socket.on('chess_game_over', (data) => {
+        handleChessGameOver(data.gameId, data.winner, data.result);
+    });
+
+    socket.on('abandon_chess_game', (gameId) => {
+        const game = chessGames[gameId];
+        if (game) {
+            const winnerName = currentUsername === game.host ? game.guest : game.host;
+            handleChessGameOver(gameId, game.moves > 0 ? winnerName : null, 'abandoned');
+        }
+    });
+
+    // --- END CHESS LOGIC ---
+
     socket.on("disconnect", () => {
       if (currentUsername) {
+        // Find if user was in any active chess game
+        for (const gId in chessGames) {
+            const g = chessGames[gId];
+            if (g.host === currentUsername || g.guest === currentUsername) {
+                const winnerName = currentUsername === g.host ? g.guest : g.host;
+                handleChessGameOver(gId, g.moves > 0 ? winnerName : null, 'abandoned');
+            }
+        }
+
         if (activeUsers[currentUsername]) {
           delete activeUsers[currentUsername];
           emitActiveUsers();

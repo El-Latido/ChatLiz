@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import { 
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search,
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2,
   Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc } from 'firebase/firestore';
@@ -16,6 +16,7 @@ import { AdminConfigLizModal } from './components/AdminConfigLizModal';
 import { EmojiGifPicker } from './components/EmojiGifPicker';
 
 import { StoreModal } from './components/StoreModal';
+import { ChessGameModal } from './components/ChessGameModal';
 import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 
@@ -53,23 +54,24 @@ class ErrorBoundary extends React.Component<any, any> {
 }
 
 const DECORATIONS = [
-  // Básico (500 Liz-Moneditas)
-  { id: 'dec_b1', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=flower1' },
-  { id: 'dec_b2', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=star' },
-  { id: 'dec_b3', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=heart' },
-  { id: 'dec_b4', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=leaf' },
-  { id: 'dec_b5', type: 'basic', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cloud' },
-  // Intermedio (1200 Liz-Moneditas)
-  { id: 'dec_i1', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cat' },
-  { id: 'dec_i2', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dog' },
-  { id: 'dec_i3', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=rabbit' },
-  { id: 'dec_i4', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=bird' },
-  { id: 'dec_i5', type: 'intermediate', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=fish' },
-  // Premium (2500 Liz-Moneditas)
-  { id: 'dec_p1', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=crown' },
-  { id: 'dec_p2', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=diamond' },
-  { id: 'dec_p3', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dragon' },
-  { id: 'dec_p4', type: 'premium', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=unicorn' },
+  // Marcos
+  { id: 'dec_b1', type: 'basic', category: 'marcos', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=flower1' },
+  { id: 'dec_b2', type: 'basic', category: 'marcos', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=star' },
+  { id: 'dec_i1', type: 'intermediate', category: 'marcos', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cat' },
+  { id: 'dec_p1', type: 'premium', category: 'marcos', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=crown' },
+  // Emblemas
+  { id: 'dec_b3', type: 'basic', category: 'emblemas', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=heart' },
+  { id: 'dec_i2', type: 'intermediate', category: 'emblemas', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dog' },
+  { id: 'dec_p2', type: 'premium', category: 'emblemas', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=diamond' },
+  // Mascotas
+  { id: 'dec_b4', type: 'basic', category: 'mascotas', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=leaf' },
+  { id: 'dec_i3', type: 'intermediate', category: 'mascotas', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=rabbit' },
+  { id: 'dec_i4', type: 'intermediate', category: 'mascotas', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=bird' },
+  { id: 'dec_p3', type: 'premium', category: 'mascotas', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=dragon' },
+  // Efectos
+  { id: 'dec_b5', type: 'basic', category: 'efectos', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cloud' },
+  { id: 'dec_i5', type: 'intermediate', category: 'efectos', price: 1200, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=fish' },
+  { id: 'dec_p4', type: 'premium', category: 'efectos', price: 2500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=unicorn' },
 ];
 
 let currentVersion: string | null = null;
@@ -112,6 +114,12 @@ function MainApp() {
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
   const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {}, maxPlayers: 5 });
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
+  
+  const [showStoreModal, setShowStoreModal] = useState(false);
+  const [showChessInvite, setShowChessInvite] = useState(false);
+  const [chessBet, setChessBet] = useState(10);
+  const [activeChessGame, setActiveChessGame] = useState<any>(null);
+
   const tfAnswersRef = useRef(tfAnswers);
   useEffect(() => { tfAnswersRef.current = tfAnswers; }, [tfAnswers]);
   
@@ -280,6 +288,20 @@ function MainApp() {
       if (me) {
           setUser(prev => ({ ...prev, ...me }));
       }
+    });
+
+    socket.on('chess_invite_accepted', (data: { gameId: string, opponent: string, bet: number }) => {
+        // Find the user object in usersOnline ref or just pass username
+        setUsersOnline(prev => {
+            const oppObj = prev.find(u => u.username === data.opponent) || {username: data.opponent, elo: 0};
+            setActiveChessGame({ 
+                id: data.gameId, 
+                opponent: oppObj, 
+                bet: data.bet, 
+                isHost: true 
+            });
+            return prev;
+        });
     });
 
     socket.on('typing', (data: { username: string, chat: string }) => {
@@ -940,6 +962,24 @@ function MainApp() {
                                         <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
                                      </div>
                                      <span className="text-[#1A2035] text-[14px] leading-snug ml-1">{m.text}</span>
+                                     {m.type === 'chess_invite' && m.inviteData && (
+                                         <button onClick={() => {
+                                             if (m.sender === user.username) return; // Can't accept own invite
+                                             if ((user.lizCoins || 0) < m.inviteData!.bet) {
+                                                 alert("No tienes suficientes Liz-Moneditas.");
+                                                 return;
+                                             }
+                                             socket.emit('accept_chess_invite', m.inviteData, (res: any) => {
+                                                 if (res.success) {
+                                                     setActiveChessGame({ id: m.inviteData!.gameId, opponent: usersOnline.find(u => u.username === m.sender) || {username: m.sender}, bet: m.inviteData!.bet, isHost: false });
+                                                 } else {
+                                                     alert(res.error || "Error al aceptar el reto.");
+                                                 }
+                                             });
+                                         }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-blue-500 hover:to-indigo-500 transition-colors flex items-center justify-center gap-2">
+                                             <Gamepad2 size={16} /> [Jugar]
+                                         </button>
+                                     )}
                                      {m.image && <div className="w-full mt-1"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                      {(m.type === 'audio' || m.audio) && <div className="w-full mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
                                  </div>
@@ -1009,6 +1049,35 @@ function MainApp() {
                                      placeholder="Escribe tu mensaje... @Elizabeth para IA carismática"
                                   />
                                   <div className="flex items-center gap-1 text-[#D4AF37]/80 ml-2 shrink-0">
+                                      <div className="relative">
+                                          <button onClick={() => setShowChessInvite(!showChessInvite)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Gamepad2 size={20} strokeWidth={1.5} /></button>
+                                          {showChessInvite && (
+                                              <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#121B2A] border border-[#D4AF37]/30 rounded-xl shadow-xl p-3 z-50">
+                                                  <div className="text-xs font-bold text-[#E8D9B0] mb-2">Reto de Ajedrez</div>
+                                                  <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="w-full bg-black/50 border border-[#D4AF37]/20 rounded-lg text-sm text-[#D4AF37] p-1 mb-2">
+                                                      <option value={5}>5 LM</option>
+                                                      <option value={10}>10 LM</option>
+                                                      <option value={20}>20 LM</option>
+                                                      <option value={30}>30 LM</option>
+                                                      <option value={40}>40 LM</option>
+                                                  </select>
+                                                  <button onClick={() => {
+                                                      if ((user.lizCoins || 0) < chessBet) {
+                                                          alert("No tienes suficientes Liz-Moneditas.");
+                                                          return;
+                                                      }
+                                                      socket.emit('send_global', { 
+                                                          text: `¡Reto de Ajedrez por ${chessBet * 2} LM!`,
+                                                          type: 'chess_invite',
+                                                          inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: chessBet, host: user.username, gameType: 'chess' }
+                                                      });
+                                                      setShowChessInvite(false);
+                                                  }} className="w-full py-1.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#D4AF37] rounded-lg text-sm font-bold border border-[#D4AF37]/30 transition-colors">
+                                                      Enviar Reto
+                                                  </button>
+                                              </div>
+                                          )}
+                                      </div>
                                       <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={20} strokeWidth={1.5} /></button>
                                       <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={20} strokeWidth={1.5} /></button>
                                   </div>
@@ -1045,6 +1114,17 @@ function MainApp() {
       </div>
 
       <audio id="bg-music" ref={audioRef} src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop preload="none" />
+
+      {activeChessGame && (
+          <ChessGameModal
+              onClose={() => setActiveChessGame(null)}
+              user={user}
+              gameId={activeChessGame.id}
+              opponent={activeChessGame.opponent}
+              bet={activeChessGame.bet}
+              isHost={activeChessGame.isHost}
+          />
+      )}
 
       {isConfigOpen && (
         <ProfileConfigModal

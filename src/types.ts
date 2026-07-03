@@ -19,6 +19,7 @@ export interface UserObj {
   lizCoins?: number;
   activeDecoration?: string | null;
   ownedDecorations?: string[];
+  elo?: number;
 }
 
 export interface TutiFruttiState {
@@ -52,4 +53,10 @@ export interface MessageObj {
   image?: string;
   type?: string;
   isAi?: boolean;
+  inviteData?: {
+    gameId: string;
+    gameType: string;
+    bet: number;
+    host: string;
+  };
 }
