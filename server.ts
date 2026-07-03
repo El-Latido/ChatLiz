@@ -156,8 +156,156 @@ async function startServer() {
       scores: {} as Record<string, number>,
       roundEndTime: 0,
       answers: {} as Record<string, any>,
-      maxPlayers: 5
+      maxPlayers: 5,
+      currentRound: 0,
+      totalRounds: 5,
+      isCalculating: false,
+      roundResults: null as any
   };
+
+  async function evaluateTutiFruttiRound() {
+      if (tutiFruttiState.isCalculating) return;
+      tutiFruttiState.isCalculating = true;
+      io.emit("tutifrutti_state", tutiFruttiState);
+
+      const letter = tutiFruttiState.currentLetter;
+      const answers = tutiFruttiState.answers;
+      
+      const prompt = `Evalúa estas respuestas del juego Tuti Frutti.
+La letra de esta ronda es '${letter}'.
+
+Respuestas de los jugadores (JSON):
+${JSON.stringify(answers, null, 2)}
+
+Reglas de puntuación (ESTRICTAS):
+1. Validación de Letra Inicial: Si la palabra NO empieza con la letra '${letter}' (ignorando mayúsculas y acentos), es inválida (0 puntos). Si está en blanco o vacía, 0 puntos.
+2. Validación Semántica de Categoría: Cada categoría debe respetarse. Las categorías son: 'name' (Nombre propio de persona), 'color' (Color), 'animal' (Animal), 'fruit' (Fruta o verdura), 'thing' (Cosa u objeto). Si la palabra no pertenece a la categoría, es inválida (0 puntos).
+3. Regla de Puntos Compartidos (Duplicados): Compara las palabras válidas entre todos los jugadores (ignorando mayúsculas y acentos). 
+   - Si dos o más jugadores escribieron la misma palabra válida en la misma categoría: cada uno recibe 5 puntos.
+   - Si un jugador es el único que escribió una palabra válida y única en esa categoría: recibe 10 puntos completos.
+
+Devuelve UNICAMENTE un objeto JSON válido con este formato:
+{
+  "scores": { "jugador1": 15, "jugador2": 5 },
+  "details": {
+    "jugador1": {
+      "name": { "word": "Ana", "points": 10, "reason": "Única y válida" },
+      "color": { "word": "Azul", "points": 5, "reason": "Repetida con jugador2" }
+    }
+  }
+}
+No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que las llaves de scores coincidan con los nombres de usuario. Si las respuestas están vacías, da 0 puntos.`;
+
+      let resultJson: any = { scores: {}, details: {} };
+      try {
+          if (process.env.GEMINI_API_KEY && Object.keys(answers).length > 0) {
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash',
+                  contents: prompt,
+                  config: {
+                      responseMimeType: "application/json",
+                  }
+              });
+              resultJson = JSON.parse(response.text || '{}');
+          } else {
+             // Fallback local scoring if no Gemini or no answers
+             for (const [p, pAnswers] of Object.entries(answers)) {
+                 let pts = 0;
+                 resultJson.details[p] = {};
+                 ['name', 'color', 'animal', 'fruit', 'thing'].forEach(cat => {
+                     const ans = (pAnswers as any)[cat];
+                     if (ans && typeof ans === 'string' && ans.trim().toUpperCase().startsWith(letter)) {
+                         pts += 10;
+                         resultJson.details[p][cat] = { word: ans, points: 10, reason: "Válida (Local)" };
+                     } else {
+                         resultJson.details[p][cat] = { word: ans || '', points: 0, reason: "Inválida" };
+                     }
+                 });
+                 resultJson.scores[p] = pts;
+             }
+          }
+      } catch (e) {
+          console.error("Error evaluating with Gemini:", e);
+      }
+
+      // Add points to scores
+      for (const [p, score] of Object.entries(resultJson.scores || {})) {
+          tutiFruttiState.scores[p] = (tutiFruttiState.scores[p] || 0) + (score as number);
+      }
+      
+      tutiFruttiState.roundResults = resultJson.details;
+      tutiFruttiState.isCalculating = false;
+      
+      // Update LizCoins based on points
+      for (const [p, score] of Object.entries(resultJson.scores || {})) {
+          const coinsEarned = (score as number) * 10;
+          if (coinsEarned > 0) {
+              if (fdb) {
+                  try {
+                      const uRef = doc(fdb, 'users', p);
+                      const docSnap = await getDoc(uRef);
+                      if (docSnap.exists()) {
+                          const currentCoins = docSnap.data().lizCoins || 0;
+                          await updateDoc(uRef, { lizCoins: currentCoins + coinsEarned });
+                      }
+                  } catch (e) { console.error("Error updating LizCoins", e); }
+              } else {
+                  if (fallbackState.users[p]) {
+                      fallbackState.users[p].lizCoins = (fallbackState.users[p].lizCoins || 0) + coinsEarned;
+                      saveFallbackDB();
+                  }
+              }
+              if (activeUsers[p]) {
+                  activeUsers[p].lizCoins = (activeUsers[p].lizCoins || 0) + coinsEarned;
+              }
+          }
+      }
+      emitActiveUsers();
+
+      if (tutiFruttiState.currentRound >= tutiFruttiState.totalRounds) {
+          // Send final results message
+          let resultMsg = "🏆 Resultados Finales de Tuti Frutti:\n";
+          const sortedScores = Object.entries(tutiFruttiState.scores).sort((a,b) => (b[1] as number) - (a[1] as number));
+          sortedScores.forEach(([p, s], i) => {
+              resultMsg += `${i === 0 ? '👑' : '⭐'} ${p}: ${s} pts\n`;
+          });
+          const msg = { text: resultMsg, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
+          io.emit("receive_global", msg);
+
+          // Save to Monthly Hall Of Fame
+          if (sortedScores.length > 0) {
+              const d = new Date();
+              const currentMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              
+              for (const [uname, score] of sortedScores) {
+                  if ((score as number) <= 0) continue;
+                  if (fdb) {
+                      try {
+                          const rankRef = doc(fdb, 'monthly_rankings', `${currentMonth}_${uname}`);
+                          const snap = await getDoc(rankRef);
+                          if (snap.exists()) {
+                              await updateDoc(rankRef, { score: snap.data().score + (score as number), date: Date.now() });
+                          } else {
+                              await setDoc(rankRef, { username: uname, score: score, period: currentMonth, date: Date.now() });
+                          }
+                      } catch(e) {}
+                  } else {
+                      if (!fallbackState.monthlyRankings) fallbackState.monthlyRankings = [];
+                      const existing = fallbackState.monthlyRankings.find(r => r.period === currentMonth && r.username === uname);
+                      if (existing) {
+                          existing.score += (score as number);
+                          existing.date = Date.now();
+                      } else {
+                          fallbackState.monthlyRankings.push({ username: uname, score: (score as number), period: currentMonth, date: Date.now() });
+                      }
+                      saveFallbackDB();
+                  }
+              }
+          }
+      }
+
+      io.emit("tutifrutti_state", tutiFruttiState);
+  }
 
   setInterval(() => {
      if (tutiFruttiState.isActive && tutiFruttiState.roundEndTime > 0 && Date.now() > tutiFruttiState.roundEndTime) {
@@ -165,9 +313,13 @@ async function startServer() {
          tutiFruttiState.isActive = false;
          tutiFruttiState.roundEndTime = 0;
          io.emit("tutifrutti_state", tutiFruttiState);
+         io.emit("request_tutifrutti_answers"); // Tell clients to submit their answers immediately
          
-         const msg = { text: `⏰ ¡Se acabó el tiempo!`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
+         const msg = { text: `⏰ ¡Se acabó el tiempo! Calculando puntajes...`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
          io.emit("receive_global", msg);
+         
+         // Evaluate after a short delay to allow clients to submit
+         setTimeout(evaluateTutiFruttiRound, 2500);
      }
   }, 1000);
 
@@ -559,14 +711,18 @@ async function startServer() {
     });
 
     socket.on("get_hall_of_fame", async (callback) => {
+        const d = new Date();
+        const currentMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        
         if (fdb) {
             try {
-                const q = query(collection(fdb, 'hall_of_fame'), orderBy('date', 'desc'), limit(5));
+                const q = query(collection(fdb, 'monthly_rankings'), where('period', '==', currentMonth), orderBy('score', 'desc'), limit(10));
                 const snapshot = await getDocs(q);
                 callback(snapshot.docs.map(doc => doc.data()));
             } catch(e) { callback([]); }
         } else {
-            callback(fallbackState.hallOfFame || []);
+            const ranks = (fallbackState.monthlyRankings || []).filter((r: any) => r.period === currentMonth).sort((a: any, b: any) => b.score - a.score).slice(0, 10);
+            callback(ranks);
         }
     });
 
@@ -603,14 +759,25 @@ async function startServer() {
 
     socket.on("start_tutifrutti_round", () => {
         if (!currentUsername) return;
+        
+        if (tutiFruttiState.currentRound === 0 || tutiFruttiState.currentRound >= tutiFruttiState.totalRounds) {
+            tutiFruttiState.currentRound = 0;
+            tutiFruttiState.scores = {};
+            tutiFruttiState.players.forEach(p => { tutiFruttiState.scores[p] = 0; });
+        }
+        
+        tutiFruttiState.currentRound++;
         tutiFruttiState.isActive = true;
         tutiFruttiState.answers = {};
+        tutiFruttiState.roundResults = null;
+        tutiFruttiState.isCalculating = false;
+        
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         tutiFruttiState.currentLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
         tutiFruttiState.roundEndTime = Date.now() + 60000;
         io.emit("tutifrutti_state", tutiFruttiState);
         
-        const msg = { text: `🍓 ¡Nueva ronda iniciada! Letra: ${tutiFruttiState.currentLetter}`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
+        const msg = { text: `🍓 ¡Ronda ${tutiFruttiState.currentRound}/${tutiFruttiState.totalRounds} iniciada! Letra: ${tutiFruttiState.currentLetter}`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
         io.emit("receive_global", msg);
     });
 
@@ -620,49 +787,20 @@ async function startServer() {
            tutiFruttiState.isActive = false;
            tutiFruttiState.roundEndTime = 0;
            io.emit("tutifrutti_state", tutiFruttiState);
+           io.emit("request_tutifrutti_answers"); // Tell clients to submit their answers immediately
            
-           const msg = { text: `🛑 ¡${currentUsername} ha dicho Tuti Frutti!`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
+           const msg = { text: `🛑 ¡${currentUsername} ha dicho Tuti Frutti! Calculando puntajes...`, sender: "TutiFrutti", id: Date.now().toString(), createdAt: Date.now(), isAi: true };
            io.emit("receive_global", msg);
+
+           // Evaluate after a short delay to allow clients to submit
+           setTimeout(evaluateTutiFruttiRound, 2500);
         }
     });
 
-    socket.on("submit_tutifrutti", async (answers) => {
+    socket.on("submit_tutifrutti", (answers) => {
         if (!currentUsername) return;
+        // Solo guardar las respuestas, el cálculo se hace en evaluateTutiFruttiRound
         tutiFruttiState.answers[currentUsername] = answers;
-        
-        let points = 0;
-        ['name', 'color', 'animal', 'fruit', 'thing'].forEach(cat => {
-            if (answers[cat] && answers[cat].trim().toUpperCase().startsWith(tutiFruttiState.currentLetter)) {
-                points += 10;
-            }
-        });
-        
-        tutiFruttiState.scores[currentUsername] = (tutiFruttiState.scores[currentUsername] || 0) + points;
-        io.emit("tutifrutti_state", tutiFruttiState);
-
-        // Add Liz-Moneditas (10 per point, so max 500 per round)
-        const coinsEarned = points * 10;
-        if (coinsEarned > 0) {
-            if (fdb) {
-                try {
-                    const uRef = doc(fdb, 'users', currentUsername);
-                    const docSnap = await getDoc(uRef);
-                    if (docSnap.exists()) {
-                        const currentCoins = docSnap.data().lizCoins || 0;
-                        await updateDoc(uRef, { lizCoins: currentCoins + coinsEarned });
-                    }
-                } catch (e) { console.error("Error updating LizCoins", e); }
-            } else {
-                if (fallbackState.users[currentUsername]) {
-                    fallbackState.users[currentUsername].lizCoins = (fallbackState.users[currentUsername].lizCoins || 0) + coinsEarned;
-                    saveFallbackDB();
-                }
-            }
-            if (activeUsers[currentUsername]) {
-                activeUsers[currentUsername].lizCoins = (activeUsers[currentUsername].lizCoins || 0) + coinsEarned;
-                emitActiveUsers();
-            }
-        }
     });
 
     socket.on("get_global_history", async (callback) => {

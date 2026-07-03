@@ -16,6 +16,8 @@ import { AdminConfigLizModal } from './components/AdminConfigLizModal';
 import { EmojiGifPicker } from './components/EmojiGifPicker';
 
 import { StoreModal } from './components/StoreModal';
+import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
+import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -110,6 +112,22 @@ function MainApp() {
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
   const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {}, maxPlayers: 5 });
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
+  const tfAnswersRef = useRef(tfAnswers);
+  useEffect(() => { tfAnswersRef.current = tfAnswers; }, [tfAnswers]);
+  
+  useEffect(() => {
+    if (tutiFruttiState.isActive && tutiFruttiState.answers && Object.keys(tutiFruttiState.answers).length === 0) {
+       setTfAnswers({ name: '', color: '', animal: '', fruit: '', thing: '' });
+    }
+  }, [tutiFruttiState.isActive, tutiFruttiState.answers]);
+
+  useEffect(() => {
+    if (tutiFruttiState.currentRound === tutiFruttiState.totalRounds && !tutiFruttiState.isActive && tutiFruttiState.roundResults) {
+       socket.emit('get_hall_of_fame', (data: any[]) => {
+         setHallOfFame(data);
+       });
+    }
+  }, [tutiFruttiState.currentRound, tutiFruttiState.totalRounds, tutiFruttiState.isActive, tutiFruttiState.roundResults]);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -131,6 +149,7 @@ function MainApp() {
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
@@ -242,6 +261,10 @@ function MainApp() {
 
     socket.on('tutifrutti_state', (state: any) => {
       setTutiFruttiState(state);
+    });
+
+    socket.on('request_tutifrutti_answers', () => {
+      socket.emit('submit_tutifrutti', tfAnswersRef.current);
     });
 
     socket.emit('get_hall_of_fame', (data: any[]) => {
@@ -400,6 +423,7 @@ function MainApp() {
       }
 
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType, ...options });
+      setRecordingStream(stream);
       audioChunks.current = [];
       mediaRecorderRef.current.ondataavailable = (e) => audioChunks.current.push(e.data);
       mediaRecorderRef.current.onstop = () => {
@@ -421,6 +445,7 @@ function MainApp() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setRecordingStream(null);
     }
   };
 
@@ -641,12 +666,43 @@ function MainApp() {
                         <div className="flex-1 bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-pink-100 flex flex-col">
                             {!tutiFruttiState.isActive ? (
                                 <div className="text-center flex-1 flex flex-col items-center justify-center">
-                                    <div className="text-6xl mb-4 animate-bounce">🎨</div>
-                                    <h3 className="text-3xl font-bold text-pink-500 mb-2">¡Sala de Espera!</h3>
-                                    <p className="text-gray-500 mb-8 text-lg">Únete a la partida y demuestra tu rapidez mental.</p>
+                                    {tutiFruttiState.isCalculating ? (
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-16 h-16 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                            <h3 className="text-2xl font-bold text-pink-500">Calculando resultados...</h3>
+                                        </div>
+                                    ) : tutiFruttiState.roundResults ? (
+                                        <div className="w-full flex-1 flex flex-col mb-6 bg-purple-50 p-6 rounded-[24px] border border-purple-100 overflow-y-auto">
+                                            <h3 className="text-2xl font-bold text-purple-600 mb-4">Resultados de la Ronda</h3>
+                                            <div className="space-y-4 text-left">
+                                                {Object.entries(tutiFruttiState.roundResults).map(([p, cats]: any) => (
+                                                    <div key={p} className="bg-white p-4 rounded-xl shadow-sm border border-pink-100">
+                                                        <h4 className="font-bold text-lg text-pink-500 mb-2">{p} <span className="text-sm text-gray-400 font-normal">({Object.values(cats).reduce((acc: number, val: any) => acc + val.points, 0)} pts)</span></h4>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                                            {Object.entries(cats).map(([cat, info]: any) => (
+                                                                <div key={cat} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                                    <span className="font-semibold text-gray-600 capitalize">{cat === 'name' ? 'Nombre' : cat === 'color' ? 'Color' : cat === 'animal' ? 'Animal' : cat === 'fruit' ? 'Fruta' : 'Cosa'}:</span>
+                                                                    <div className="text-right">
+                                                                        <span className={`font-bold ${info.points > 0 ? 'text-green-500' : 'text-red-500'}`}>{info.word || '-'}</span>
+                                                                        <span className="text-xs text-gray-400 block">{info.points} pts - {info.reason}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="text-6xl mb-4 animate-bounce">🎨</div>
+                                            <h3 className="text-3xl font-bold text-pink-500 mb-2">¡Sala de Espera!</h3>
+                                            <p className="text-gray-500 mb-8 text-lg">Únete a la partida y demuestra tu rapidez mental.</p>
+                                        </>
+                                    )}
                                     
                                     {!tutiFruttiState.players.includes(user.username) ? (
-                                        <div className="flex flex-col items-center gap-4">
+                                        <div className="flex flex-col items-center gap-4 mt-auto">
                                             <button 
                                                 onClick={() => socket.emit('join_tutifrutti')} 
                                                 disabled={tutiFruttiState.players.length >= tutiFruttiState.maxPlayers}
@@ -656,7 +712,7 @@ function MainApp() {
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center gap-4">
+                                        <div className="flex flex-col items-center gap-4 mt-auto">
                                             <p className="text-pink-500 font-bold text-xl">
                                                 Esperando jugadores... ({tutiFruttiState.players.length}/{tutiFruttiState.maxPlayers})
                                             </p>
@@ -677,10 +733,10 @@ function MainApp() {
 
                                             <button 
                                                 onClick={() => socket.emit('start_tutifrutti_round')} 
-                                                disabled={tutiFruttiState.players.length < tutiFruttiState.maxPlayers}
+                                                disabled={tutiFruttiState.players.length < tutiFruttiState.maxPlayers || tutiFruttiState.isCalculating}
                                                 className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
                                             >
-                                                ¡Comenzar Ronda! 🚀
+                                                {tutiFruttiState.currentRound > 0 && tutiFruttiState.currentRound < tutiFruttiState.totalRounds ? 'Siguiente Ronda' : '¡Comenzar Ronda! 🚀'}
                                             </button>
                                         </div>
                                     )}
@@ -720,9 +776,7 @@ function MainApp() {
                                     <button 
                                         disabled={!tutiFruttiState.players.includes(user.username)}
                                         onClick={() => {
-                                            socket.emit('submit_tutifrutti', tfAnswers);
                                             socket.emit('stop_tutifrutti');
-                                            setTfAnswers({ name: '', color: '', animal: '', fruit: '', thing: '' });
                                         }}
                                         className="mt-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-4 rounded-2xl font-black text-2xl shadow-xl transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                                     >
@@ -768,6 +822,22 @@ function MainApp() {
                                     )}
                                 </div>
                             </div>
+                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-amber-100">
+                                <h3 className="text-lg font-bold text-amber-500 mb-3 flex items-center gap-2">
+                                    🌟 Salón de la Fama
+                                </h3>
+                                <div className="space-y-2">
+                                    {hallOfFame.slice(0, 3).map((entry: any, i) => (
+                                        <div key={i} className="flex justify-between items-center bg-amber-50 p-2 rounded-xl border border-amber-100">
+                                            <span className="font-bold text-amber-600 text-sm">{i === 0 ? '🏆' : i === 1 ? '🥈' : '🥉'} {entry.username}</span>
+                                            <span className="font-black text-amber-500 text-sm">{entry.score} pts</span>
+                                        </div>
+                                    ))}
+                                    {hallOfFame.length === 0 && (
+                                        <p className="text-amber-300 text-center italic text-sm">Aún no hay campeones.</p>
+                                    )}
+                                </div>
+                            </div>
                             <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-blue-100 flex flex-col flex-1 min-h-[300px]">
                                 <h3 className="text-lg font-bold text-blue-500 mb-3 flex items-center gap-2">
                                     💬 Chat del Juego
@@ -779,7 +849,7 @@ function MainApp() {
                                             {m.image ? (
                                                 <img src={m.image} className="h-20 rounded-lg mt-1" alt="Adjunto" />
                                             ) : m.audio ? (
-                                                <audio src={m.audio} controls className="h-6 mt-1 w-full max-w-[200px]" />
+                                                <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>
                                             ) : (
                                                 <span className="text-gray-700 text-sm font-medium">{m.text}</span>
                                             )}
@@ -856,7 +926,7 @@ function MainApp() {
                                          <span className="text-[#E8D9B0] text-[14px] leading-snug ml-1">{m.text}</span>
                                      </div>
                                      {m.image && <div className="mt-1"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
-                                     {(m.type === 'audio' || m.audio) && <div className="mt-1 bg-[#13151f] p-1.5 rounded-xl border border-white/5 shadow-inner"><audio src={m.audio} controls className="h-6 max-w-[160px] opacity-90" /></div>}
+                                     {(m.type === 'audio' || m.audio) && <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
                                  </div>
                              ) : (
                                  <div className="bg-[#F2E3C6] rounded-[20px] px-3.5 py-1 max-w-[95%] shadow-sm flex items-baseline flex-wrap">
@@ -871,7 +941,7 @@ function MainApp() {
                                      </div>
                                      <span className="text-[#1A2035] text-[14px] leading-snug ml-1">{m.text}</span>
                                      {m.image && <div className="w-full mt-1"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
-                                     {(m.type === 'audio' || m.audio) && <div className="w-full mt-1 bg-white/50 p-1.5 rounded-xl border border-black/5 shadow-inner"><audio src={m.audio} controls className="h-6 max-w-[160px]" /></div>}
+                                     {(m.type === 'audio' || m.audio) && <div className="w-full mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
                                  </div>
                              )}
                          </div>
@@ -914,8 +984,8 @@ function MainApp() {
                         </div>
                       )}
                       {audioUrl && (
-                        <div className="relative flex items-center gap-2 bg-[#121927] px-3 py-1.5 rounded-xl border border-[#D4AF37]/40 shadow-lg animate-in fade-in slide-in-from-bottom-2">
-                           <audio src={audioUrl} controls className="h-6 w-32 opacity-90" />
+                        <div className="relative inline-block animate-in fade-in slide-in-from-bottom-2">
+                           <PremiumAudioPlayer src={audioUrl} />
                            <button onClick={() => setAudioUrl(null)} className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 transition-colors text-white rounded-full p-1.5 shadow-xl"><X size={14} /></button>
                         </div>
                       )}
@@ -924,23 +994,29 @@ function MainApp() {
 
                   <div className="flex items-center gap-2 relative">
                       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-                      <div className="flex-1 bg-transparent border border-[#D4AF37]/50 rounded-[24px] flex items-center px-4 py-1.5 relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all">
-                          <input 
-                             value={inputValue}
-                             onChange={handleInputChange}
-                             onKeyDown={e => {
-                                if (e.key === 'Enter') handleSendMessage();
-                             }}
-                             className="w-full bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px] py-1" 
-                             placeholder="Escribe tu mensaje... @Elizabeth para IA carismática"
-                          />
-                          <div className="flex items-center gap-1 text-[#D4AF37]/80 ml-2 shrink-0">
-                              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={20} strokeWidth={1.5} /></button>
-                              <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={20} strokeWidth={1.5} /></button>
-                              <button onClick={isRecording ? stopRecording : startRecording} className={`p-1.5 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-[#D4AF37]'}`}>
-                                 {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
-                              </button>
-                          </div>
+                      <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
+                          {isRecording ? (
+                              <PremiumAudioVisualizer stream={recordingStream} />
+                          ) : (
+                              <div className="flex-1 flex items-center px-4 w-full h-full">
+                                  <input 
+                                     value={inputValue}
+                                     onChange={handleInputChange}
+                                     onKeyDown={e => {
+                                        if (e.key === 'Enter') handleSendMessage();
+                                     }}
+                                     className="flex-1 bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px]" 
+                                     placeholder="Escribe tu mensaje... @Elizabeth para IA carismática"
+                                  />
+                                  <div className="flex items-center gap-1 text-[#D4AF37]/80 ml-2 shrink-0">
+                                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={20} strokeWidth={1.5} /></button>
+                                      <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={20} strokeWidth={1.5} /></button>
+                                  </div>
+                              </div>
+                          )}
+                          <button onClick={isRecording ? stopRecording : startRecording} className={`p-2 transition-colors mr-1 rounded-full shrink-0 ${isRecording ? 'text-red-500 hover:bg-red-500/10 animate-pulse' : 'hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 text-[#D4AF37]/80'}`}>
+                             {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
+                          </button>
                       </div>
                       
                       {showEmojiPicker && (

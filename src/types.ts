@@ -29,6 +29,10 @@ export interface TutiFruttiState {
   roundEndTime: number;
   answers: Record<string, any>;
   maxPlayers: number;
+  currentRound: number;
+  totalRounds: number;
+  isCalculating?: boolean;
+  roundResults?: any;
 }
 
 export interface HallOfFameEntry {
