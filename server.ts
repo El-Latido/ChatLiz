@@ -3,7 +3,7 @@ import http from "http";
 import path from "path";
 import { Server } from "socket.io";
 import { createServer as createViteServer } from "vite";
-import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, addDoc, query, orderBy, limitToLast, limit, serverTimestamp, getCountFromServer, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, addDoc, query, where, orderBy, limitToLast, limit, serverTimestamp, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import fs from "fs";
 import multer from "multer";

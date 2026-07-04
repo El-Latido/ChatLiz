@@ -13,6 +13,7 @@ import { Login } from './components/Login';
 import { RecoveryModal } from './components/RecoveryModal';
 import { ProfileConfigModal } from './components/ProfileConfigModal';
 import { AdminConfigLizModal } from './components/AdminConfigLizModal';
+import { GamesMenuModal } from './components/GamesMenuModal';
 import { EmojiGifPicker } from './components/EmojiGifPicker';
 
 import { StoreModal } from './components/StoreModal';
@@ -114,11 +115,17 @@ function MainApp() {
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
   const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {}, maxPlayers: 5 });
+  const tutiFruttiStateRef = useRef<any>({ isActive: false });
+  useEffect(() => { tutiFruttiStateRef.current = tutiFruttiState; }, [tutiFruttiState]);
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
   
-  const [showChessInvite, setShowChessInvite] = useState(false);
+  const [isGamesMenuOpen, setIsGamesMenuOpen] = useState(false);
+  const isGamesMenuOpenRef = useRef(false);
+  useEffect(() => { isGamesMenuOpenRef.current = isGamesMenuOpen; }, [isGamesMenuOpen]);
   const [chessBet, setChessBet] = useState(10);
   const [activeChessGame, setActiveChessGame] = useState<any>(null);
+  const activeChessGameRef = useRef<any>(null);
+  useEffect(() => { activeChessGameRef.current = activeChessGame; }, [activeChessGame]);
 
   const tfAnswersRef = useRef(tfAnswers);
   useEffect(() => { tfAnswersRef.current = tfAnswers; }, [tfAnswers]);
@@ -247,6 +254,10 @@ function MainApp() {
     }
     
     socket.on('receive_global', (msg: any) => {
+      // Modo Silencio: Ignorar respuestas automáticas de Elizabeth si el usuario está jugando o en el menú de juegos
+      if (msg.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
+          return;
+      }
       if (activeChat === 'global' || activeChat === 'tutifrutti') {
           setMessages(prev => {
              if (prev.some(m => m.id === msg.id)) return prev;
@@ -531,11 +542,11 @@ function MainApp() {
                  <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
                  <span className="text-xs text-amber-200">LM</span>
              </div>
-             <button onClick={() => { setStoreCategory('juegos'); setIsStoreOpen(true); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
+             <button onClick={() => setIsGamesMenuOpen(true)} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
                  <Gamepad2 size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
                  <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
              </button>
-             <button onClick={() => { setStoreCategory('juegos'); setIsStoreOpen(true); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
+             <button onClick={() => setIsGamesMenuOpen(true)} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
                  <Gamepad2 size={20} strokeWidth={1.5} />
              </button>
              <div className="flex items-center gap-2">
@@ -1065,33 +1076,7 @@ function MainApp() {
                                   />
                                   <div className="flex items-center gap-1 text-[#D4AF37]/80 ml-2 shrink-0">
                                       <div className="relative">
-                                          <button onClick={() => setShowChessInvite(!showChessInvite)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Gamepad2 size={20} strokeWidth={1.5} /></button>
-                                          {showChessInvite && (
-                                              <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#121B2A] border border-[#D4AF37]/30 rounded-xl shadow-xl p-3 z-50">
-                                                  <div className="text-xs font-bold text-[#E8D9B0] mb-2">Reto de Ajedrez</div>
-                                                  <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="w-full bg-black/50 border border-[#D4AF37]/20 rounded-lg text-sm text-[#D4AF37] p-1 mb-2">
-                                                      <option value={5}>5 LM</option>
-                                                      <option value={10}>10 LM</option>
-                                                      <option value={20}>20 LM</option>
-                                                      <option value={30}>30 LM</option>
-                                                      <option value={40}>40 LM</option>
-                                                  </select>
-                                                  <button onClick={() => {
-                                                      if ((user.lizCoins || 0) < chessBet) {
-                                                          alert("No tienes suficientes Liz-Moneditas.");
-                                                          return;
-                                                      }
-                                                      socket.emit('send_global', { 
-                                                          text: `¡Reto de Ajedrez por ${chessBet * 2} LM!`,
-                                                          type: 'chess_invite',
-                                                          inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: chessBet, host: user.username, gameType: 'chess' }
-                                                      });
-                                                      setShowChessInvite(false);
-                                                  }} className="w-full py-1.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#D4AF37] rounded-lg text-sm font-bold border border-[#D4AF37]/30 transition-colors">
-                                                      Enviar Reto
-                                                  </button>
-                                              </div>
-                                          )}
+                                          <button onClick={() => setIsGamesMenuOpen(true)} className="hover:text-[#D4AF37] p-1.5 transition-colors" title="Juegos"><Gamepad2 size={20} strokeWidth={1.5} /></button>
                                       </div>
                                       <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={20} strokeWidth={1.5} /></button>
                                       <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={20} strokeWidth={1.5} /></button>
@@ -1330,7 +1315,31 @@ function MainApp() {
            </div>
        )}
 
-       {/* Store Modal */}
+       {/* Games Menu Modal */}
+      {isGamesMenuOpen && (
+          <GamesMenuModal
+              onClose={() => setIsGamesMenuOpen(false)}
+              user={user}
+              onSelectGame={(gameId) => {
+                  if (gameId === 'tutifrutti') {
+                      setActiveChat('tutifrutti');
+                  } else if (gameId.startsWith('chess_')) {
+                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      if ((user.lizCoins || 0) < bet) {
+                          alert("No tienes suficientes Liz-Moneditas.");
+                          return;
+                      }
+                      socket.emit('send_global', { 
+                          text: `¡Reto de Ajedrez por ${bet * 2} LM!`,
+                          type: 'chess_invite',
+                          inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
+                      });
+                  }
+              }}
+          />
+      )}
+
+      {/* Store Modal */}
        {isStoreOpen && (
            <StoreModal 
                onClose={() => setIsStoreOpen(false)} 
