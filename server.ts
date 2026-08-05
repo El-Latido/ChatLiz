@@ -24,6 +24,41 @@ const ai = new GoogleGenAI({
   },
 });
 
+async function moderateMessage(msg: any, aiClient: any): Promise<{banned: boolean, reason?: string}> {
+    try {
+        const parts: any[] = [];
+        parts.push({ text: `Analiza este mensaje de chat. ¿Contiene insultos explícitos, groserías graves hacia otro usuario, violencia explícita, contenido sexual, o enlaces maliciosos? Si el usuario está bromeando de forma inofensiva o no hay insultos, debe pasar libremente. Responde SOLO con "BANNED: <razón en pocas palabras>" si rompe las reglas gravemente y debe ser baneado, o "OK" si es aceptable.\n\nMensaje de texto: ${msg.text || "[Ninguno]"}` });
+        
+        if (msg.audio && typeof msg.audio === 'string' && msg.audio.startsWith('data:audio/')) {
+            const matches = msg.audio.match(/^data:(audio\/[^;]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+                parts.push({
+                    inlineData: {
+                        mimeType: matches[1],
+                        data: matches[2]
+                    }
+                });
+                parts.push({ text: `Por favor también analiza el audio adjunto (transcríbelo o escúchalo) y aplica la misma moderación al audio.` });
+            }
+        }
+        
+        const filterResp = await aiClient.models.generateContent({
+            model: "gemini-3.6-flash",
+            contents: { parts: parts },
+            config: { temperature: 0.1 }
+        });
+        
+        const filterText = filterResp.text?.trim() || "OK";
+        if (filterText.startsWith("BANNED:")) {
+            const reason = filterText.substring(7).trim();
+            return { banned: true, reason: reason };
+        }
+    } catch(e) {
+        console.error("Moderation error:", e);
+    }
+    return { banned: false };
+}
+
 // Fallback JSON DB if no Firebase configured (e.g. initial setup)
 const DB_FILE = path.join(process.cwd(), "db.json");
 let fallbackState: DBState = { users: {}, globalMessages: [] };
@@ -854,23 +889,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       msg.id = msg.id || Date.now().toString();
 
       // Content Filter
-      try {
-         const filterResp = await ai.models.generateContent({
-             model: "gemini-2.5-flash",
-             contents: `Analiza este mensaje. ¿Contiene insultos extremadamente graves, violencia explícita, contenido sexual explícito, o enlaces explícitos/maliciosos? Responde SOLO con "BANNED: <razón>" si rompe las reglas gravemente, o "OK" si es aceptable. Mensaje: ${msg.text || "[Archivo multimedia]"}`,
-             config: { temperature: 0.1 }
-         });
-         const filterText = filterResp.text?.trim() || "OK";
-         if (filterText.startsWith("BANNED:")) {
-             const reason = filterText.substring(7).trim();
-             bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
-             const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
-             if (fdb) await addDoc(collection(fdb, 'messages'), banMsg);
-             else { fallbackState.globalMessages.push(banMsg); saveFallbackDB(); }
-             io.emit("receive_global", banMsg);
-             return; // Drop the malicious message completely
-         }
-      } catch (e) { console.error("Filter error", e); }
+      const modResult = await moderateMessage(msg, ai);
+      if (modResult.banned) {
+          bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
+          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
+          if (fdb) await addDoc(collection(fdb, 'messages'), banMsg);
+          else { fallbackState.globalMessages.push(banMsg); saveFallbackDB(); }
+          io.emit("receive_global", banMsg);
+          return; // Drop the malicious message completely
+      }
 
       if (msg.audio && msg.audio.startsWith('data:audio') && fStorage) {
          try {
@@ -1274,21 +1301,13 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       msg.id = msg.id || Date.now().toString();
 
       // Content Filter
-      try {
-         const filterResp = await ai.models.generateContent({
-             model: "gemini-2.5-flash",
-             contents: `Analiza este mensaje. ¿Contiene insultos extremadamente graves, violencia explícita, contenido sexual explícito, o enlaces maliciosos? Responde SOLO con "BANNED: <razón>" si rompe las reglas gravemente, o "OK" si es aceptable. Mensaje: ${msg.text || "[Archivo multimedia]"}`,
-             config: { temperature: 0.1 }
-         });
-         const filterText = filterResp.text?.trim() || "OK";
-         if (filterText.startsWith("BANNED:")) {
-             const reason = filterText.substring(7).trim();
-             bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins
-             const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
-             io.emit("receive_global", banMsg); // Public announcement
-             return callback({ success: false, error: "Has sido baneado por contenido inapropiado." });
-         }
-      } catch (e) { }
+      const modResult = await moderateMessage(msg, ai);
+      if (modResult.banned) {
+          bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
+          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
+          io.emit("receive_global", banMsg); // Public announcement
+          return callback({ success: false, error: `Has sido baneado por contenido inapropiado: ${modResult.reason}` });
+      }
 
       if (msg.audio && msg.audio.startsWith('data:audio') && fStorage) {
          try {
