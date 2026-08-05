@@ -180,21 +180,12 @@ function MainApp() {
   const micTimeoutRef = useRef<any>(null);
   const [isMicHeld, setIsMicHeld] = useState(false);
 
-  const handleMicDown = () => {
-    micTimeoutRef.current = setTimeout(() => {
-        setIsMicHeld(true);
-        if (!isRecording) startRecording();
-    }, 250);
-  };
-
-  const handleMicUp = () => {
-    if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
-    if (isMicHeld) {
-        setIsMicHeld(false);
-        if (isRecording) stopRecording();
+  const toggleRecording = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isRecording) {
+        stopRecording();
     } else {
-        if (isRecording) stopRecording();
-        else startRecording();
+        startRecording();
     }
   };
 
@@ -445,6 +436,17 @@ function MainApp() {
     socket.emit("stop_typing", { username: user.username, chat: activeChat });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
+    // Destrucción total del bucle y limpieza drástica
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = null; // Remove the listener
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingStream) {
+      recordingStream.getTracks().forEach(t => t.stop());
+    }
+    setIsRecording(false);
+    setRecordingStream(null);
+
     // Limpieza inmediata del input para evitar sensación de "congelamiento"
     setInputValue('');
     setSelectedImage(null);
@@ -504,11 +506,14 @@ function MainApp() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setRecordingStream(null);
     }
+    if (recordingStream) {
+      recordingStream.getTracks().forEach(t => t.stop());
+    }
+    setIsRecording(false);
+    setRecordingStream(null);
   };
 
   if (!isLoggedIn) {
@@ -963,12 +968,7 @@ function MainApp() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <button 
-                                            onMouseDown={handleMicDown}
-                                            onMouseUp={handleMicUp}
-                                            onMouseLeave={handleMicUp}
-                                            onTouchStart={handleMicDown}
-                                            onTouchEnd={handleMicUp}
-                                            onClick={(e) => e.preventDefault()}
+                                            onClick={toggleRecording}
                                             className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isRecording ? 'text-white bg-red-500 animate-pulse' : 'text-blue-500 bg-blue-100 hover:bg-blue-200'}`}>
                                             {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
                                         </button>
@@ -1138,12 +1138,7 @@ function MainApp() {
 
                       <div className="flex items-center gap-1">
                           <button 
-                            onMouseDown={handleMicDown}
-                            onMouseUp={handleMicUp}
-                            onMouseLeave={handleMicUp}
-                            onTouchStart={handleMicDown}
-                            onTouchEnd={handleMicUp}
-                            onClick={(e) => e.preventDefault()}
+                            onClick={toggleRecording}
                             className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${isRecording ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse' : 'bg-[#121B2A]/80 border border-[#D4AF37]/50 text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]'}`}>
                              {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
                           </button>
