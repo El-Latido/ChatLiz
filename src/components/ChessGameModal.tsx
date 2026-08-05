@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Trophy, MessageSquare, AlertTriangle, Send } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+const ChessboardAny = Chessboard as any;
 import { socket } from '../socket';
 import { UserObj } from '../types';
 
@@ -161,7 +162,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
             </div>
 
             <div className="w-full max-w-[500px] aspect-square relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 border-[#8B5A2B] bg-[#f0d9b5]">
-                <Chessboard 
+                <ChessboardAny 
                     position={game.fen()} 
                     onPieceDrop={onDrop}
                     boardOrientation={isHost ? 'white' : 'black'}
