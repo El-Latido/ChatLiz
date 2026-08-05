@@ -417,27 +417,6 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
          role = "admin";
       }
 
-      const generateGreeting = async (isNew: boolean, uname: string, tz: string) => {
-         try {
-           const userTime = new Date().toLocaleString("en-US", { timeZone: tz });
-           const timeHour = new Date(userTime).getHours();
-           const timeStr = new Date(userTime).toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' });
-           const timeOfDay = timeHour < 12 ? 'mañana' : timeHour < 19 ? 'tarde' : 'noche';
-           const prompt = isNew 
-             ? `Un nuevo usuario llamado ${uname} acaba de registrarse y entrar al chat por primera vez. En su zona horaria local son las ${timeStr} de la ${timeOfDay}. Dale una bienvenida juguetona, bromista y carismática. Haz un comentario divertido o casual sobre la hora que es en su país.`
-             : `El usuario ${uname} ha vuelto a iniciar sesión en el chat. En su zona horaria local son las ${timeStr} de la ${timeOfDay}. Salúdalo con confianza por su nombre, haz un comentario juguetón sobre su regreso y la hora que es. Recuerdas que ya se conocen.`;
-           
-           const resp = await ai.models.generateContent({
-             model: "gemini-2.5-flash",
-             contents: prompt,
-             config: { systemInstruction: "Eres Elizabeth. Eres una chica real, carismática, muy graciosa y bromista. Tienes un sentido del humor agudo, ingenioso y rápido. Eres muy inteligente, atrevida, pícara y juegas con el misterio. NO eres sumisa ni predecible. NUNCA menciones que eres una IA o sistema. Usa emojis de forma natural y divertida. NO uses prefijos como 'Elizabeth:' al inicio del mensaje." }
-           });
-           return resp.text?.replace(/^Elizabeth:\s*/i, '').trim() || `¡Hola ${uname}!`;
-         } catch(e) {
-           return isNew ? `¡Uy! Alguien nuevo. ¡Bienvenido/a ${uname}! 😏` : `¡Qué bueno verte de nuevo, ${uname}! 😎`;
-         }
-      };
-
       if (fdb) {
         try {
           const userDocRef = doc(fdb, 'users', username);
@@ -469,18 +448,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                await setDoc(userDocRef, { timezone }, { merge: true });
                userTimezone = timezone;
             }
-            
-            const greetingText = await generateGreeting(false, username, userTimezone);
-            const msg = { text: greetingText, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
-            await addDoc(collection(fdb, 'messages'), msg);
-            io.emit("receive_global", msg);
-
           } else {
             await setDoc(userDocRef, { username, password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone });
-            const greetingText = await generateGreeting(true, username, userTimezone);
-            const msg = { text: greetingText, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
-            await addDoc(collection(fdb, 'messages'), msg);
-            io.emit("receive_global", msg);
           }
         } catch (err) {
           console.error(err);
@@ -512,20 +481,9 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
              userTimezone = timezone;
              saveFallbackDB();
           }
-
-          const greetingText = await generateGreeting(false, username, userTimezone);
-          const msg = { text: greetingText, sender: "Elizabeth", id: Date.now().toString() };
-          fallbackState.globalMessages.push(msg);
-          saveFallbackDB();
-          io.emit("receive_global", msg);
         } else {
           fallbackState.users[username] = { password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone };
           saveFallbackDB();
-          const greetingText = await generateGreeting(true, username, userTimezone);
-          const msg = { text: greetingText, sender: "Elizabeth", id: Date.now().toString() };
-          fallbackState.globalMessages.push(msg);
-          saveFallbackDB();
-          io.emit("receive_global", msg);
         }
       }
 
@@ -957,7 +915,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
          io.to(userData.socketId).emit("receive_global", { ...msg, text: finalMsgText });
       }
 
-      if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
+      if (msg.text && msg.text.toLowerCase().includes("elizabeth")) {
         let isPlayingChess = false;
         for (const gId in chessGames) {
             const g = chessGames[gId];
@@ -1365,7 +1323,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
         }
       }
 
-      if (toUser === "Elizabeth") {
+      if (toUser === "Elizabeth" && msg.text && msg.text.toLowerCase().includes("elizabeth")) {
         try {
           io.emit("typing", { username: "Elizabeth", chat: currentUsername });
           
