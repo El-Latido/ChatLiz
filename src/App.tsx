@@ -20,7 +20,7 @@ import { StoreModal } from './components/StoreModal';
 import { ChessGameModal } from './components/ChessGameModal';
 import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
-import { FloatingRadio } from './components/FloatingRadio';
+import { InlineRadio } from './components/InlineRadio';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -1097,6 +1097,7 @@ function MainApp() {
                   )}
 
                   <div className="flex items-center gap-2 relative">
+                      <InlineRadio />
                       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
                       <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
                           {isRecording ? (
@@ -1154,8 +1155,6 @@ function MainApp() {
               </div>
           </main>
       </div>
-
-      <FloatingRadio />
 
       {activeChessGame && (
           <ChessGameModal
