@@ -960,6 +960,8 @@ function MainApp() {
                                                 </div>
                                             </>
                                         )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
                                         <button 
                                             onMouseDown={handleMicDown}
                                             onMouseUp={handleMicUp}
@@ -967,17 +969,17 @@ function MainApp() {
                                             onTouchStart={handleMicDown}
                                             onTouchEnd={handleMicUp}
                                             onClick={(e) => e.preventDefault()}
-                                            className={`p-1 ml-1 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-pink-500 text-blue-400'}`}>
+                                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isRecording ? 'text-white bg-red-500 animate-pulse' : 'text-blue-500 bg-blue-100 hover:bg-blue-200'}`}>
                                             {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
                                         </button>
+                                        <button 
+                                            onClick={handleSendMessage}
+                                            disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
+                                            className="bg-gradient-to-r from-blue-400 to-pink-400 hover:from-blue-500 hover:to-pink-500 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-md shrink-0 transform hover:scale-105 active:scale-95"
+                                        >
+                                            <Send size={16} strokeWidth={2.5} className="ml-1" />
+                                        </button>
                                     </div>
-                                    <button 
-                                        onClick={handleSendMessage}
-                                        disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
-                                        className="bg-gradient-to-r from-blue-400 to-pink-400 hover:from-blue-500 hover:to-pink-500 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-md shrink-0 transform hover:scale-105 active:scale-95"
-                                    >
-                                        <Send size={16} strokeWidth={2.5} className="ml-1" />
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1101,7 +1103,7 @@ function MainApp() {
                       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
                       <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
                           {isRecording ? (
-                              <PremiumAudioVisualizer stream={recordingStream} />
+                              <div className="w-full h-full"><PremiumAudioVisualizer stream={recordingStream} /></div>
                           ) : (
                               <div className="flex-1 flex items-center px-4 w-full h-full">
                                   <input 
@@ -1122,16 +1124,6 @@ function MainApp() {
                                   </div>
                               </div>
                           )}
-                          <button 
-                            onMouseDown={handleMicDown}
-                            onMouseUp={handleMicUp}
-                            onMouseLeave={handleMicUp}
-                            onTouchStart={handleMicDown}
-                            onTouchEnd={handleMicUp}
-                            onClick={(e) => e.preventDefault()}
-                            className={`p-2 transition-colors mr-1 rounded-full shrink-0 ${isRecording ? 'text-red-500 hover:bg-red-500/10 animate-pulse' : 'hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 text-[#D4AF37]/80'}`}>
-                             {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
-                          </button>
                       </div>
                       
                       {showEmojiPicker && (
@@ -1144,13 +1136,25 @@ function MainApp() {
                          />
                       )}
 
-                      <button 
-                        onClick={handleSendMessage} 
-                        disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
-                        className="w-[46px] h-[46px] rounded-[16px] bg-[#121B2A]/80 backdrop-blur-md border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] shrink-0 disabled:opacity-50 disabled:shadow-none"
-                      >
-                        <Send size={20} className="ml-0.5" strokeWidth={1.5} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                          <button 
+                            onMouseDown={handleMicDown}
+                            onMouseUp={handleMicUp}
+                            onMouseLeave={handleMicUp}
+                            onTouchStart={handleMicDown}
+                            onTouchEnd={handleMicUp}
+                            onClick={(e) => e.preventDefault()}
+                            className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${isRecording ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse' : 'bg-[#121B2A]/80 border border-[#D4AF37]/50 text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]'}`}>
+                             {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
+                          </button>
+                          <button 
+                            onClick={handleSendMessage} 
+                            disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
+                            className="w-[46px] h-[46px] rounded-[16px] bg-[#121B2A]/80 backdrop-blur-md border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] shrink-0 disabled:opacity-50 disabled:shadow-none"
+                          >
+                            <Send size={20} className="ml-0.5" strokeWidth={1.5} />
+                          </button>
+                      </div>
                   </div>
               </div>
               </>
