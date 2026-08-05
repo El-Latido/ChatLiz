@@ -24,10 +24,20 @@ const ai = new GoogleGenAI({
   },
 });
 
-async function moderateMessage(msg: any, aiClient: any): Promise<{banned: boolean, reason?: string}> {
+async function moderateMessage(msg: any, aiClient: any): Promise<{banned: boolean, reason?: string, mentionsElizabeth?: boolean, transcription?: string}> {
     try {
         const parts: any[] = [];
-        parts.push({ text: `Analiza este mensaje de chat. ¿Contiene insultos explícitos, groserías graves hacia otro usuario, violencia explícita, contenido sexual, o enlaces maliciosos? Si el usuario está bromeando de forma inofensiva o no hay insultos, debe pasar libremente. Responde SOLO con "BANNED: <razón en pocas palabras>" si rompe las reglas gravemente y debe ser baneado, o "OK" si es aceptable.\n\nMensaje de texto: ${msg.text || "[Ninguno]"}` });
+        parts.push({ text: `Analiza este mensaje de chat. ¿Contiene insultos explícitos, groserías graves hacia otro usuario, violencia explícita, contenido sexual, o enlaces maliciosos? Si el usuario está bromeando de forma inofensiva o no hay insultos, debe pasar libremente.
+        
+IMPORTANTE: Debes responder ÚNICAMENTE con un objeto JSON válido que siga esta estructura:
+{
+  "banned": boolean, // true si rompe las reglas gravemente (insultos serios, etc.), false si es inofensivo
+  "reason": string, // razón del baneo si banned es true, vacío si false
+  "transcription": string, // Si hay un audio, escribe aquí lo que dice. Si no hay audio, déjalo vacío.
+  "mentionsElizabeth": boolean // true si el texto original O la transcripción del audio mencionan la palabra "elizabeth" o "liz" (sin importar mayúsculas)
+}
+
+Mensaje de texto: ${msg.text || "[Ninguno]"}` });
         
         if (msg.audio && typeof msg.audio === 'string' && msg.audio.startsWith('data:audio/')) {
             const matches = msg.audio.match(/^data:(audio\/[^;]+);base64,(.+)$/);
@@ -38,21 +48,26 @@ async function moderateMessage(msg: any, aiClient: any): Promise<{banned: boolea
                         data: matches[2]
                     }
                 });
-                parts.push({ text: `Por favor también analiza el audio adjunto (transcríbelo o escúchalo) y aplica la misma moderación al audio.` });
+                parts.push({ text: `Por favor escucha el audio adjunto, transcríbelo en el campo "transcription" del JSON y aplica la misma moderación.` });
             }
         }
         
         const filterResp = await aiClient.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-2.5-flash",
             contents: { parts: parts },
-            config: { temperature: 0.1 }
+            config: { 
+                temperature: 0.1,
+                responseMimeType: "application/json"
+            }
         });
         
-        const filterText = filterResp.text?.trim() || "OK";
-        if (filterText.startsWith("BANNED:")) {
-            const reason = filterText.substring(7).trim();
-            return { banned: true, reason: reason };
-        }
+        const responseJson = JSON.parse(filterResp.text?.trim() || "{}");
+        return { 
+            banned: !!responseJson.banned, 
+            reason: responseJson.reason || "",
+            transcription: responseJson.transcription || "",
+            mentionsElizabeth: !!responseJson.mentionsElizabeth
+        };
     } catch(e) {
         console.error("Moderation error:", e);
     }
@@ -915,7 +930,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
          io.to(userData.socketId).emit("receive_global", { ...msg, text: finalMsgText });
       }
 
-      if (msg.text && msg.text.toLowerCase().includes("elizabeth")) {
+      let triggerElizabeth = false;
+      if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
+          triggerElizabeth = true;
+      }
+      if (modResult.mentionsElizabeth) {
+          triggerElizabeth = true;
+      }
+
+      if (triggerElizabeth) {
         let isPlayingChess = false;
         for (const gId in chessGames) {
             const g = chessGames[gId];
@@ -948,6 +971,10 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
              const base64Data = msg.image.split(',')[1];
              const mimeType = msg.image.match(/data:(.*?);/)?.[1] || 'image/jpeg';
              parts.push({ inlineData: { data: base64Data, mimeType } });
+          }
+          
+          if (modResult.transcription) {
+             parts.push({ text: `[Nota: El usuario envió un audio que dice: "${modResult.transcription}"]` });
           }
 
           const userTz = activeUsers[currentUsername]?.timezone || 'UTC';
@@ -1323,7 +1350,17 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
         }
       }
 
-      if (toUser === "Elizabeth" && msg.text && msg.text.toLowerCase().includes("elizabeth")) {
+      let triggerPrivateElizabeth = false;
+      if (toUser === "Elizabeth") {
+          if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
+              triggerPrivateElizabeth = true;
+          }
+          if (modResult.mentionsElizabeth) {
+              triggerPrivateElizabeth = true;
+          }
+      }
+
+      if (triggerPrivateElizabeth) {
         try {
           io.emit("typing", { username: "Elizabeth", chat: currentUsername });
           
@@ -1359,6 +1396,10 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
              const base64Data = msg.image.split(',')[1];
              const mimeType = msg.image.match(/data:(.*?);/)?.[1] || 'image/jpeg';
              parts.push({ inlineData: { data: base64Data, mimeType } });
+          }
+
+          if (modResult.transcription) {
+             parts.push({ text: `[Nota: El usuario envió un audio que dice: "${modResult.transcription}"]` });
           }
 
           let response: any;

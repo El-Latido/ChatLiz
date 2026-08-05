@@ -20,6 +20,7 @@ import { StoreModal } from './components/StoreModal';
 import { ChessGameModal } from './components/ChessGameModal';
 import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
+import { FloatingRadio } from './components/FloatingRadio';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -648,11 +649,7 @@ function MainApp() {
                  </div>
               </div>
                  {/* Actions / Utilities */}
-                 <div className="px-4 mt-2 grid grid-cols-2 gap-2">
-                     <button id="music-toggle" onClick={() => setIsMusicPlaying(!isMusicPlaying)} className="flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border border-[#D4AF37]/30 px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm">
-                        {isMusicPlaying ? <Volume2 size={16} strokeWidth={1.5} /> : <VolumeX size={16} strokeWidth={1.5} />}
-                        Música
-                     </button>
+                 <div className="px-4 mt-2 grid grid-cols-1 gap-2">
                      <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'global' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setActiveChat('global')}>
                         <Globe size={16} strokeWidth={1.5} />
                         Mundo
@@ -1158,7 +1155,7 @@ function MainApp() {
           </main>
       </div>
 
-      <audio id="bg-music" ref={audioRef} src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop preload="none" />
+      <FloatingRadio />
 
       {activeChessGame && (
           <ChessGameModal
