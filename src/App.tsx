@@ -177,6 +177,27 @@ function MainApp() {
   const audioChunks = useRef<BlobPart[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const micTimeoutRef = useRef<any>(null);
+  const [isMicHeld, setIsMicHeld] = useState(false);
+
+  const handleMicDown = () => {
+    micTimeoutRef.current = setTimeout(() => {
+        setIsMicHeld(true);
+        if (!isRecording) startRecording();
+    }, 250);
+  };
+
+  const handleMicUp = () => {
+    if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
+    if (isMicHeld) {
+        setIsMicHeld(false);
+        if (isRecording) stopRecording();
+    } else {
+        if (isRecording) stopRecording();
+        else startRecording();
+    }
+  };
+
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -906,31 +927,49 @@ function MainApp() {
                                 </div>
                                 
                                 {(selectedImage || audioUrl || selectedGif) && (
-                                    <div className="flex gap-2 mb-2">
-                                        {selectedImage && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">📷 Imagen lista</div>}
-                                        {selectedGif && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">🎞️ GIF listo</div>}
-                                        {audioUrl && <div className="text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded-full">🎙️ Audio listo</div>}
+                                    <div className="flex gap-2 mb-2 items-end">
+                                        {selectedImage && <div className="relative"><img src={selectedImage} className="h-12 w-12 rounded-lg object-cover" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>}
+                                        {selectedGif && <div className="relative"><img src={selectedGif} className="h-12 rounded-lg object-cover" /><button onClick={() => setSelectedGif(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>}
+                                        {audioUrl && (
+                                            <div className="relative inline-block animate-in fade-in slide-in-from-bottom-2">
+                                                <PremiumAudioPlayer src={audioUrl} />
+                                                <button onClick={() => setAudioUrl(null)} className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md z-10"><X size={12} /></button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 
-                                <div className="flex gap-2 relative mt-auto items-center">
-                                    <div className="flex-1 flex items-center bg-white border-2 border-blue-200 rounded-full px-3 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
-                                        <input 
-                                            value={inputValue}
-                                            onChange={e => setInputValue(e.target.value)}
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter' && inputValue.trim()) handleSendMessage();
-                                            }}
-                                            className="flex-1 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent"
-                                            placeholder="Escribe un mensaje..."
-                                        />
-                                        <div className="flex items-center gap-1 text-blue-400">
-                                            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
-                                            <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
-                                            <button onClick={isRecording ? stopRecording : startRecording} className={`p-1 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-pink-500'}`}>
-                                                {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
-                                            </button>
-                                        </div>
+                                <div className="flex gap-2 relative mt-auto items-center overflow-hidden">
+                                    <div className="flex-1 flex items-center bg-white border-2 border-blue-200 rounded-full px-3 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all overflow-hidden h-[46px]">
+                                        {isRecording ? (
+                                            <div className="flex-1 w-full h-full"><PremiumAudioVisualizer stream={recordingStream} /></div>
+                                        ) : (
+                                            <>
+                                                <input 
+                                                    value={inputValue}
+                                                    onChange={e => setInputValue(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && inputValue.trim()) handleSendMessage();
+                                                    }}
+                                                    className="flex-1 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent h-full"
+                                                    placeholder="Escribe un mensaje..."
+                                                />
+                                                <div className="flex items-center gap-1 text-blue-400 shrink-0">
+                                                    <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
+                                                    <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
+                                                </div>
+                                            </>
+                                        )}
+                                        <button 
+                                            onMouseDown={handleMicDown}
+                                            onMouseUp={handleMicUp}
+                                            onMouseLeave={handleMicUp}
+                                            onTouchStart={handleMicDown}
+                                            onTouchEnd={handleMicUp}
+                                            onClick={(e) => e.preventDefault()}
+                                            className={`p-1 ml-1 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-pink-500 text-blue-400'}`}>
+                                            {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
+                                        </button>
                                     </div>
                                     <button 
                                         onClick={handleSendMessage}
@@ -1083,7 +1122,14 @@ function MainApp() {
                                   </div>
                               </div>
                           )}
-                          <button onClick={isRecording ? stopRecording : startRecording} className={`p-2 transition-colors mr-1 rounded-full shrink-0 ${isRecording ? 'text-red-500 hover:bg-red-500/10 animate-pulse' : 'hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 text-[#D4AF37]/80'}`}>
+                          <button 
+                            onMouseDown={handleMicDown}
+                            onMouseUp={handleMicUp}
+                            onMouseLeave={handleMicUp}
+                            onTouchStart={handleMicDown}
+                            onTouchEnd={handleMicUp}
+                            onClick={(e) => e.preventDefault()}
+                            className={`p-2 transition-colors mr-1 rounded-full shrink-0 ${isRecording ? 'text-red-500 hover:bg-red-500/10 animate-pulse' : 'hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 text-[#D4AF37]/80'}`}>
                              {isRecording ? <StopCircle size={20} strokeWidth={1.5} /> : <Mic size={20} strokeWidth={1.5} />}
                           </button>
                       </div>
