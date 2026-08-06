@@ -1103,7 +1103,7 @@ function MainApp() {
                           {isRecording ? (
                               <div className="w-full h-full"><PremiumAudioVisualizer stream={recordingStream} /></div>
                           ) : (
-                              <div className="flex-1 flex items-center pl-4 pr-2 w-full h-full">
+                              <div className="flex-1 flex items-center pl-3 pr-2 h-full">
                                   <input 
                                      value={inputValue}
                                      onChange={handleInputChange}
@@ -1113,12 +1113,12 @@ function MainApp() {
                                      className="flex-1 min-w-0 bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px]" 
                                      placeholder="Escribe tu mensaje... @Elizabeth"
                                   />
-                                  <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0">
+                                  <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0 ml-1">
                                       <div className="relative">
-                                          <button onClick={() => setIsGamesMenuOpen(true)} className="hover:text-[#D4AF37] p-1.5 transition-colors" title="Juegos"><Gamepad2 size={20} strokeWidth={1.5} /></button>
+                                          <button onClick={() => setIsGamesMenuOpen(true)} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
                                       </div>
-                                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={20} strokeWidth={1.5} /></button>
-                                      <button onClick={() => fileInputRef.current?.click()} className="hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={20} strokeWidth={1.5} /></button>
+                                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={18} strokeWidth={1.5} /></button>
+                                      <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={18} strokeWidth={1.5} /></button>
                                   </div>
                               </div>
                           )}
