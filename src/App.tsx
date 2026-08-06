@@ -914,18 +914,32 @@ function MainApp() {
                                     💬 Chat del Juego
                                 </h3>
                                 <div className="flex-1 overflow-y-auto mb-3 space-y-2 pr-2 scrollbar-thin">
-                                    {messages.slice(-15).map((m: any, idx) => (
-                                        <div key={idx} className="bg-blue-50/50 p-2 rounded-2xl">
-                                            <span className="font-bold text-blue-600 text-xs mr-2">{m.sender}:</span>
-                                            {m.image ? (
-                                                <img src={m.image} className="h-20 rounded-lg mt-1" alt="Adjunto" />
-                                            ) : m.audio ? (
-                                                <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>
-                                            ) : (
-                                                <span className="text-gray-700 text-sm font-medium">{m.text}</span>
-                                            )}
+                                    {messages.slice(-15).map((m: any, idx) => {
+                                        const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
+                                        const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
+                                        const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
+                                        const timeStr = isNaN(date.getTime()) ? '10:00' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        return (
+                                        <div key={idx} className="flex gap-2 w-full">
+                                            <img src={avatarUrl} className="w-6 h-6 rounded-full border border-blue-200 shrink-0 bg-white" alt={m.sender} />
+                                            <div className="bg-blue-50/50 p-2 rounded-2xl flex-1 relative flex flex-col -mt-1">
+                                                <div className="flex items-baseline flex-wrap gap-1.5">
+                                                    <span className="text-gray-400 text-[10px] font-mono shrink-0">[{timeStr}]</span>
+                                                    <span className="font-bold text-blue-600 text-[12px] shrink-0">{m.sender}:</span>
+                                                    {!m.image && !m.audio && (
+                                                       <span className="text-gray-700 text-sm font-medium leading-snug ml-0.5">{m.text}</span>
+                                                    )}
+                                                </div>
+                                                {m.image && (
+                                                    <img src={m.image} className="h-20 rounded-lg mt-1 object-cover" alt="Adjunto" />
+                                                )}
+                                                {m.audio && (
+                                                    <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>
+                                                )}
+                                            </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 
                                 {(selectedImage || audioUrl || selectedGif) && (
@@ -994,58 +1008,71 @@ function MainApp() {
                      const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;
                      const decUrl = decId ? DECORATIONS.find(d => d.id === decId)?.url : null;
+                     const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
 
                      return (
                          <div key={m.id || idx} className="flex justify-start px-1 md:px-2">
                              {isLiz ? (
-                                 <div className="pl-2.5 py-0.5 flex flex-col max-w-[98%] border-l-[3px] border-[#D4AF37]/20 ml-1">
-                                     <div className="flex items-baseline flex-wrap">
-                                         <span className="text-[#8B98B0] mr-1.5 text-[13px] font-mono">[{timeStr}]</span>
-                                         <div className="flex items-center relative mr-1.5 shrink-0">
-                                            {decUrl && (
-                                                <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
-                                                    <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
-                                                </div>
-                                            )}
-                                            <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
-                                         </div>
-                                         <span className="text-[#E8D9B0] text-[14px] leading-snug ml-1">{m.text}</span>
+                                 <div className="flex gap-2 w-full max-w-[98%] mt-1 group">
+                                     <div className="shrink-0 pt-0.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                                         <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
                                      </div>
-                                     {m.image && <div className="mt-1"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
-                                     {(m.type === 'audio' || m.audio) && <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     <div className="flex-1 flex flex-col border-l-[3px] border-[#D4AF37]/20 pl-2 ml-1">
+                                         <div className="flex items-baseline flex-wrap gap-1.5">
+                                             <span className="text-[#8B98B0] text-[12px] font-mono shrink-0">[{timeStr}]</span>
+                                             <div className="flex items-center relative shrink-0">
+                                                {decUrl && (
+                                                    <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
+                                                        <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                    </div>
+                                                )}
+                                                <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
+                                             </div>
+                                             <span className="text-[#E8D9B0] text-[14px] leading-snug">{m.text}</span>
+                                         </div>
+                                         {m.image && <div className="mt-1"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
+                                         {(m.type === 'audio' || m.audio) && <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     </div>
                                  </div>
                              ) : (
-                                 <div className="bg-[#F2E3C6] rounded-[20px] px-3.5 py-1 max-w-[95%] shadow-sm flex items-baseline flex-wrap">
-                                     <span className="text-[#6B7280] mr-1.5 text-[13px] font-mono">[{timeStr}]</span>
-                                     <div className="flex items-center relative mr-1.5 shrink-0">
-                                        {decUrl && (
-                                            <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
-                                                <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
-                                            </div>
-                                        )}
-                                        <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
+                                 <div className="flex gap-2.5 w-full mt-1.5 group">
+                                     <div className="shrink-0 pt-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                                         <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
                                      </div>
-                                     <span className="text-[#1A2035] text-[14px] leading-snug ml-1">{m.text}</span>
-                                     {m.type === 'chess_invite' && m.inviteData && (
-                                         <button onClick={() => {
-                                             if (m.sender === user.username) return; // Can't accept own invite
-                                             if ((user.lizCoins || 0) < m.inviteData!.bet) {
-                                                 alert("No tienes suficientes Liz-Moneditas.");
-                                                 return;
-                                             }
-                                             socket.emit('accept_chess_invite', m.inviteData, (res: any) => {
-                                                 if (res.success) {
-                                                     setActiveChessGame({ id: m.inviteData!.gameId, opponent: usersOnline.find(u => u.username === m.sender) || {username: m.sender}, bet: m.inviteData!.bet, isHost: false });
-                                                 } else {
-                                                     alert(res.error || "Error al aceptar el reto.");
+                                     <div className="bg-[#F2E3C6] rounded-[20px] rounded-tl-sm px-3.5 py-1.5 max-w-[95%] shadow-sm flex flex-col relative">
+                                         <div className="flex items-baseline flex-wrap gap-1.5">
+                                             <span className="text-[#6B7280] text-[12px] font-mono shrink-0">[{timeStr}]</span>
+                                             <div className="flex items-center relative shrink-0">
+                                                {decUrl && (
+                                                    <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
+                                                        <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                    </div>
+                                                )}
+                                                <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
+                                             </div>
+                                             <span className="text-[#1A2035] text-[14px] leading-snug">{m.text}</span>
+                                         </div>
+                                         {m.type === 'chess_invite' && m.inviteData && (
+                                             <button onClick={() => {
+                                                 if (m.sender === user.username) return; // Can't accept own invite
+                                                 if ((user.lizCoins || 0) < m.inviteData!.bet) {
+                                                     alert("No tienes suficientes Liz-Moneditas.");
+                                                     return;
                                                  }
-                                             });
-                                         }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-blue-500 hover:to-indigo-500 transition-colors flex items-center justify-center gap-2">
-                                             <Gamepad2 size={16} /> [Jugar]
-                                         </button>
-                                     )}
-                                     {m.image && <div className="w-full mt-1"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
-                                     {(m.type === 'audio' || m.audio) && <div className="w-full mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
+                                                 socket.emit('accept_chess_invite', m.inviteData, (res: any) => {
+                                                     if (res.success) {
+                                                         setActiveChessGame({ id: m.inviteData!.gameId, opponent: usersOnline.find(u => u.username === m.sender) || {username: m.sender}, bet: m.inviteData!.bet, isHost: false });
+                                                     } else {
+                                                         alert(res.error || "Error al aceptar el reto.");
+                                                     }
+                                                 });
+                                             }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-blue-500 hover:to-indigo-500 transition-colors flex items-center justify-center gap-2">
+                                                 <Gamepad2 size={16} /> [Jugar]
+                                             </button>
+                                         )}
+                                         {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
+                                         {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     </div>
                                  </div>
                              )}
                          </div>
