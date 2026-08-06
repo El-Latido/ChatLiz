@@ -923,12 +923,14 @@ function MainApp() {
                                         <div key={idx} className="flex gap-2 w-full">
                                             <img src={avatarUrl} className="w-6 h-6 rounded-full border border-blue-200 shrink-0 bg-white" alt={m.sender} />
                                             <div className="bg-blue-50/50 p-2 rounded-2xl flex-1 relative flex flex-col -mt-1">
-                                                <div className="flex items-baseline flex-wrap gap-1.5">
-                                                    <span className="text-gray-400 text-[10px] font-mono shrink-0">[{timeStr}]</span>
-                                                    <span className="font-bold text-blue-600 text-[12px] shrink-0">{m.sender}:</span>
-                                                    {!m.image && !m.audio && (
-                                                       <span className="text-gray-700 text-sm font-medium leading-snug ml-0.5">{m.text}</span>
-                                                    )}
+                                                <div className="flex items-baseline flex-wrap gap-1.5 justify-between">
+                                                    <div className="flex items-baseline flex-wrap gap-1.5 flex-1">
+                                                        <span className="font-bold text-blue-600 text-[12px] shrink-0">{m.sender}:</span>
+                                                        {!m.image && !m.audio && (
+                                                           <span className="text-gray-700 text-sm font-medium leading-snug ml-0.5">{m.text}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-gray-400 text-[10px] font-mono shrink-0 ml-auto pl-2">{timeStr}</span>
                                                 </div>
                                                 {m.image && (
                                                     <img src={m.image} className="h-20 rounded-lg mt-1 object-cover" alt="Adjunto" />
@@ -1018,17 +1020,19 @@ function MainApp() {
                                          <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
                                      </div>
                                      <div className="flex-1 flex flex-col border-l-[3px] border-[#D4AF37]/20 pl-2 ml-1">
-                                         <div className="flex items-baseline flex-wrap gap-1.5">
-                                             <span className="text-[#8B98B0] text-[12px] font-mono shrink-0">[{timeStr}]</span>
-                                             <div className="flex items-center relative shrink-0">
-                                                {decUrl && (
-                                                    <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
-                                                        <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
-                                                    </div>
-                                                )}
-                                                <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
+                                         <div className="flex items-baseline flex-wrap gap-1.5 justify-between">
+                                             <div className="flex items-baseline flex-wrap gap-1.5 flex-1">
+                                                 <div className="flex items-center relative shrink-0">
+                                                    {decUrl && (
+                                                        <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
+                                                            <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                        </div>
+                                                    )}
+                                                    <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
+                                                 </div>
+                                                 <span className="text-[#E8D9B0] text-[14px] leading-snug">{m.text}</span>
                                              </div>
-                                             <span className="text-[#E8D9B0] text-[14px] leading-snug">{m.text}</span>
+                                             <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
                                          </div>
                                          {m.image && <div className="mt-1"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="mt-1"><PremiumAudioPlayer src={m.audio} /></div>}
@@ -1039,18 +1043,20 @@ function MainApp() {
                                      <div className="shrink-0 pt-1 opacity-90 group-hover:opacity-100 transition-opacity">
                                          <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
                                      </div>
-                                     <div className="bg-[#F2E3C6] rounded-[20px] rounded-tl-sm px-3.5 py-1.5 max-w-[95%] shadow-sm flex flex-col relative">
-                                         <div className="flex items-baseline flex-wrap gap-1.5">
-                                             <span className="text-[#6B7280] text-[12px] font-mono shrink-0">[{timeStr}]</span>
-                                             <div className="flex items-center relative shrink-0">
-                                                {decUrl && (
-                                                    <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
-                                                        <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
-                                                    </div>
-                                                )}
-                                                <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
+                                     <div className="bg-[#F2E3C6] rounded-[20px] rounded-tl-sm px-3.5 py-1.5 max-w-[95%] shadow-sm flex flex-col relative min-w-[200px]">
+                                         <div className="flex items-baseline flex-wrap gap-1.5 justify-between">
+                                             <div className="flex items-baseline flex-wrap gap-1.5 flex-1">
+                                                 <div className="flex items-center relative shrink-0">
+                                                    {decUrl && (
+                                                        <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
+                                                            <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                        </div>
+                                                    )}
+                                                    <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
+                                                 </div>
+                                                 <span className="text-[#1A2035] text-[14px] leading-snug">{m.text}</span>
                                              </div>
-                                             <span className="text-[#1A2035] text-[14px] leading-snug">{m.text}</span>
+                                             <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
                                          </div>
                                          {m.type === 'chess_invite' && m.inviteData && (
                                              <button onClick={() => {
