@@ -69,7 +69,7 @@ Mensaje de texto: ${msg.text || "[Ninguno]"}` });
             mentionsElizabeth: !!responseJson.mentionsElizabeth
         };
     } catch(e: any) {
-        if (e?.status === 429 || e?.status === 503 || e?.message?.includes('429') || e?.message?.includes('503')) {
+        if (e?.status === 429 || e?.status === 503 || e?.message?.includes('429') || e?.message?.includes('503') || e?.message?.includes("resource_exhausted") || e?.message?.includes("quota")) {
             // Silently fail and allow the message to pass without moderation
         } else {
             console.error("Moderation error:", e);
@@ -269,24 +269,25 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
               });
               resultJson = JSON.parse(response.text || '{}');
           } else {
-             // Fallback local scoring if no Gemini or no answers
-             for (const [p, pAnswers] of Object.entries(answers)) {
-                 let pts = 0;
-                 resultJson.details[p] = {};
-                 ['name', 'color', 'animal', 'fruit', 'thing'].forEach(cat => {
-                     const ans = (pAnswers as any)[cat];
-                     if (ans && typeof ans === 'string' && ans.trim().toUpperCase().startsWith(letter)) {
-                         pts += 10;
-                         resultJson.details[p][cat] = { word: ans, points: 10, reason: "Válida (Local)" };
-                     } else {
-                         resultJson.details[p][cat] = { word: ans || '', points: 0, reason: "Inválida" };
-                     }
-                 });
-                 resultJson.scores[p] = pts;
-             }
+              throw new Error("No API key or no answers");
           }
       } catch (e) {
-          console.error("Error evaluating with Gemini:", e);
+          console.error("Error evaluating with Gemini, using local fallback:", e);
+          // Fallback local scoring if no Gemini or no answers
+          for (const [p, pAnswers] of Object.entries(answers)) {
+              let pts = 0;
+              resultJson.details[p] = {};
+              ['name', 'color', 'animal', 'fruit', 'thing'].forEach(cat => {
+                  const ans = (pAnswers as any)[cat];
+                  if (ans && typeof ans === 'string' && ans.trim().toUpperCase().startsWith(letter)) {
+                      pts += 10;
+                      resultJson.details[p][cat] = { word: ans, points: 10, reason: "Válida (Local)" };
+                  } else {
+                      resultJson.details[p][cat] = { word: ans || '', points: 0, reason: "Inválida" };
+                  }
+              });
+              resultJson.scores[p] = pts;
+          }
       }
 
       // Add points to scores
@@ -1033,7 +1034,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
              response = await Promise.race([fetchPromise, timeoutPromise]);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI ===", apiError.message || apiError);
-             if (apiError.status === 429 || apiError.message?.includes("429")) {
+             if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
                 response = { text: "ELIZABETH está descansando sus circuitos, vuelve en un rato." };
              } else {
                 response = { text: "" };
@@ -1441,7 +1442,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
              response = await Promise.race([fetchPromise, timeoutPromise]);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI (PRIVADO) ===", apiError.message || apiError);
-             if (apiError.status === 429 || apiError.message?.includes("429")) {
+             if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
                 response = { text: "ELIZABETH está descansando sus circuitos, vuelve en un rato." };
              } else {
                 response = { text: "" };
