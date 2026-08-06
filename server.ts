@@ -70,7 +70,7 @@ Mensaje de texto: ${msg.text || "[Ninguno]"}` });
         };
     } catch(e: any) {
         if (e?.status === 429 || e?.status === 503 || e?.message?.includes('429') || e?.message?.includes('503')) {
-            console.warn("Gemini API rate limit (429/503) during moderation. Allowing message to pass.");
+            // Silently fail and allow the message to pass without moderation
         } else {
             console.error("Moderation error:", e);
         }
@@ -161,28 +161,34 @@ async function startServer() {
   loadAiUser();
 
   if (fdb) {
-    onSnapshot(collection(fdb, 'users'), (snapshot) => {
-      let changed = false;
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "modified" || change.type === "added") {
-          const data = change.doc.data();
-          if (data.username === "Elizabeth") {
-            aiUserTempCache = { ...aiUserTempCache, ...data };
-            changed = true;
-          } else if (activeUsers[data.username]) {
-            activeUsers[data.username].profilePic = data.profilePic;
-            activeUsers[data.username].statusMessage = data.statusMessage;
-            activeUsers[data.username].role = data.role;
-            // The type definition doesn't declare pais_idioma for activeUsers initially, but it accepts it
-            (activeUsers[data.username] as any).pais_idioma = data.pais_idioma;
-            changed = true;
+    let unsubUsers: any = null;
+    const setupUsersListener = () => {
+      if (unsubUsers) unsubUsers();
+      unsubUsers = onSnapshot(collection(fdb, 'users'), (snapshot) => {
+        let changed = false;
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "modified" || change.type === "added") {
+            const data = change.doc.data();
+            if (data.username === "Elizabeth") {
+              aiUserTempCache = { ...aiUserTempCache, ...data };
+              changed = true;
+            } else if (activeUsers[data.username]) {
+              activeUsers[data.username].profilePic = data.profilePic;
+              activeUsers[data.username].statusMessage = data.statusMessage;
+              activeUsers[data.username].role = data.role;
+              // The type definition doesn't declare pais_idioma for activeUsers initially, but it accepts it
+              (activeUsers[data.username] as any).pais_idioma = data.pais_idioma;
+              changed = true;
+            }
           }
-        }
+        });
+        if (changed) emitActiveUsers();
+      }, (error) => {
+        console.error("onSnapshot users error, reconnecting in 5s...", error);
+        setTimeout(setupUsersListener, 5000);
       });
-      if (changed) emitActiveUsers();
-    }, (error) => {
-      console.error("onSnapshot users error:", error);
-    });
+    };
+    setupUsersListener();
   }
 
   const emitActiveUsers = () => {

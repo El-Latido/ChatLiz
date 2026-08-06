@@ -363,36 +363,50 @@ function MainApp() {
        });
     });
     
-    const unsubUser = onSnapshot(doc(db, "users", user.username), (docSnap) => {
-        if (docSnap.exists()) {
-            const updatedUser = docSnap.data() as UserObj;
-            setUser(prev => ({ ...prev, ...updatedUser }));
-            
-            // También actualizamos nuestra info en usersOnline
-            setUsersOnline(prevOnline => {
-                const exists = prevOnline.find(u => u.username === user.username);
-                if (exists) {
-                    return prevOnline.map(u => u.username === user.username ? { ...u, ...updatedUser } : u);
-                }
-                return prevOnline;
-            });
-        }
-    });
-
-    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-            if (change.type === "modified" || change.type === "added") {
-                const updatedUser = change.doc.data() as UserObj;
+    let unsubUser: any = null;
+    let unsubscribe: any = null;
+    
+    const setupListeners = () => {
+        if (unsubUser) unsubUser();
+        if (unsubscribe) unsubscribe();
+        
+        unsubUser = onSnapshot(doc(db, "users", user.username!), (docSnap) => {
+            if (docSnap.exists()) {
+                const updatedUser = docSnap.data() as UserObj;
+                setUser(prev => ({ ...prev, ...updatedUser }));
+                
                 setUsersOnline(prevOnline => {
-                    const exists = prevOnline.find(u => u.username === updatedUser.username);
+                    const exists = prevOnline.find(u => u.username === user.username);
                     if (exists) {
-                        return prevOnline.map(u => u.username === updatedUser.username ? { ...u, ...updatedUser } : u);
+                        return prevOnline.map(u => u.username === user.username ? { ...u, ...updatedUser } : u);
                     }
                     return prevOnline;
                 });
             }
+        }, (error) => {
+            console.error("onSnapshot unsubUser error, retrying in 3s...", error);
+            setTimeout(setupListeners, 3000);
         });
-    });
+
+        unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "modified" || change.type === "added") {
+                    const updatedUser = change.doc.data() as UserObj;
+                    setUsersOnline(prevOnline => {
+                        const exists = prevOnline.find(u => u.username === updatedUser.username);
+                        if (exists) {
+                            return prevOnline.map(u => u.username === updatedUser.username ? { ...u, ...updatedUser } : u);
+                        }
+                        return prevOnline;
+                    });
+                }
+            });
+        }, (error) => {
+            console.error("onSnapshot unsubscribe error, retrying in 3s...", error);
+            setTimeout(setupListeners, 3000);
+        });
+    };
+    setupListeners();
 
     return () => {
       socket.off('receive_global');
@@ -1015,42 +1029,43 @@ function MainApp() {
                      return (
                          <div key={m.id || idx} className="flex justify-start px-1 md:px-2">
                              {isLiz ? (
-                                 <div className="flex flex-col max-w-[98%] border-l-[3px] border-[#D4AF37]/20 pl-2.5 ml-1 mt-1 group">
-                                     <div className="flex items-center flex-wrap gap-1.5 justify-between w-full">
-                                         <div className="flex items-center flex-wrap gap-2 flex-1">
-                                             <div className="flex items-center relative shrink-0 gap-1.5">
-                                                <img src={avatarUrl} className="w-6 h-6 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
-                                                {decUrl && (
-                                                    <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
-                                                        <img src={decUrl} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
-                                                    </div>
-                                                )}
-                                                <span className="font-bold text-[#D4AF37] text-[14px] relative z-20">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}:</span>
-                                             </div>
-                                             <span className="text-[#E8D9B0] text-[14px] leading-snug">{m.text}</span>
-                                         </div>
-                                         <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 self-end mt-1 sm:mt-0">{timeStr}</span>
+                                 <div className="flex gap-2 w-full max-w-[98%] mt-1 group">
+                                     <div className="relative shrink-0 mt-1">
+                                        <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
+                                        {decUrl && (
+                                            <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
+                                                <img src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                            </div>
+                                        )}
                                      </div>
-                                     {m.image && <div className="mt-1.5"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
-                                     {(m.type === 'audio' || m.audio) && <div className="mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     <div className="flex flex-col border-l-[3px] border-[#D4AF37]/20 pl-2.5 ml-1 flex-1 min-w-[200px]">
+                                         <div className="flex flex-col w-full relative">
+                                             <span className="font-bold text-[#D4AF37] text-[13px] relative z-20 mb-1">ELIZABETH {m.isAi && '(IA Administradora Gemini ✨)'}</span>
+                                             <div className="flex flex-wrap items-end justify-between gap-2">
+                                                <span className="text-[#E8D9B0] text-[14px] leading-snug flex-1">{m.text}</span>
+                                                <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2">{timeStr}</span>
+                                             </div>
+                                         </div>
+                                         {m.image && <div className="mt-1.5"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
+                                         {(m.type === 'audio' || m.audio) && <div className="mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     </div>
                                  </div>
                              ) : (
-                                 <div className="bg-[#F2E3C6] rounded-[20px] rounded-tl-sm px-3.5 py-2 max-w-[95%] shadow-sm flex flex-col relative min-w-[200px] mt-1.5 group">
-                                     <div className="flex items-center flex-wrap gap-1.5 justify-between w-full">
-                                         <div className="flex items-center flex-wrap gap-2 flex-1">
-                                             <div className="flex items-center relative shrink-0 gap-1.5">
-                                                <img src={avatarUrl} className="w-6 h-6 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
-                                                {decUrl && (
-                                                    <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
-                                                        <img src={decUrl} className="w-[120%] h-[120%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
-                                                    </div>
-                                                )}
-                                                <span className="font-bold text-[#5A52A5] text-[14px] relative z-20 px-1">{m.sender}:</span>
-                                             </div>
-                                             <span className="text-[#1A2035] text-[14px] leading-snug">{m.text}</span>
-                                         </div>
-                                         <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 self-end mt-1 sm:mt-0">{timeStr}</span>
+                                 <div className="flex gap-2 w-full mt-1.5 group">
+                                     <div className="relative shrink-0 mt-1">
+                                        <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
+                                        {decUrl && (
+                                            <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
+                                                <img src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
+                                            </div>
+                                        )}
                                      </div>
+                                     <div className="bg-[#F2E3C6] rounded-[20px] rounded-tl-sm px-3.5 py-2 max-w-[85%] shadow-sm flex flex-col relative min-w-[150px]">
+                                         <span className="font-bold text-[#5A52A5] text-[13px] mb-1">{m.sender}</span>
+                                         <div className="flex flex-wrap items-end justify-between gap-2">
+                                             <span className="text-[#1A2035] text-[14px] leading-snug flex-1">{m.text}</span>
+                                             <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
+                                         </div>
                                          {m.type === 'chess_invite' && m.inviteData && (
                                              <button onClick={() => {
                                                  if (m.sender === user.username) return; // Can't accept own invite
@@ -1071,6 +1086,7 @@ function MainApp() {
                                          )}
                                          {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
+                                     </div>
                                  </div>
                              )}
                          </div>
