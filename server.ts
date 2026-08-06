@@ -68,8 +68,12 @@ Mensaje de texto: ${msg.text || "[Ninguno]"}` });
             transcription: responseJson.transcription || "",
             mentionsElizabeth: !!responseJson.mentionsElizabeth
         };
-    } catch(e) {
-        console.error("Moderation error:", e);
+    } catch(e: any) {
+        if (e?.status === 429 || e?.status === 503 || e?.message?.includes('429') || e?.message?.includes('503')) {
+            console.warn("Gemini API rate limit (429/503) during moderation. Allowing message to pass.");
+        } else {
+            console.error("Moderation error:", e);
+        }
     }
     return { banned: false };
 }
@@ -872,15 +876,25 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           return; // Drop the malicious message completely
       }
 
-      if (msg.audio && msg.audio.startsWith('data:audio') && fStorage) {
-         try {
-             const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
-             await uploadString(audioRef, msg.audio, 'data_url');
-             const downloadUrl = await getDownloadURL(audioRef);
-             msg.audio = downloadUrl;
+      if (msg.audio && msg.audio.startsWith('data:audio')) {
+         if (fStorage) {
+             try {
+                 const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
+                 await uploadString(audioRef, msg.audio, 'data_url');
+                 const downloadUrl = await getDownloadURL(audioRef);
+                 msg.audio = downloadUrl;
+                 msg.type = 'audio';
+             } catch (e) {
+                 console.error("Audio upload error (Firebase Storage):", e);
+                 // No enviamos el audio base64 si falló para no exceder el límite de 1MB de Firestore
+                 delete msg.audio;
+                 if (!msg.text) msg.text = "🎤 (Audio no pudo ser enviado)";
+             }
+         } else {
+             // Si no hay Storage, enviamos base64 bajo nuestro propio riesgo,
+             // o lo limitamos.
              msg.type = 'audio';
-         } catch (e) {
-             console.error("Audio upload error", e);
+             // Podría exceder 1MB, pero lo dejamos pasar
          }
       } else if (msg.audio) {
          msg.type = 'audio';
@@ -1294,15 +1308,21 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           return callback({ success: false, error: `Has sido baneado por contenido inapropiado: ${modResult.reason}` });
       }
 
-      if (msg.audio && msg.audio.startsWith('data:audio') && fStorage) {
-         try {
-             const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
-             await uploadString(audioRef, msg.audio, 'data_url');
-             const downloadUrl = await getDownloadURL(audioRef);
-             msg.audio = downloadUrl;
+      if (msg.audio && msg.audio.startsWith('data:audio')) {
+         if (fStorage) {
+             try {
+                 const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
+                 await uploadString(audioRef, msg.audio, 'data_url');
+                 const downloadUrl = await getDownloadURL(audioRef);
+                 msg.audio = downloadUrl;
+                 msg.type = 'audio';
+             } catch (e) {
+                 console.error("Private Audio upload error (Firebase Storage):", e);
+                 delete msg.audio;
+                 if (!msg.text) msg.text = "🎤 (Audio no pudo ser enviado)";
+             }
+         } else {
              msg.type = 'audio';
-         } catch (e) {
-             console.error("Audio upload error", e);
          }
       } else if (msg.audio) {
          msg.type = 'audio';
