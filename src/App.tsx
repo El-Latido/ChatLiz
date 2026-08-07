@@ -983,7 +983,7 @@ function MainApp() {
                                                     onKeyDown={e => {
                                                         if (e.key === 'Enter' && inputValue.trim()) handleSendMessage();
                                                     }}
-                                                    className="flex-1 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent h-full"
+                                                    className="flex-1 min-w-0 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent h-full"
                                                     placeholder="Escribe un mensaje..."
                                                 />
                                                 <div className="flex items-center gap-1 text-blue-400 shrink-0">
@@ -1146,28 +1146,28 @@ function MainApp() {
                   <div className="flex items-center gap-2 relative">
                       <InlineRadio />
                       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-                      <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
+                      <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center px-3 relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
                           {isRecording ? (
                               <div className="w-full h-full"><PremiumAudioVisualizer stream={recordingStream} /></div>
                           ) : (
-                              <div className="flex-1 flex items-center pl-3 pr-2 h-full">
+                              <>
                                   <input 
                                      value={inputValue}
                                      onChange={handleInputChange}
                                      onKeyDown={e => {
                                         if (e.key === 'Enter') handleSendMessage();
                                      }}
-                                     className="flex-1 min-w-0 bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px]" 
+                                     className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px]" 
                                      placeholder="Escribe tu mensaje... @Elizabeth"
                                   />
                                   <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0 ml-1">
-                                      <div className="relative">
-                                          <button onClick={() => setIsGamesMenuOpen(true)} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
+                                      <div className="relative flex items-center justify-center">
+                                          <button onClick={() => setIsGamesMenuOpen(true)} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
                                       </div>
-                                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors"><Smile size={18} strokeWidth={1.5} /></button>
-                                      <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center hover:text-[#D4AF37] p-1.5 transition-colors"><Paperclip size={18} strokeWidth={1.5} /></button>
+                                      <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"><Smile size={18} strokeWidth={1.5} /></button>
+                                      <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"><Paperclip size={18} strokeWidth={1.5} /></button>
                                   </div>
-                              </div>
+                              </>
                           )}
                       </div>
                       
