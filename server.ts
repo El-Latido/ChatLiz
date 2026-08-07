@@ -876,8 +876,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
-          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
-          if (fdb) await addDoc(collection(fdb, 'messages'), banMsg);
+          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          if (fdb) await addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() });
           else { fallbackState.globalMessages.push(banMsg); saveFallbackDB(); }
           io.emit("receive_global", banMsg);
           return; // Drop the malicious message completely
@@ -1050,11 +1050,10 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           
           const wordCount = cleanText.split(/\s+/).length;
           
-          const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString() };
+          const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
           
           if (fdb) {
-            eliMsg.createdAt = serverTimestamp();
-            await addDoc(collection(fdb, 'messages'), eliMsg);
+            await addDoc(collection(fdb, 'messages'), { ...eliMsg, createdAt: serverTimestamp() });
           } else {
             fallbackState.globalMessages.push(eliMsg);
             saveFallbackDB();
@@ -1310,7 +1309,8 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
-          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: serverTimestamp() };
+          const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          if (fdb) await addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() });
           io.emit("receive_global", banMsg); // Public announcement
           return callback({ success: false, error: `Has sido baneado por contenido inapropiado: ${modResult.reason}` });
       }

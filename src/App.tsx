@@ -931,7 +931,13 @@ function MainApp() {
                                     {messages.slice(-15).map((m: any, idx) => {
                                         const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
                                         const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
-                                        const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
+                                        let date = new Date();
+                                        if (m.createdAt) {
+                                            if (typeof m.createdAt === 'number') date = new Date(m.createdAt);
+                                            else if (m.createdAt.seconds) date = new Date(m.createdAt.seconds * 1000);
+                                            else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
+                                            else date = new Date(m.createdAt);
+                                        }
                                         const timeStr = isNaN(date.getTime()) ? '10:00' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         return (
                                         <div key={idx} className="flex gap-2 w-full mt-1.5">
@@ -1013,7 +1019,13 @@ function MainApp() {
                   {messages.filter(m => m && m.sender).map((m, idx) => {
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
                      const isMe = m.sender === user.username;
-                     const date = m.createdAt?.toDate ? m.createdAt.toDate() : new Date();
+                     let date = new Date();
+                     if (m.createdAt) {
+                         if (typeof m.createdAt === 'number') date = new Date(m.createdAt);
+                         else if (m.createdAt.seconds) date = new Date(m.createdAt.seconds * 1000);
+                         else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
+                         else date = new Date(m.createdAt);
+                     }
                      const timeStr = isNaN(date.getTime()) ? `10:0${idx % 10}` : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                      const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;
