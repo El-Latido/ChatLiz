@@ -763,7 +763,7 @@ function MainApp() {
                                             <div className="space-y-4 text-left">
                                                 {Object.entries(tutiFruttiState.roundResults).map(([p, cats]: any) => (
                                                     <div key={p} className="bg-white p-4 rounded-xl shadow-sm border border-pink-100">
-                                                        <h4 className="font-bold text-lg text-pink-500 mb-2">{p} <span className="text-sm text-gray-400 font-normal">({Object.values(cats).reduce((acc: number, val: any) => acc + val.points, 0)} pts)</span></h4>
+                                                        <h4 className="font-bold text-lg text-pink-500 mb-2">{p} <span className="text-sm text-gray-400 font-normal">({Number(Object.values(cats).reduce((acc: any, val: any) => acc + val.points, 0))} pts)</span></h4>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                                                             {Object.entries(cats).map(([cat, info]: any) => (
                                                                 <div key={cat} className="flex justify-between items-center bg-gray-50 p-2 rounded">
@@ -1092,18 +1092,7 @@ function MainApp() {
                                                  <Gamepad2 size={16} /> [Jugar]
                                              </button>
                                          )}
-                                         {m.type === 'song_request' && m.requestData && (
-                                             <div className="mt-2 bg-[#1A2639]/50 border border-pink-500/30 rounded-xl p-3 flex flex-col gap-1 shadow-sm relative overflow-hidden">
-                                                 <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500/10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-                                                 <div className="text-pink-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1"><Music size={12}/> Pedido de Radio</div>
-                                                 <div className="text-white font-medium text-sm leading-tight">{m.requestData.title}</div>
-                                                 {m.requestData.url && (
-                                                     <a href={m.requestData.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs hover:text-blue-300 hover:underline flex items-center gap-1 mt-1 transition-colors w-fit">
-                                                         Ver en YouTube
-                                                     </a>
-                                                 )}
-                                             </div>
-                                         )}
+
                                          {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
                                      </div>
@@ -1449,11 +1438,7 @@ function MainApp() {
           <SongRequestModal
               onClose={() => setIsSongRequestOpen(false)}
               onSubmit={(title, url) => {
-                  socket.emit('send_global', {
-                      text: `¡Pedido de canción de ${user.username}!`,
-                      type: 'song_request',
-                      requestData: { title, url }
-                  });
+                  socket.emit('song_request', { title, url });
                   setIsSongRequestOpen(false);
               }}
           />

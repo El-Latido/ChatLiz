@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 
 export const AudioVisualizer = ({ analyser }: { analyser: AnalyserNode | null }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!analyser) return;

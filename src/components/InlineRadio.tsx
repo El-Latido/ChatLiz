@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Radio, Play, Pause, Volume2, VolumeX, Loader2, Music, ListMusic, ChevronDown, ChevronUp } from 'lucide-react';
+import { Radio, Play, Pause, Volume2, VolumeX, Loader2, Music, ListMusic, ChevronDown, ChevronUp, Youtube, User } from 'lucide-react';
+import ReactPlayer from 'react-player';
+const Player = ReactPlayer as any;
+import { socket } from '../socket';
 
 export function InlineRadio() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -12,6 +15,10 @@ export function InlineRadio() {
   const [currentSong, setCurrentSong] = useState<any>(null);
   const [songHistory, setSongHistory] = useState<any[]>([]);
   
+  const [songQueue, setSongQueue] = useState<any[]>([]);
+  const [currentRequestedSong, setCurrentRequestedSong] = useState<any>(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamUrl = "https://listen.moe/stream";
@@ -23,7 +30,6 @@ export function InlineRadio() {
     let heartbeatInterval: NodeJS.Timeout;
 
     ws.onopen = () => {
-      // heartbeats setup happens when we get op 0
     };
 
     ws.onmessage = (event) => {
@@ -55,29 +61,50 @@ export function InlineRadio() {
   }, []);
 
   useEffect(() => {
-    if (audioRef.current) {
+    const handleQueueUpdate = (data: { queue: any[], current: any }) => {
+       setSongQueue(data.queue);
+       setCurrentRequestedSong(data.current);
+    };
+    socket.on('queue_update', handleQueueUpdate);
+    return () => {
+       socket.off('queue_update', handleQueueUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+     if (currentRequestedSong && isPlaying && audioRef.current) {
+        audioRef.current.pause();
+     } else if (!currentRequestedSong && isPlaying && audioRef.current) {
+        audioRef.current.play().catch(e => console.error("Resume failed", e));
+     }
+  }, [currentRequestedSong, isPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current && !currentRequestedSong) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, currentRequestedSong]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current && !currentRequestedSong) return;
     
     if (isPlaying) {
-      audioRef.current.pause();
+      if (!currentRequestedSong && audioRef.current) audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      setIsLoading(true);
-      audioRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-          setIsLoading(false);
-        })
-        .catch(err => {
-          console.error("Playback failed", err);
-          setIsPlaying(false);
-          setIsLoading(false);
-        });
+      setIsLoading(!currentRequestedSong);
+      setIsPlaying(true);
+      if (!currentRequestedSong && audioRef.current) {
+          audioRef.current.play()
+            .then(() => {
+              setIsLoading(false);
+            })
+            .catch(err => {
+              console.error("Playback failed", err);
+              setIsPlaying(false);
+              setIsLoading(false);
+            });
+      }
     }
   };
 
@@ -88,6 +115,12 @@ export function InlineRadio() {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+  };
+
+  const handleVideoEnded = () => {
+     if (currentRequestedSong) {
+         socket.emit("song_ended", { id: currentRequestedSong.id });
+     }
   };
 
   return (
@@ -128,7 +161,7 @@ export function InlineRadio() {
         <div className="w-px h-4 bg-[#D4AF37]/30 mx-1"></div>
         <button onClick={() => setShowHistory(!showHistory)} className="text-[#D4AF37]/80 hover:text-[#D4AF37] flex items-center gap-1 transition-colors relative group">
            <Music size={14} />
-           {currentSong && <span className="absolute -top-1 -right-1 w-2 h-2 bg-pink-500 rounded-full animate-pulse"></span>}
+           {(currentRequestedSong || currentSong) && <span className="absolute -top-1 -right-1 w-2 h-2 bg-pink-500 rounded-full animate-pulse"></span>}
         </button>
       </div>
 
@@ -142,7 +175,16 @@ export function InlineRadio() {
               <button onClick={() => setShowHistory(false)} className="text-[#D4AF37]/50 hover:text-[#D4AF37]"><ChevronDown size={16}/></button>
            </div>
            
-           {currentSong && (
+           {currentRequestedSong ? (
+               <div className="flex flex-col gap-1 border border-pink-500/30 bg-pink-500/5 rounded-xl p-2 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500/10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                  <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider flex items-center gap-1"><Youtube size={12}/> Pedido Especial</span>
+                  <div className="text-sm font-semibold text-white leading-tight break-words">{currentRequestedSong.title}</div>
+                  <div className="text-xs text-[#D4AF37]/80 truncate flex items-center gap-1 mt-0.5">
+                      <User size={10} /> {currentRequestedSong.requester}
+                  </div>
+               </div>
+           ) : currentSong ? (
                <div className="flex flex-col gap-1">
                   <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Sonando Ahora</span>
                   <div className="text-sm font-semibold text-white leading-tight break-words">{currentSong.title}</div>
@@ -155,9 +197,23 @@ export function InlineRadio() {
                       </div>
                   )}
                </div>
+           ) : null}
+
+           {songQueue && songQueue.length > 0 && (
+               <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
+                  <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> En Cola ({songQueue.length})</span>
+                  <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
+                      {songQueue.map((s:any, idx:number) => (
+                          <div key={idx} className="flex flex-col opacity-80 hover:opacity-100 transition-opacity">
+                              <span className="text-[12px] font-medium text-gray-200 truncate">{s.title}</span>
+                              <span className="text-[10px] text-pink-400/80 truncate flex items-center gap-1"><User size={10}/> {s.requester}</span>
+                          </div>
+                      ))}
+                  </div>
+               </div>
            )}
 
-           {songHistory && songHistory.length > 0 && (
+           {!currentRequestedSong && songHistory && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> Escuchadas</span>
                   <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
@@ -171,6 +227,23 @@ export function InlineRadio() {
                </div>
            )}
         </div>
+      )}
+
+      {currentRequestedSong && isPlaying && (
+         <div className="hidden">
+             
+             <Player 
+                 url={currentRequestedSong.url} 
+                 playing={isPlaying} 
+                 volume={isMuted ? 0 : volume}
+                 onEnded={handleVideoEnded}
+                 onReady={() => setIsVideoReady(true)}
+                 onError={(e:any) => {
+                     console.error("YouTube Player Error", e);
+                     handleVideoEnded(); // Skip on error
+                 }}
+             />
+         </div>
       )}
 
       <audio 

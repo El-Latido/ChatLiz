@@ -145,6 +145,9 @@ async function startServer() {
   let activeUsers: Record<string, any> = {};
   const chessGames: Record<string, any> = {};
 
+  let songQueue: any[] = [];
+  let currentRequestedSong: any = null;
+
   const bannedUsers: Record<string, number> = {};
 
   let aiUserTempCache: any = { username: "Elizabeth", profilePic: "", statusMessage: "Administradora", role: "admin" };
@@ -858,6 +861,36 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
     socket.on("stop_typing", (data) => {
       // data: { username: string, chat: string }
       socket.broadcast.emit("stop_typing", data);
+    });
+
+    socket.on("song_request", (data) => {
+      if (!currentUsername) return;
+      const song = {
+          id: Date.now().toString(),
+          title: data.title,
+          url: data.url,
+          requester: currentUsername
+      };
+      
+      if (!currentRequestedSong) {
+          currentRequestedSong = song;
+          io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+      } else {
+          songQueue.push(song);
+          io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+      }
+    });
+
+    socket.on("song_ended", (data) => {
+      if (!currentUsername || !currentRequestedSong) return;
+      if (currentRequestedSong.id === data.id) {
+         if (songQueue.length > 0) {
+             currentRequestedSong = songQueue.shift();
+         } else {
+             currentRequestedSong = null;
+         }
+         io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+      }
     });
 
     socket.on("send_global", async (msg) => {
