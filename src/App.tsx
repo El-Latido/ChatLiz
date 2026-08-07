@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import { 
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2,
-  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
@@ -21,6 +20,7 @@ import { ChessGameModal } from './components/ChessGameModal';
 import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 import { InlineRadio } from './components/InlineRadio';
+import { SongRequestModal } from './components/SongRequestModal';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -169,8 +169,9 @@ function MainApp() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
-  const [isStoreOpen, setIsStoreOpen] = useState(false);
+    const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [storeCategory, setStoreCategory] = useState<string | undefined>(undefined);
+  const [isSongRequestOpen, setIsSongRequestOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -987,6 +988,7 @@ function MainApp() {
                                                     placeholder="Escribe un mensaje..."
                                                 />
                                                 <div className="flex items-center gap-1 text-blue-400 shrink-0">
+                                                    <button onClick={() => setIsSongRequestOpen(true)} className="hover:text-pink-500 p-1 transition-colors"><Music size={18} strokeWidth={2} /></button>
                                                     <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
                                                     <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
                                                 </div>
@@ -1090,6 +1092,18 @@ function MainApp() {
                                                  <Gamepad2 size={16} /> [Jugar]
                                              </button>
                                          )}
+                                         {m.type === 'song_request' && m.requestData && (
+                                             <div className="mt-2 bg-[#1A2639]/50 border border-pink-500/30 rounded-xl p-3 flex flex-col gap-1 shadow-sm relative overflow-hidden">
+                                                 <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500/10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                                                 <div className="text-pink-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1"><Music size={12}/> Pedido de Radio</div>
+                                                 <div className="text-white font-medium text-sm leading-tight">{m.requestData.title}</div>
+                                                 {m.requestData.url && (
+                                                     <a href={m.requestData.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs hover:text-blue-300 hover:underline flex items-center gap-1 mt-1 transition-colors w-fit">
+                                                         Ver en YouTube
+                                                     </a>
+                                                 )}
+                                             </div>
+                                         )}
                                          {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
                                      </div>
@@ -1161,6 +1175,9 @@ function MainApp() {
                                      placeholder="Escribe tu mensaje... @Elizabeth"
                                   />
                                   <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0 ml-1">
+                                      <div className="relative flex items-center justify-center">
+                                          <button onClick={() => setIsSongRequestOpen(true)} className="flex items-center justify-center hover:text-pink-400 p-1 transition-colors" title="Pedir Canción"><Music size={18} strokeWidth={1.5} /></button>
+                                      </div>
                                       <div className="relative flex items-center justify-center">
                                           <button onClick={() => setIsGamesMenuOpen(true)} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
                                       </div>
@@ -1428,7 +1445,21 @@ function MainApp() {
       )}
 
       {/* Store Modal */}
-       {isStoreOpen && (
+       {isSongRequestOpen && (
+          <SongRequestModal
+              onClose={() => setIsSongRequestOpen(false)}
+              onSubmit={(title, url) => {
+                  socket.emit('send_global', {
+                      text: `¡Pedido de canción de ${user.username}!`,
+                      type: 'song_request',
+                      requestData: { title, url }
+                  });
+                  setIsSongRequestOpen(false);
+              }}
+          />
+      )}
+
+      {isStoreOpen && (
            <StoreModal 
                onClose={() => setIsStoreOpen(false)} 
                user={user} 
