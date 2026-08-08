@@ -330,7 +330,7 @@ export function InlineRadio() {
       )}
 
       <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">
-         {currentRequestedSong && (
+         {currentRequestedSong && !currentLiveDJ && (
              <Player 
                  ref={playerRef}
                  url={currentRequestedSong.url} 

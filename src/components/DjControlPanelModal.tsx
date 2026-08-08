@@ -85,7 +85,7 @@ export function DjControlPanelModal({ onClose, currentUser }: DjControlPanelModa
                 }`}
               >
                 {isLive ? (
-                  <><StopCircle size={18} /> Detener Transmisión en Vivo</>
+                  <><StopCircle size={18} /> Cerrar Programa</>
                 ) : (
                   <><Play size={18} /> ¡Empezar a Transmitir en Vivo!</>
                 )}

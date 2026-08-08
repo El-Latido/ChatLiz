@@ -147,6 +147,40 @@ async function startServer() {
 
   let songQueue: any[] = [];
   let currentRequestedSong: any = null;
+
+const top30Songs = [
+  { title: "Blinding Lights - The Weeknd", url: "https://www.youtube.com/watch?v=4NRXx6U8ABQ" },
+  { title: "Dance Monkey - Tones and I", url: "https://www.youtube.com/watch?v=q0hyYWKXF0Q" },
+  { title: "Shape of You - Ed Sheeran", url: "https://www.youtube.com/watch?v=JGwWNGJdvx8" },
+  { title: "Someone You Loved - Lewis Capaldi", url: "https://www.youtube.com/watch?v=zABLecsR5UE" },
+  { title: "Sunflower - Post Malone, Swae Lee", url: "https://www.youtube.com/watch?v=ApXoWvfEYVU" },
+  { title: "As It Was - Harry Styles", url: "https://www.youtube.com/watch?v=H5v3kku4y6Q" },
+  { title: "Starboy - The Weeknd", url: "https://www.youtube.com/watch?v=34Na4j8HLjc" },
+  { title: "Stay - The Kid LAROI, Justin Bieber", url: "https://www.youtube.com/watch?v=kTJczUoc26U" },
+  { title: "Heat Waves - Glass Animals", url: "https://www.youtube.com/watch?v=mRD0-GxqHVo" },
+  { title: "Believer - Imagine Dragons", url: "https://www.youtube.com/watch?v=7wtfhZwyrcc" }
+];
+
+function generateAutoSong() {
+  const song = top30Songs[Math.floor(Math.random() * top30Songs.length)];
+  return {
+    id: Date.now().toString() + Math.random().toString(),
+    title: song.title,
+    url: song.url,
+    requester: "Auto DJ"
+  };
+}
+
+function ensureAutoRadio() {
+  if (!currentLiveDJ && !currentRequestedSong && songQueue.length === 0) {
+    for (let i = 0; i < 5; i++) {
+        songQueue.push(generateAutoSong());
+    }
+    currentRequestedSong = songQueue.shift();
+    io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+  }
+}
+
   
   // DJ State
   let currentLiveDJ: string | null = null;
@@ -910,6 +944,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
         currentLiveDJ = null;
         djStreamUrl = null;
         io.emit("radio_state_update", { currentLiveDJ: null, streamUrl: "https://listen.moe/stream" });
+        ensureAutoRadio();
+    });
+
+    socket.on("admin_cut_transmission", () => {
+        if (!currentUsername || activeUsers[currentUsername]?.role !== 'admin') return;
+        currentLiveDJ = null;
+        djStreamUrl = null;
+        io.emit("radio_state_update", { currentLiveDJ: null, streamUrl: "https://listen.moe/stream" });
+        ensureAutoRadio();
     });
 
     socket.on("dj_handle_request", (data: { id: string, action: 'accept' | 'reject' }) => {
@@ -960,7 +1003,12 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
          if (songQueue.length > 0) {
              currentRequestedSong = songQueue.shift();
          } else {
-             currentRequestedSong = null;
+             if (!currentLiveDJ) {
+                 songQueue.push(generateAutoSong());
+                 currentRequestedSong = songQueue.shift();
+             } else {
+                 currentRequestedSong = null;
+             }
          }
          io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
       }
@@ -1772,6 +1820,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
     app.get("*", (req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
 
+  ensureAutoRadio();
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
