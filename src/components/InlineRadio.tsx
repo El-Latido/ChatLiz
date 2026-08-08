@@ -74,47 +74,79 @@ export function InlineRadio() {
   }, []);
 
   useEffect(() => {
-     if (currentRequestedSong && isPlaying && audioRef.current) {
-        audioRef.current.pause();
-        // Force YouTube to play explicitly
-        if (playerRef.current && typeof playerRef.current.getInternalPlayer === 'function') {
-            const internalPlayer = playerRef.current.getInternalPlayer();
-            if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
-                internalPlayer.playVideo();
-            }
-        }
-     } else if (!currentRequestedSong && isPlaying && audioRef.current) {
-        audioRef.current.play().catch(e => console.error("Resume failed", e));
-     }
-  }, [currentRequestedSong, isPlaying, isVideoReady]);
+    const audio = audioRef.current;
+    if (!audio) return;
+    const handlePlaying = () => setIsLoading(false);
+    const handleWaiting = () => setIsLoading(true);
+    const handleError = () => setIsLoading(false);
+    
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('error', handleError);
+    
+    return () => {
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('error', handleError);
+    }
+  }, []);
 
   useEffect(() => {
-    if (audioRef.current && !currentRequestedSong) {
+    if (!audioRef.current) return;
+    
+    // Set volume correctly depending on state
+    if (currentRequestedSong) {
+      // Mute main radio when YouTube is playing to ensure separation
+      audioRef.current.volume = 0;
+    } else {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted, currentRequestedSong]);
 
-  const togglePlay = () => {
-    if (!audioRef.current && !currentRequestedSong) return;
-    
+  useEffect(() => {
     if (isPlaying) {
-      if (!currentRequestedSong && audioRef.current) audioRef.current.pause();
-      setIsPlaying(false);
+      if (currentRequestedSong) {
+         // Pause main radio
+         if (audioRef.current && !audioRef.current.paused) {
+            audioRef.current.pause();
+         }
+         // Force YouTube to play explicitly
+         if (playerRef.current && typeof playerRef.current.getInternalPlayer === 'function') {
+            const internalPlayer = playerRef.current.getInternalPlayer();
+            if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
+                internalPlayer.playVideo();
+            }
+         }
+      } else {
+         // Play main radio
+         if (audioRef.current && audioRef.current.paused) {
+             // Reload to catch up to live if it was paused
+             audioRef.current.load();
+             const playPromise = audioRef.current.play();
+             if (playPromise !== undefined) {
+                 playPromise.catch(e => {
+                     console.error("Radio play error:", e);
+                     setIsPlaying(false);
+                 });
+             }
+         }
+      }
     } else {
-      setIsLoading(!currentRequestedSong);
-      setIsPlaying(true);
-      if (!currentRequestedSong && audioRef.current) {
-          audioRef.current.play()
-            .then(() => {
-              setIsLoading(false);
-            })
-            .catch(err => {
-              console.error("Playback failed", err);
-              setIsPlaying(false);
-              setIsLoading(false);
-            });
+      // Pause both
+      if (audioRef.current && !audioRef.current.paused) {
+         audioRef.current.pause();
+      }
+      if (playerRef.current && typeof playerRef.current.getInternalPlayer === 'function') {
+         const internalPlayer = playerRef.current.getInternalPlayer();
+         if (internalPlayer && typeof internalPlayer.pauseVideo === 'function') {
+             internalPlayer.pauseVideo();
+         }
       }
     }
+  }, [isPlaying, currentRequestedSong]);
+
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
