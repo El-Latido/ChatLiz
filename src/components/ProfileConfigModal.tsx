@@ -108,7 +108,35 @@ export function ProfileConfigModal({
                   const file = e.target.files?.[0];
                   if (file) {
                     const reader = new FileReader();
-                    reader.onload = () => setFotoURL(reader.result as string);
+                    reader.onload = (event) => {
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const MAX_SIZE = 400; // Resize to max 400px to save space in Firestore
+
+                        if (width > height) {
+                          if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                          }
+                        } else {
+                          if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                          }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0, width, height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        setFotoURL(dataUrl);
+                      };
+                      img.src = event.target?.result as string;
+                    };
                     reader.readAsDataURL(file);
                   }
                }} />
@@ -191,7 +219,35 @@ export function ProfileConfigModal({
                     const file = e.target.files?.[0];
                     if (file) {
                       const reader = new FileReader();
-                      reader.onload = () => setBackgroundBase64(reader.result as string);
+                      reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          let width = img.width;
+                          let height = img.height;
+                          const MAX_SIZE = 800; // Resize to max 800px to save space in Firestore
+
+                          if (width > height) {
+                            if (width > MAX_SIZE) {
+                              height *= MAX_SIZE / width;
+                              width = MAX_SIZE;
+                            }
+                          } else {
+                            if (height > MAX_SIZE) {
+                              width *= MAX_SIZE / height;
+                              height = MAX_SIZE;
+                            }
+                          }
+
+                          canvas.width = width;
+                          canvas.height = height;
+                          const ctx = canvas.getContext('2d');
+                          ctx?.drawImage(img, 0, 0, width, height);
+                          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                          setBackgroundBase64(dataUrl);
+                        };
+                        img.src = event.target?.result as string;
+                      };
                       reader.readAsDataURL(file);
                     }
                   }}
