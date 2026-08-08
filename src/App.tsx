@@ -5,7 +5,8 @@ import {
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc } from 'firebase/firestore';
-import { db } from './firebaseConfig';
+import { signInAnonymously } from 'firebase/auth';
+import { db, auth } from './firebaseConfig';
 import { socket } from './socket';
 import { UserObj, MessageObj } from './types';
 import { Login } from './components/Login';
@@ -369,6 +370,11 @@ function MainApp() {
     let unsubUser: any = null;
     let unsubscribe: any = null;
     
+    // Sign in anonymously first to get Firebase access
+    signInAnonymously(auth).catch((error) => {
+       console.error("Error signing in anonymously to Firebase:", error);
+    });
+    
     const setupListeners = () => {
         if (unsubUser) unsubUser();
         if (unsubscribe) unsubscribe();
@@ -386,9 +392,11 @@ function MainApp() {
                     return prevOnline;
                 });
             }
-        }, (error) => {
-            console.error("onSnapshot unsubUser error, retrying in 3s...", error);
-            setTimeout(setupListeners, 3000);
+        }, (error: any) => {
+            console.error("onSnapshot unsubUser error:", error);
+            if (error?.code !== 'permission-denied') {
+                setTimeout(setupListeners, 3000);
+            }
         });
 
         unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
@@ -404,9 +412,11 @@ function MainApp() {
                     });
                 }
             });
-        }, (error) => {
-            console.error("onSnapshot unsubscribe error, retrying in 3s...", error);
-            setTimeout(setupListeners, 3000);
+        }, (error: any) => {
+            console.error("onSnapshot unsubscribe error:", error);
+            if (error?.code !== 'permission-denied') {
+                setTimeout(setupListeners, 3000);
+            }
         });
     };
     setupListeners();
