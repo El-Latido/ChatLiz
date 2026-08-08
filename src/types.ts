@@ -3,6 +3,7 @@ export interface UserObj {
   profilePic?: string;
   statusMessage?: string;
   role?: string;
+  djSchedule?: { start: string, end: string };
   countryLanguage?: string;
   pais_idioma?: string;
   securityEmail?: string;
