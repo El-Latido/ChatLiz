@@ -5,7 +5,7 @@ import {
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebaseConfig';
 import { socket } from './socket';
 import { UserObj, MessageObj } from './types';
@@ -370,11 +370,7 @@ function MainApp() {
     let unsubUser: any = null;
     let unsubscribe: any = null;
     
-    // Sign in anonymously first to get Firebase access
-    signInAnonymously(auth).catch((error) => {
-       console.error("Error signing in anonymously to Firebase:", error);
-    });
-    
+    // Ensure user is authenticated before setting up listeners
     const setupListeners = () => {
         if (unsubUser) unsubUser();
         if (unsubscribe) unsubscribe();
@@ -419,14 +415,23 @@ function MainApp() {
             }
         });
     };
-    setupListeners();
+        const authUnsubscribe = onAuthStateChanged(auth, (authUser) => {
+        if (authUser) {
+            setupListeners();
+        } else {
+            signInAnonymously(auth).catch((error) => {
+               console.error("Error signing in anonymously to Firebase:", error);
+            });
+        }
+    });
 
     return () => {
       socket.off('receive_global');
       socket.off('receive_private');
       socket.off('active_users');
-      unsubscribe();
-      unsubUser();
+      if (unsubscribe) unsubscribe();
+      if (unsubUser) unsubUser();
+      authUnsubscribe();
     };
   }, [isLoggedIn, activeChat, user.username]);
 

@@ -100,7 +100,7 @@ function saveFallbackDB() {
 
 async function startServer() {
   const app = express();
-  const PORT = parseInt(process.env.PORT as string, 10) || 3000;
+  const PORT = 3000;
 
   const server = http.createServer(app);
   const io = new Server(server, { 
@@ -450,7 +450,9 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
         if (recoveryCodes[username] !== code) return callback({ success: false, error: "Código inválido" });
         
         if (fdb) {
-            await updateDoc(doc(fdb, 'users', username), { password: newPassword });
+            try {
+                await updateDoc(doc(fdb, 'users', username), { password: newPassword });
+            } catch (e) { console.error("Error password reset", e); }
         } else {
             if (fallbackState.users[username]) {
                 fallbackState.users[username].password = newPassword;
@@ -1294,7 +1296,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                 let friends = docSnap.data().friends_list || [];
                 requests = requests.filter((r: string) => r !== targetUser);
                 if (!friends.includes(targetUser)) friends.push(targetUser);
-                await updateDoc(uRef, { friend_requests: requests, friends_list: friends });
+                try { await updateDoc(uRef, { friend_requests: requests, friends_list: friends }); } catch(e){}
             }
             // Update target user
             const tRef = doc(fdb, 'users', targetUser);
@@ -1302,7 +1304,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             if (tSnap.exists()) {
                 let tFriends = tSnap.data().friends_list || [];
                 if (!tFriends.includes(currentUsername)) tFriends.push(currentUsername);
-                await updateDoc(tRef, { friends_list: tFriends });
+                try { await updateDoc(tRef, { friends_list: tFriends }); } catch(e){}
             }
         } else {
             if (fallbackState.users[currentUsername]) {
@@ -1332,7 +1334,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             if (docSnap.exists()) {
                 let requests = docSnap.data().friend_requests || [];
                 requests = requests.filter((r: string) => r !== targetUser);
-                await updateDoc(uRef, { friend_requests: requests });
+                try { await updateDoc(uRef, { friend_requests: requests }); } catch(e){}
             }
         } else {
             if (fallbackState.users[currentUsername]) {
@@ -1353,14 +1355,14 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             if (docSnap.exists()) {
                 let friends = docSnap.data().friends_list || [];
                 friends = friends.filter((f: string) => f !== targetUser);
-                await updateDoc(uRef, { friends_list: friends });
+                try { await updateDoc(uRef, { friends_list: friends }); } catch(e){}
             }
             const tRef = doc(fdb, 'users', targetUser);
             const tSnap = await getDoc(tRef);
             if (tSnap.exists()) {
                 let tFriends = tSnap.data().friends_list || [];
                 tFriends = tFriends.filter((f: string) => f !== currentUsername);
-                await updateDoc(tRef, { friends_list: tFriends });
+                try { await updateDoc(tRef, { friends_list: tFriends }); } catch(e){}
             }
         } else {
             if (fallbackState.users[currentUsername]) {
@@ -1397,7 +1399,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                     blocked.push(targetUser);
                     isBanned = true;
                 }
-                await updateDoc(uRef, { blocked_list: blocked });
+                try { await updateDoc(uRef, { blocked_list: blocked }); } catch(e){}
                 if (activeUsers[currentUsername]) activeUsers[currentUsername].blocked_list = blocked;
             }
         } else {
