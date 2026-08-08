@@ -18,8 +18,10 @@ export function InlineRadio() {
   const [songQueue, setSongQueue] = useState<any[]>([]);
   const [currentRequestedSong, setCurrentRequestedSong] = useState<any>(null);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playerRef = useRef<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamUrl = "https://listen.moe/stream";
 
@@ -74,10 +76,17 @@ export function InlineRadio() {
   useEffect(() => {
      if (currentRequestedSong && isPlaying && audioRef.current) {
         audioRef.current.pause();
+        // Force YouTube to play explicitly
+        if (playerRef.current && typeof playerRef.current.getInternalPlayer === 'function') {
+            const internalPlayer = playerRef.current.getInternalPlayer();
+            if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
+                internalPlayer.playVideo();
+            }
+        }
      } else if (!currentRequestedSong && isPlaying && audioRef.current) {
         audioRef.current.play().catch(e => console.error("Resume failed", e));
      }
-  }, [currentRequestedSong, isPlaying]);
+  }, [currentRequestedSong, isPlaying, isVideoReady]);
 
   useEffect(() => {
     if (audioRef.current && !currentRequestedSong) {
@@ -183,6 +192,20 @@ export function InlineRadio() {
                   <div className="text-xs text-[#D4AF37]/80 truncate flex items-center gap-1 mt-0.5">
                       <User size={10} /> {currentRequestedSong.requester}
                   </div>
+                  {isPlaying && isVideoReady && !isVideoPlaying && (
+                     <button 
+                        onClick={() => { 
+                            setIsPlaying(true); 
+                            if (playerRef.current) {
+                                const internal = playerRef.current.getInternalPlayer();
+                                if (internal && internal.playVideo) internal.playVideo();
+                            }
+                        }} 
+                        className="mt-1.5 w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.6)] text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all animate-pulse transform hover:scale-[1.02]"
+                     >
+                        <Play size={14} fill="currentColor" /> ▶ Reproducir Siguiente Pedido
+                     </button>
+                  )}
                </div>
            ) : currentSong ? (
                <div className="flex flex-col gap-1">
@@ -229,22 +252,45 @@ export function InlineRadio() {
         </div>
       )}
 
-      {currentRequestedSong && isPlaying && (
-         <div className="hidden">
-             
+      <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">
+         {currentRequestedSong && (
              <Player 
+                 ref={playerRef}
                  url={currentRequestedSong.url} 
                  playing={isPlaying} 
                  volume={isMuted ? 0 : volume}
                  onEnded={handleVideoEnded}
-                 onReady={() => setIsVideoReady(true)}
+                 onReady={() => {
+                     setIsVideoReady(true);
+                     if (isPlaying && playerRef.current) {
+                         const internal = playerRef.current.getInternalPlayer();
+                         if (internal && internal.playVideo) internal.playVideo();
+                     }
+                 }}
+                 onPlay={() => setIsVideoPlaying(true)}
+                 onPause={() => setIsVideoPlaying(false)}
                  onError={(e:any) => {
                      console.error("YouTube Player Error", e);
                      handleVideoEnded(); // Skip on error
                  }}
+                 config={{
+                     youtube: {
+                         playerVars: { 
+                             autoplay: 1, 
+                             controls: 0, 
+                             disablekb: 1,
+                             origin: window.location.origin
+                         }
+                     },
+                     file: {
+                         attributes: {
+                             allow: "autoplay; encrypted-media"
+                         }
+                     }
+                 }}
              />
-         </div>
-      )}
+         )}
+      </div>
 
       <audio 
         ref={audioRef} 
