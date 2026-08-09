@@ -189,7 +189,9 @@ function ensureAutoRadio() {
 
   const bannedUsers: Record<string, number> = {};
 
-  let aiUserTempCache: any = { username: "Elizabeth", profilePic: "", statusMessage: "Administradora", role: "admin" };
+  const translationCache = new Map<string, string>();
+const eliTranslationCache = new Map<string, string>();
+let aiUserTempCache: any = { username: "Elizabeth", profilePic: "", statusMessage: "Administradora", role: "admin" };
   const loadAiUser = async () => {
      if (fdb) {
          try {
@@ -754,18 +756,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       const safeStatusMessage = statusMessage || "Administradora";
       const safeSystemInstruction = systemInstruction || "";
 
-      if (safeProfilePic.startsWith('data:image')) {
-          try {
-             const base64Data = safeProfilePic.split(',')[1];
-             const ext = safeProfilePic.match(/data:image\/(.*?);/)?.[1] || 'png';
-             const filename = `elizabeth_${Date.now()}.${ext}`;
-             const filepath = path.join(process.cwd(), "uploads", filename);
-             fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-             safeProfilePic = `/uploads/${filename}`;
-          } catch(e) {
-             console.error("Error saving Elizabeth avatar", e);
-          }
-      }
+      
 
       if (fdb) {
          await updateAiProfileInFirebase(aiUsername, { profilePic: safeProfilePic, statusMessage: safeStatusMessage, systemInstruction: safeSystemInstruction });
@@ -1081,15 +1072,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       }
 
       const senderLanguage = activeUsers[currentUsername]?.pais_idioma || 'es';
-      const translationCache = new Map<string, string>(); 
+       
 
       for (const [uname, userData] of Object.entries(activeUsers)) {
          const receiverLanguage = userData.pais_idioma || 'es';
          let finalMsgText = msg.text;
 
          if (msg.text && senderLanguage !== receiverLanguage) {
-            if (translationCache.has(receiverLanguage)) {
-               finalMsgText = translationCache.get(receiverLanguage);
+            if (translationCache.has(senderLanguage + '_' + receiverLanguage + '_' + msg.text)) {
+               finalMsgText = translationCache.get(senderLanguage + '_' + receiverLanguage + '_' + msg.text);
             } else {
                try {
                   const resp = await ai.models.generateContent({
@@ -1097,7 +1088,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                      contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
                   });
                   finalMsgText = resp.text || msg.text;
-                  translationCache.set(receiverLanguage, finalMsgText as string);
+                  translationCache.set(senderLanguage + '_' + receiverLanguage + '_' + msg.text, finalMsgText as string);
                } catch (e) {
                   // Fallback to original
                   finalMsgText = msg.text;
@@ -1220,15 +1211,15 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           }
           
           const eliSenderLanguage = 'es';
-          const eliTranslationCache = new Map<string, string>();
+          
 
           for (const [uname, userData] of Object.entries(activeUsers)) {
              const receiverLanguage = userData.pais_idioma || 'es';
              let finalMsgText = eliMsg.text;
 
              if (eliMsg.text && eliSenderLanguage !== receiverLanguage) {
-                if (eliTranslationCache.has(receiverLanguage)) {
-                   finalMsgText = eliTranslationCache.get(receiverLanguage);
+                if (eliTranslationCache.has(eliSenderLanguage + '_' + receiverLanguage + '_' + eliMsg.text)) {
+                   finalMsgText = eliTranslationCache.get(eliSenderLanguage + '_' + receiverLanguage + '_' + eliMsg.text);
                 } else {
                    try {
                       const resp = await ai.models.generateContent({
@@ -1236,7 +1227,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                          contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${eliMsg.text}`,
                       });
                       finalMsgText = resp.text || eliMsg.text;
-                      eliTranslationCache.set(receiverLanguage, finalMsgText as string);
+                      eliTranslationCache.set(eliSenderLanguage + '_' + receiverLanguage + '_' + eliMsg.text, finalMsgText as string);
                    } catch (e) {
                       finalMsgText = eliMsg.text;
                    }
@@ -1246,6 +1237,14 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           }
         } catch (e) {
           console.error("Gemini Error:", e);
+          const errorMsg = { text: "Uf, me quedé sin energía por un momento (Límites de IA alcanzados). Denme un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          if (fdb) {
+            await addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+          } else {
+            fallbackState.globalMessages.push(errorMsg);
+            saveFallbackDB();
+          }
+          io.emit("receive_global", errorMsg);
         } finally {
           io.emit("stop_typing", { username: "Elizabeth", chat: "global" });
         }
@@ -1514,14 +1513,20 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
         const receiverLanguage = targetUser.pais_idioma || 'es';
         
         if (msg.text && senderLanguage !== receiverLanguage) {
+           const cacheKey = senderLanguage + "_" + receiverLanguage + "_" + msg.text;
+           if (translationCache.has(cacheKey)) {
+               finalMsgTextForReceiver = translationCache.get(cacheKey);
+           } else {
            try {
               const resp = await ai.models.generateContent({
                  model: "gemini-2.5-flash",
                  contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
               });
               finalMsgTextForReceiver = resp.text || msg.text;
+              translationCache.set(cacheKey, finalMsgTextForReceiver);
            } catch (e) {
               finalMsgTextForReceiver = msg.text;
+           }
            }
         }
         
@@ -1633,6 +1638,13 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           socket.emit("receive_private", eliMsg, "Elizabeth");
         } catch (e) {
           console.error("Gemini Error:", e);
+          const errorMsg = { text: "Uf, me quedé sin energía por un momento (Límites de IA alcanzados). Dame un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          if (fdb) {
+            const participants = [currentUsername, "Elizabeth"].sort();
+            const convoId = participants.join("_");
+            await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+          }
+          socket.emit("receive_private", errorMsg, "Elizabeth");
         } finally {
           io.emit("stop_typing", { username: "Elizabeth", chat: currentUsername });
         }
