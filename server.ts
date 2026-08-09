@@ -895,17 +895,62 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       socket.broadcast.emit("stop_typing", data);
     });
 
-    socket.on("song_request", (data) => {
+        socket.on("song_request", async (data) => {
       if (!currentUsername) return;
-      const song = {
+      const song: any = {
           id: Date.now().toString(),
           title: data.title,
           url: data.url,
           requester: currentUsername,
+          dedication: data.dedication,
           status: 'pending'
       };
       
-      if (currentLiveDJ) {
+      if (currentLiveDJ === "Elizabeth") {
+          // Elizabeth Auto-DJ Logic
+          socket.emit("dj_request_status", { id: song.id, status: 'pending', title: song.title });
+          
+          try {
+              const prompt = `Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
+Canción: ${data.title}
+Dedicatoria del usuario (${currentUsername}): ${data.dedication || 'Ninguna'}
+
+1. ¿Es una canción apta o es ofensiva? (acepta casi todo a menos que sea muy explícito).
+2. Genera un breve anuncio de locución de máximo 2 oraciones (ej. "¡Siguiente tema pedido por Juan! Una hermosa canción. ¡Escuchemos!"). Si hay dedicatoria, menciónala tiernamente.
+
+Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }`;
+              
+              const resp = await aiClient.models.generateContent({
+                  model: "gemini-2.5-flash",
+                  contents: prompt,
+                  config: { responseMimeType: "application/json", temperature: 0.7 }
+              });
+              
+              const resJson = JSON.parse(resp.text?.trim() || "{}");
+              if (resJson.accepted) {
+                  song.status = 'accepted';
+                  song.announcementUrl = googleTTS.getAudioUrl((resJson.announcement || '').substring(0, 199) || `Siguiente tema pedido por ${currentUsername}`, { lang: 'es-US', slow: false, host: 'https://translate.google.com' });
+                  
+                  if (!currentRequestedSong) {
+                      currentRequestedSong = song;
+                      io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+                  } else {
+                      songQueue.push(song);
+                      io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+                  }
+                  
+                  if (activeUsers[currentUsername]) {
+                      io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'accepted', title: song.title });
+                  }
+              } else {
+                  if (activeUsers[currentUsername]) {
+                      io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'rejected', title: song.title });
+                  }
+              }
+          } catch (e) {
+              console.error("Elizabeth DJ Error:", e);
+          }
+      } else if (currentLiveDJ) {
           djQueue.push(song);
           if (activeUsers[currentLiveDJ]) {
               io.to(activeUsers[currentLiveDJ].socketId).emit("dj_queue_update", djQueue);
@@ -981,7 +1026,13 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                 console.error(e);
             }
         }
+        
+        if (target === "Elizabeth" && aiUserTempCache) {
+            aiUserTempCache.role = 'dj';
+            aiUserTempCache.djSchedule = data.schedule;
+        }
         if (activeUsers[target]) {
+
             activeUsers[target].role = 'dj';
             activeUsers[target].djSchedule = data.schedule;
             io.to(activeUsers[target].socketId).emit("profile_updated", activeUsers[target]);

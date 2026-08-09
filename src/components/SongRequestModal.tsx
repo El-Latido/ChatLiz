@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { X, Youtube, Music } from 'lucide-react';
 
-export function SongRequestModal({ onClose, onSubmit }: { onClose: () => void, onSubmit: (title: string, url: string) => void }) {
+export function SongRequestModal({ onClose, onSubmit }: { onClose: () => void, onSubmit: (title: string, url: string, dedication?: string) => void }) {
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
+    const [dedication, setDedication] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (title.trim()) {
-            onSubmit(title, url);
+            onSubmit(title, url, dedication.trim() || undefined);
         }
     };
 
@@ -44,6 +45,17 @@ export function SongRequestModal({ onClose, onSubmit }: { onClose: () => void, o
                             onChange={e => setUrl(e.target.value)}
                             className="w-full bg-[#1A2639] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-white outline-none focus:border-[#D4AF37] transition-colors text-sm"
                             placeholder="https://youtube.com/watch?v=..."
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-[#D4AF37]/80 mb-1">Dedicatoria o Mensaje (Opcional)</label>
+                        <textarea 
+                            value={dedication}
+                            onChange={e => setDedication(e.target.value)}
+                            rows={2}
+                            maxLength={150}
+                            className="w-full bg-[#1A2639] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-white outline-none focus:border-[#D4AF37] transition-colors text-sm resize-none scrollbar-thin"
+                            placeholder="Ej. De Juan para María"
                         />
                     </div>
                     <button 

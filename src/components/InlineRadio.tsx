@@ -23,6 +23,9 @@ export function InlineRadio() {
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [announcementState, setAnnouncementState] = useState<'idle' | 'playing' | 'done'>('done');
+  const [lastSongId, setLastSongId] = useState<string | null>(null);
+  const announcementAudioRef = useRef<HTMLAudioElement>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const playerRef = useRef<any>(null);
@@ -188,6 +191,29 @@ export function InlineRadio() {
     setIsMuted(!isMuted);
   };
 
+    useEffect(() => {
+    if (currentRequestedSong && currentRequestedSong.id !== lastSongId) {
+        setLastSongId(currentRequestedSong.id);
+        setIsVideoReady(false);
+        setIsVideoPlaying(false);
+        if (currentRequestedSong.announcementUrl) {
+            setAnnouncementState('idle');
+        } else {
+            setAnnouncementState('done');
+        }
+    }
+  }, [currentRequestedSong, lastSongId]);
+
+  useEffect(() => {
+      if (isPlaying && announcementState === 'idle' && currentRequestedSong?.announcementUrl && announcementAudioRef.current) {
+          setAnnouncementState('playing');
+          announcementAudioRef.current.play().catch(e => {
+              console.error("Auto-play blocked for announcement", e);
+              setAnnouncementState('done');
+          });
+      }
+  }, [isPlaying, announcementState, currentRequestedSong]);
+
   const handleVideoEnded = () => {
      if (currentRequestedSong) {
          socket.emit("song_ended", { id: currentRequestedSong.id });
@@ -261,7 +287,7 @@ export function InlineRadio() {
                   </div>
                </div>
            )}
-           {currentRequestedSong && !currentLiveDJ ? (
+           {currentRequestedSong && (!currentLiveDJ || currentLiveDJ === 'Elizabeth') ? (
                <div className="flex flex-col gap-1 border border-pink-500/30 bg-pink-500/5 rounded-xl p-2 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500/10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
                   <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider flex items-center gap-1"><Youtube size={12}/> Pedido Especial</span>
@@ -269,7 +295,7 @@ export function InlineRadio() {
                   <div className="text-xs text-[#D4AF37]/80 truncate flex items-center gap-1 mt-0.5">
                       <User size={10} /> {currentRequestedSong.requester}
                   </div>
-                  {isPlaying && isVideoReady && !isVideoPlaying && (
+                  {isPlaying && (isVideoReady || announcementState === 'playing') && !isVideoPlaying && announcementState === 'done' && (
                      <button 
                         onClick={() => { 
                             setIsPlaying(true); 
@@ -330,11 +356,11 @@ export function InlineRadio() {
       )}
 
       <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">
-         {currentRequestedSong && !currentLiveDJ && (
+         {currentRequestedSong && (!currentLiveDJ || currentLiveDJ === 'Elizabeth') && (
              <Player 
                  ref={playerRef}
                  url={currentRequestedSong.url} 
-                 playing={isPlaying} 
+                 playing={isPlaying && announcementState === 'done'} 
                  volume={isMuted ? 0 : volume}
                  onEnded={handleVideoEnded}
                  onReady={() => {

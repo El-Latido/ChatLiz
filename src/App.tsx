@@ -444,7 +444,7 @@ function MainApp() {
     setAdminConfigLizOpen(false);
     setIsGamesMenuOpen(false);
     setIsStoreOpen(false);
-    setIsSongRequestOpen(false);
+    setIsSongRequestOpen(false); setIsDjPanelOpen(false);
   };
 
   const handleSendMessage = () => {
@@ -1207,7 +1207,7 @@ function MainApp() {
                       <InlineRadio />
       {user.role === 'dj' && (
          <button 
-            onClick={() => setIsDjPanelOpen(true)}
+            onClick={() => { closeAllModals(); setIsDjPanelOpen(true); }}
             className="fixed bottom-36 left-4 z-[105] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
             title="Panel de DJ"
          >
@@ -1433,7 +1433,7 @@ function MainApp() {
 
        {/* Friends Sidebar */}
        {isFriendsSidebarOpen && (
-           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[105] flex flex-col transform transition-transform animate-in slide-in-from-right">
+           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a] backdrop-blur-xl border-l border-white/10 shadow-2xl z-[105] flex flex-col transform transition-transform animate-in slide-in-from-right">
                <div className="p-6 border-b border-white/5 flex items-center justify-between">
                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
                        <Users size={24} className="text-cyan-400" />
@@ -1503,9 +1503,9 @@ function MainApp() {
        {isSongRequestOpen && (
           <SongRequestModal
               onClose={() => setIsSongRequestOpen(false)}
-              onSubmit={(title, url) => {
-                  socket.emit('song_request', { title, url });
-                  setIsSongRequestOpen(false);
+              onSubmit={(title, url, dedication) => {
+                  socket.emit('song_request', { title, url, dedication });
+                  setIsSongRequestOpen(false); setIsDjPanelOpen(false);
               }}
           />
       )}
