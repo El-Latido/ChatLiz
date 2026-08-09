@@ -9,6 +9,8 @@ import fs from "fs";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import * as googleTTS from 'google-tts-api';
+import ytSearch from 'yt-search';
 import { fdb, fStorage } from "./server/firebase";
 import { updateUserProfileInFirebase, updateAiProfileInFirebase, saveMessageToFirebase } from "./server/firebaseLogic";
 import { DBState } from "./server/types";
@@ -911,14 +913,27 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           socket.emit("dj_request_status", { id: song.id, status: 'pending', title: song.title });
           
           try {
-              const prompt = `Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
-Canción: ${data.title}
-Dedicatoria del usuario (${currentUsername}): ${data.dedication || 'Ninguna'}
+              if (!song.url) {
+                  try {
+                      const r = await ytSearch(song.title);
+                      const videos = r.videos;
+                      if (videos.length > 0) {
+                          song.url = videos[0].url;
+                      }
+                  } catch (e) {
+                      console.error("ytSearch error:", e);
+                  }
+              }
+
+              const prompt = \`Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
+Canción: \${data.title}
+Dedicatoria del usuario (\${currentUsername}): \${data.dedication || 'Ninguna'}
+Url encontrada: \${song.url || 'Ninguna'}
 
 1. ¿Es una canción apta o es ofensiva? (acepta casi todo a menos que sea muy explícito).
 2. Genera un breve anuncio de locución de máximo 2 oraciones (ej. "¡Siguiente tema pedido por Juan! Una hermosa canción. ¡Escuchemos!"). Si hay dedicatoria, menciónala tiernamente.
 
-Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }`;
+Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }\`;
               
               const resp = await aiClient.models.generateContent({
                   model: "gemini-2.5-flash",
