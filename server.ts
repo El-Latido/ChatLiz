@@ -100,7 +100,7 @@ function saveFallbackDB() {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.APPLET_ID ? 3000 : (process.env.PORT || 7860);
 
   const server = http.createServer(app);
   const io = new Server(server, { 
@@ -1835,7 +1835,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
   }
 
   ensureAutoRadio();
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT as number, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
