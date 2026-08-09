@@ -435,6 +435,16 @@ function MainApp() {
     };
   }, [isLoggedIn, activeChat, user.username]);
 
+  
+  const closeAllModals = () => {
+    setIsConfigOpen(false);
+    setSelectedUserModal(null);
+    setAdminConfigLizOpen(false);
+    setIsGamesMenuOpen(false);
+    setIsStoreOpen(false);
+    setIsSongRequestOpen(false);
+  };
+
   const handleSendMessage = () => {
     if (!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif) return;
     
@@ -609,9 +619,9 @@ function MainApp() {
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-gradient-to-br from-[#0B1220] via-[#121B2A] to-[#0A101C] text-gray-200 flex flex-col font-sans">
       
       {/* Top Navigation Bar (Floating/Overlay style) */}
-      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-50 relative w-full">
+      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full">
          <div className="flex-1 flex items-center justify-start">
-             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-2 rounded-full hover:bg-white/5 transition-colors">
+             <button onClick={() => { closeAllModals(); setIsSidebarOpen(!isSidebarOpen); }} className="md:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-2 rounded-full hover:bg-white/5 transition-colors">
                  <Menu size={24} strokeWidth={1.5} />
              </button>
          </div>
@@ -625,15 +635,15 @@ function MainApp() {
 
          {/* Right: Avatar, Name, Settings */}
          <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
-             <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors" onClick={() => { setStoreCategory(undefined); setIsStoreOpen(true); }}>
+             <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors" onClick={() => { closeAllModals(); setStoreCategory(undefined); setIsStoreOpen(true); }}>
                  <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
                  <span className="text-xs text-amber-200">LM</span>
              </div>
-             <button onClick={() => setIsGamesMenuOpen(true)} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
+             <button onClick={() => { closeAllModals(); setIsGamesMenuOpen(true); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
                  <Gamepad2 size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
                  <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
              </button>
-             <button onClick={() => setIsGamesMenuOpen(true)} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
+             <button onClick={() => { closeAllModals(); setIsGamesMenuOpen(true); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
                  <Gamepad2 size={20} strokeWidth={1.5} />
              </button>
              <div className="flex items-center gap-2">
@@ -650,7 +660,7 @@ function MainApp() {
                  <span className="font-medium text-[#E8D9B0] text-[14px] tracking-wide hidden sm:block">{user.username}</span>
              </div>
              <button 
-                onClick={() => { setIsConfigOpen(true); }}
+                onClick={() => { closeAllModals(); setIsConfigOpen(true); }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] transition-colors"
              >
                 <Settings size={20} strokeWidth={1.5} />
@@ -663,7 +673,7 @@ function MainApp() {
 
           
           {/* Sidebar */}
-          <aside className={`w-[280px] bg-[#0B1220] rounded-3xl border border-[#D4AF37]/20 flex flex-col min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-40 h-full left-0' : 'hidden md:flex'}`}>
+          <aside className={`w-[280px] bg-[#0B1220] rounded-3xl border border-[#D4AF37]/20 flex flex-col min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-[90] h-full left-0' : 'hidden md:flex'}`}>
               
               {/* Inner ambient glow for sidebar */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#D4AF37]/10 blur-[60px] rounded-full pointer-events-none"></div>
@@ -671,7 +681,7 @@ function MainApp() {
               {/* Elizabeth Profile Area (Sidebar header) */}
               <div className="flex flex-col items-center pt-8 pb-4 relative z-10 border-b border-[#D4AF37]/10">
                  <button 
-                    onClick={() => setActiveChat('Elizabeth')}
+                    onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat('Elizabeth'); }}
                     className="relative mb-3 group transition-transform hover:scale-105"
                  >
                     <div className="absolute inset-0 bg-[#D4AF37] blur-2xl opacity-10 rounded-full group-hover:opacity-30 transition-opacity"></div>
@@ -700,7 +710,7 @@ function MainApp() {
                               setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora', systemInstruction: elizabethUser.systemInstruction || '' });
                               setAdminConfigLizOpen(true);
                           } else {
-                              setSelectedUserModal(elizabethUser);
+                              closeAllModals(); setSelectedUserModal(elizabethUser);
                           }
                        }}
                     >
@@ -710,15 +720,15 @@ function MainApp() {
               </div>
                  {/* Actions / Utilities */}
                  <div className="px-4 mt-2 grid grid-cols-1 gap-2">
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'global' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setActiveChat('global')}>
+                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'global' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat('global'); }}>
                         <Globe size={16} strokeWidth={1.5} />
                         Mundo
                      </button>
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'tutifrutti' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setActiveChat('tutifrutti')}>
+                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'tutifrutti' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat('tutifrutti'); }}>
                         <Bot size={16} strokeWidth={1.5} />
                         Tuti Frutti
                      </button>
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => setIsFriendsSidebarOpen(!isFriendsSidebarOpen)}>
+                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
                         <Users size={16} strokeWidth={1.5} />
                         Amigos
                         {Object.values(unreadPMs).some(v => v) && (
@@ -757,7 +767,7 @@ function MainApp() {
                                        <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt="avatar" className="w-full h-full object-cover" />
                                    </div>
                                </div>
-                               <button className="text-left flex-1 truncate flex items-center gap-1" onClick={() => setActiveChat(u.username)}>
+                               <button className="text-left flex-1 truncate flex items-center gap-1" onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat(u.username); }}>
                                  <span className="font-medium text-gray-300 text-[15px] truncate block">{u.username}</span>
                                  {u.awards && u.awards.map((award, idx) => (
                                      <span key={idx} className="text-xs">{award}</span>
@@ -1033,7 +1043,7 @@ function MainApp() {
                                                     placeholder="Escribe un mensaje..."
                                                 />
                                                 <div className="flex items-center gap-1 text-blue-400 shrink-0">
-                                                    <button onClick={() => setIsSongRequestOpen(true)} className="hover:text-pink-500 p-1 transition-colors"><Music size={18} strokeWidth={2} /></button>
+                                                    <button onClick={() => { closeAllModals(); setIsSongRequestOpen(true); }} className="hover:text-pink-500 p-1 transition-colors"><Music size={18} strokeWidth={2} /></button>
                                                     <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
                                                     <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
                                                 </div>
@@ -1196,7 +1206,7 @@ function MainApp() {
       {user.role === 'dj' && (
          <button 
             onClick={() => setIsDjPanelOpen(true)}
-            className="fixed bottom-36 left-4 z-40 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
+            className="fixed bottom-36 left-4 z-[90] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
             title="Panel de DJ"
          >
             <Mic size={20} />
@@ -1219,10 +1229,10 @@ function MainApp() {
                                   />
                                   <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0 ml-1">
                                       <div className="relative flex items-center justify-center">
-                                          <button onClick={() => setIsSongRequestOpen(true)} className="flex items-center justify-center hover:text-pink-400 p-1 transition-colors" title="Pedir Canción"><Music size={18} strokeWidth={1.5} /></button>
+                                          <button onClick={() => { closeAllModals(); setIsSongRequestOpen(true); }} className="flex items-center justify-center hover:text-pink-400 p-1 transition-colors" title="Pedir Canción"><Music size={18} strokeWidth={1.5} /></button>
                                       </div>
                                       <div className="relative flex items-center justify-center">
-                                          <button onClick={() => setIsGamesMenuOpen(true)} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
+                                          <button onClick={() => { closeAllModals(); setIsGamesMenuOpen(true); }} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors" title="Juegos"><Gamepad2 size={18} strokeWidth={1.5} /></button>
                                       </div>
                                       <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"><Smile size={18} strokeWidth={1.5} /></button>
                                       <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"><Paperclip size={18} strokeWidth={1.5} /></button>
@@ -1295,7 +1305,7 @@ function MainApp() {
 
       {/* Selected User Info Modal */}
        {selectedUserModal && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUserModal(null)}>
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onClick={() => setSelectedUserModal(null)}>
            <div className="bg-[#12141c] p-8 rounded-3xl w-full max-w-sm shadow-2xl relative border border-white/10 text-center" onClick={e => e.stopPropagation()}>
              <button onClick={() => setSelectedUserModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
                 <X size={20} />
@@ -1421,7 +1431,7 @@ function MainApp() {
 
        {/* Friends Sidebar */}
        {isFriendsSidebarOpen && (
-           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-40 flex flex-col transform transition-transform animate-in slide-in-from-right">
+           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[90] flex flex-col transform transition-transform animate-in slide-in-from-right">
                <div className="p-6 border-b border-white/5 flex items-center justify-between">
                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
                        <Users size={24} className="text-cyan-400" />

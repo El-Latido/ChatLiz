@@ -90,19 +90,19 @@ export function ProfileConfigModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
-      <div className="bg-[var(--bg-modal)] text-[var(--text-primary)] p-6 lg:p-8 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl relative border-t border-x sm:border-b border-[var(--border-color)] max-h-[85vh] overflow-y-auto scrollbar-thin animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
+      <div className="bg-[#12141c] text-[#ffffff] p-6 lg:p-8 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl relative border-t border-x sm:border-b border-[rgba(255,255,255,0.1)] max-h-[85vh] overflow-y-auto scrollbar-thin animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10">
         <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden"></div>
-        <button onClick={() => setIsConfigOpen(false)} className="absolute top-4 right-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--border-color)] hover:opacity-80 p-2 rounded-full transition-all">
+        <button onClick={() => setIsConfigOpen(false)} className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#ffffff] bg-[rgba(255,255,255,0.1)] hover:opacity-80 p-2 rounded-full transition-all">
            <X size={20} />
         </button>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2 mb-6">
-           <Settings size={22} className="text-[var(--text-accent)]" />
+        <h2 className="text-2xl font-bold text-[#ffffff] flex items-center gap-2 mb-6">
+           <Settings size={22} className="text-[#D4AF37]" />
            Ajustes de Perfil
         </h2>
         <div className="space-y-4">
           <div className="flex flex-col items-center mb-4">
-            <div className="w-24 h-24 rounded-full border-2 border-dashed border-[var(--border-color)] flex items-center justify-center overflow-hidden bg-[var(--bg-card)] relative">
+            <div className="w-24 h-24 rounded-full border-2 border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center overflow-hidden bg-[#1a1d27] relative">
                <img src={fotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
                <input type="file" title="Subir foto de perfil" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={e => {
                   const file = e.target.files?.[0];
@@ -146,7 +146,7 @@ export function ProfileConfigModal({
           
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-semibold text-[var(--text-secondary)]">Usuario</label>
+              <label className="text-sm font-semibold text-[#9ca3af]">Usuario</label>
               <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
                  <span className="text-amber-500 font-bold text-xs">{user.lizCoins || 0}</span>
                  <span className="text-[10px] text-amber-500/70">Liz-Moneditas</span>
@@ -155,37 +155,37 @@ export function ProfileConfigModal({
             <input 
                disabled
                value={nombre}
-               className="w-full bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] outline-none text-[var(--text-secondary)] opacity-70 cursor-not-allowed" 
+               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none text-[#9ca3af] opacity-70 cursor-not-allowed" 
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--text-secondary)]">Estado / Comentario</label>
+            <label className="text-sm font-semibold text-[#9ca3af]">Estado / Comentario</label>
             <input 
                value={comentario}
                onChange={e => setComentario(e.target.value)}
                maxLength={60}
                placeholder="Ej: Hola a todos!"
                type="text"
-               className="w-full bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] outline-none focus:border-[var(--text-accent)] transition-all text-[var(--text-primary)]" 
+               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--text-secondary)]">Contraseña</label>
+            <label className="text-sm font-semibold text-[#9ca3af]">Contraseña</label>
             <input 
                value={password}
                onChange={e => setPassword(e.target.value)}
                type="password"
-               className="w-full bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] outline-none focus:border-[var(--text-accent)] transition-all text-[var(--text-primary)]" 
+               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--text-secondary)]">País / Idioma</label>
+            <label className="text-sm font-semibold text-[#9ca3af]">País / Idioma</label>
             <div className="relative">
               <select
                  value={pais}
                  onChange={e => setPais(e.target.value)}
-                 className="w-full bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] outline-none focus:border-[var(--text-accent)] transition-all text-[var(--text-primary)] appearance-none"
+                 className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff] appearance-none"
               >
                  <option value="es">Español</option>
                  <option value="en">English</option>
@@ -193,14 +193,14 @@ export function ProfileConfigModal({
                  <option value="fr">Français</option>
                  <option value="de">Deutsch</option>
               </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-secondary)]">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9ca3af]">
                  ▼
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between py-2 border-b border-[var(--border-color)]">
-             <label className="text-sm font-semibold text-[var(--text-secondary)]">Mostrar mi lista de amigos públicamente</label>
+          <div className="flex items-center justify-between py-2 border-b border-[rgba(255,255,255,0.1)]">
+             <label className="text-sm font-semibold text-[#9ca3af]">Mostrar mi lista de amigos públicamente</label>
              <button
                onClick={() => setIsFriendsPublic(!isFriendsPublic)}
                className={`w-12 h-6 rounded-full relative transition-colors ${isFriendsPublic ? 'bg-cyan-500' : 'bg-gray-600'}`}
@@ -210,7 +210,7 @@ export function ProfileConfigModal({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[var(--text-secondary)]">Fondo del Chat</label>
+            <label className="text-sm font-semibold text-[#9ca3af]">Fondo del Chat</label>
             <div className="flex gap-2">
                <input 
                   type="file"
@@ -251,9 +251,9 @@ export function ProfileConfigModal({
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] outline-none focus:border-[var(--text-accent)] transition-all text-[var(--text-primary)]" 
+                  className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
                />
-               <button onClick={() => setBackgroundBase64('')} className="bg-[var(--bg-input)] hover:opacity-80 px-4 rounded-xl border border-[var(--border-color)] text-[var(--text-secondary)] text-xs">
+               <button onClick={() => setBackgroundBase64('')} className="bg-[#0f111a] hover:opacity-80 px-4 rounded-xl border border-[rgba(255,255,255,0.1)] text-[#9ca3af] text-xs">
                   Restaurar
                </button>
             </div>
@@ -271,17 +271,17 @@ export function ProfileConfigModal({
              </button>
           )}
 
-          {saveStatus && <div className="text-center text-sm font-bold text-[var(--text-accent)] mt-2">{saveStatus}</div>}
+          {saveStatus && <div className="text-center text-sm font-bold text-[#D4AF37] mt-2">{saveStatus}</div>}
 
           <button 
             onClick={handleSaveProfile}
-            className="w-full mt-4 bg-[var(--text-accent)] hover:opacity-80 text-white p-3 rounded-xl font-bold transition-all shadow-lg"
+            className="w-full mt-4 bg-[#D4AF37] hover:opacity-80 text-white p-3 rounded-xl font-bold transition-all shadow-lg"
            >
              Guardar Cambios
            </button>
          </div>
          
-         <div className="mt-8 pt-6 border-t border-[var(--border-color)]">
+         <div className="mt-8 pt-6 border-t border-[rgba(255,255,255,0.1)]">
             <button 
               onClick={() => window.location.reload()}
               className="w-full flex items-center justify-center gap-2 text-red-400 bg-red-400/10 hover:bg-red-400/20 p-3 rounded-xl font-medium transition-colors border border-red-400/20"

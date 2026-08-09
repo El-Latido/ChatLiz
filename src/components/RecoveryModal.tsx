@@ -25,7 +25,7 @@ export function RecoveryModal({
   setRecoveryModalOpen
 }: RecoveryModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm shadow-2xl">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm shadow-2xl">
        <div className="bg-[#0f111a] p-6 rounded-2xl border border-white/10 w-full max-w-sm relative">
           <button onClick={() => { setRecoveryModalOpen(false); setRecoveryStep(1); }} className="absolute text-gray-500 top-4 right-4 hover:text-white">
              <X size={20} />
