@@ -49,6 +49,7 @@ export interface MessageObj {
   id: string;
   text: string;
   sender: string;
+  senderId?: string;
   createdAt: number | Date | any;
   audio?: string;
   image?: string;

@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
 } from 'lucide-react';
-import { collection, onSnapshot, query, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebaseConfig';
 import { socket } from './socket';
@@ -255,43 +255,50 @@ function MainApp() {
     });
   };
 
+  
   useEffect(() => {
     if (!isLoggedIn) return;
     
-    if (activeChat === 'global' || activeChat === 'tutifrutti') {
-      socket.emit('get_global_history', (historyMsgs: any[]) => {
-        setMessages(historyMsgs);
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      });
-    } else {
-      socket.emit('get_private_history', activeChat, (historyMsgs: any[]) => {
-        setMessages(historyMsgs);
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      });
-    }
+    let unsubMessages: any = null;
     
+    if (activeChat === 'global' || activeChat === 'tutifrutti') {
+        const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'), limitToLast(30));
+        unsubMessages = onSnapshot(q, (snapshot) => {
+            const msgs = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return { ...data, id: data.id || doc.id };
+            });
+            // Modo Silencio: Filter out Elizabeth's messages if playing
+            const filteredMsgs = msgs.filter(m => {
+                if (m.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
+                    return false;
+                }
+                return true;
+            });
+            setMessages(filteredMsgs);
+            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        });
+    } else {
+        const participants = [user.username, activeChat].sort();
+        const convoId = participants.join("_");
+        const q = query(collection(db, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'asc'), limitToLast(30));
+        unsubMessages = onSnapshot(q, (snapshot) => {
+            const msgs = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return { ...data, id: data.id || doc.id };
+            });
+            setMessages(msgs);
+            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        });
+    }
+
     socket.on('receive_global', (msg: any) => {
-      // Modo Silencio: Ignorar respuestas automáticas de Elizabeth si el usuario está jugando o en el menú de juegos
-      if (msg.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
-          return;
-      }
-      if (activeChat === 'global' || activeChat === 'tutifrutti') {
-          setMessages(prev => {
-             if (prev.some(m => m.id === msg.id)) return prev;
-             return [...prev, msg];
-          });
-          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      }
+      // Just for translation if needed, but onSnapshot handles display
+      // We can keep it to trigger notifications if we had them
     });
 
     socket.on('receive_private', (msg: any, fromUser: string) => {
-      if (activeChat === fromUser) {
-        setMessages(prev => {
-            if (prev.some(m => m.id === msg.id)) return prev;
-            return [...prev, msg];
-        });
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      } else {
+      if (activeChat !== fromUser) {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
       }
     });
@@ -427,6 +434,7 @@ function MainApp() {
 
     return () => {
       socket.off('receive_global');
+      if (unsubMessages) unsubMessages();
       socket.off('receive_private');
       socket.off('active_users');
       if (unsubscribe) unsubscribe();
@@ -457,12 +465,12 @@ function MainApp() {
     if (audioUrl) payload.audio = audioUrl;
 
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
-      const optimisticMsg = { ...payload, sender: user.username, createdAt: Date.now() };
+      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, createdAt: Date.now() };
       setMessages(prev => [...prev, optimisticMsg]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       socket.emit('send_global', payload);
     } else {
-      const optimisticMsg = { ...payload, sender: user.username, createdAt: Date.now() };
+      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, createdAt: Date.now() };
       setMessages(prev => [...prev, optimisticMsg]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       

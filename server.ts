@@ -1068,6 +1068,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
       }
 
       msg.sender = currentUsername;
+      msg.senderId = currentUsername;
       msg.id = msg.id || Date.now().toString();
 
       // Content Filter
@@ -1513,6 +1514,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       }
 
       msg.sender = currentUsername;
+      msg.senderId = currentUsername;
       msg.id = msg.id || Date.now().toString();
 
       // Content Filter
