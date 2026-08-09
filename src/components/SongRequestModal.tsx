@@ -13,7 +13,7 @@ export function SongRequestModal({ onClose, onSubmit }: { onClose: () => void, o
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-[#121B2A] p-6 rounded-3xl w-full max-w-sm shadow-2xl relative border border-[#D4AF37]/30" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-[#D4AF37] p-1 transition-colors">
                     <X size={20} />

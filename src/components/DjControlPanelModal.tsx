@@ -47,7 +47,7 @@ export function DjControlPanelModal({ onClose, currentUser }: DjControlPanelModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-[#121B2A] border border-[#D4AF37]/30 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(212,175,55,0.15)] animate-in zoom-in-95 duration-300">
         <div className="p-4 border-b border-[#D4AF37]/20 flex justify-between items-center bg-[#D4AF37]/5 rounded-t-2xl">
           <h2 className="text-[#E8D9B0] font-bold text-lg flex items-center gap-2">

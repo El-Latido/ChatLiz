@@ -90,7 +90,7 @@ export function ProfileConfigModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
       <div className="bg-[#12141c] text-[#ffffff] p-6 lg:p-8 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl relative border-t border-x sm:border-b border-[rgba(255,255,255,0.1)] max-h-[85vh] overflow-y-auto scrollbar-thin animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10">
         <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden"></div>
         <button onClick={() => setIsConfigOpen(false)} className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#ffffff] bg-[rgba(255,255,255,0.1)] hover:opacity-80 p-2 rounded-full transition-all">

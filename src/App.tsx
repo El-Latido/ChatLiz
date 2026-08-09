@@ -437,6 +437,8 @@ function MainApp() {
 
   
   const closeAllModals = () => {
+    setIsSidebarOpen(false);
+    setIsFriendsSidebarOpen(false);
     setIsConfigOpen(false);
     setSelectedUserModal(null);
     setAdminConfigLizOpen(false);
@@ -673,7 +675,7 @@ function MainApp() {
 
           
           {/* Sidebar */}
-          <aside className={`w-[280px] bg-[#0B1220] rounded-3xl border border-[#D4AF37]/20 flex flex-col min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-[90] h-full left-0' : 'hidden md:flex'}`}>
+          <aside className={`w-[280px] bg-[#0B1220] rounded-3xl border border-[#D4AF37]/20 flex flex-col min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all shrink-0 ${isSidebarOpen ? 'translate-x-0 absolute z-[105] h-full left-0' : 'hidden md:flex'}`}>
               
               {/* Inner ambient glow for sidebar */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#D4AF37]/10 blur-[60px] rounded-full pointer-events-none"></div>
@@ -708,7 +710,7 @@ function MainApp() {
                           const elizabethUser = usersOnline.find(u => u.username === 'Elizabeth') || {username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin'};
                           if (user.username.trim() === "Axiss") {
                               setAiProfileForm({ profilePic: elizabethUser.profilePic || '', statusMessage: elizabethUser.statusMessage || 'Administradora', systemInstruction: elizabethUser.systemInstruction || '' });
-                              setAdminConfigLizOpen(true);
+                              closeAllModals(); setAdminConfigLizOpen(true);
                           } else {
                               closeAllModals(); setSelectedUserModal(elizabethUser);
                           }
@@ -752,9 +754,9 @@ function MainApp() {
                                  onClick={() => {
                                     if (u.username === 'Elizabeth' && user.username.trim() === "Axiss") {
                                         setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora', systemInstruction: u.systemInstruction || '' });
-                                        setAdminConfigLizOpen(true);
+                                        closeAllModals(); setAdminConfigLizOpen(true);
                                     } else {
-                                        setSelectedUserModal(u);
+                                        closeAllModals(); setSelectedUserModal(u);
                                     }
                                  }}
                                >
@@ -1206,7 +1208,7 @@ function MainApp() {
       {user.role === 'dj' && (
          <button 
             onClick={() => setIsDjPanelOpen(true)}
-            className="fixed bottom-36 left-4 z-[90] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
+            className="fixed bottom-36 left-4 z-[105] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
             title="Panel de DJ"
          >
             <Mic size={20} />
@@ -1305,7 +1307,7 @@ function MainApp() {
 
       {/* Selected User Info Modal */}
        {selectedUserModal && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onClick={() => setSelectedUserModal(null)}>
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4" onClick={() => setSelectedUserModal(null)}>
            <div className="bg-[#12141c] p-8 rounded-3xl w-full max-w-sm shadow-2xl relative border border-white/10 text-center" onClick={e => e.stopPropagation()}>
              <button onClick={() => setSelectedUserModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
                 <X size={20} />
@@ -1316,7 +1318,7 @@ function MainApp() {
                     if (selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss') {
                         setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora', systemInstruction: selectedUserModal.systemInstruction || '' });
                         setSelectedUserModal(null);
-                        setAdminConfigLizOpen(true);
+                        closeAllModals(); setAdminConfigLizOpen(true);
                     }
                 }}
              >
@@ -1431,7 +1433,7 @@ function MainApp() {
 
        {/* Friends Sidebar */}
        {isFriendsSidebarOpen && (
-           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[90] flex flex-col transform transition-transform animate-in slide-in-from-right">
+           <div className="fixed inset-y-0 right-0 w-80 bg-[#0f111a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-[105] flex flex-col transform transition-transform animate-in slide-in-from-right">
                <div className="p-6 border-b border-white/5 flex items-center justify-between">
                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
                        <Users size={24} className="text-cyan-400" />

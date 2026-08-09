@@ -140,7 +140,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
   const opRank = getEloRank(opponent.elo);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-6 animate-in fade-in">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-6 animate-in fade-in">
       <div className="bg-gradient-to-b from-[#0a0f1c] to-[#121B2A] border border-[#D4AF37]/30 rounded-3xl w-full max-w-6xl max-h-[95vh] flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.15)]">
         
         {/* Left Side: Game Board (3D effect container) */}

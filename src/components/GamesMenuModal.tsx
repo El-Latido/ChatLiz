@@ -40,7 +40,7 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
   const prevGame = () => setCurrentIndex((prev) => (prev - 1 + games.length) % games.length);
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-[#0f111a] border border-[#D4AF37]/30 rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(212,175,55,0.15)] animate-in zoom-in-95">
         <div className="p-6 border-b border-[#D4AF37]/20 flex items-center justify-between bg-gradient-to-r from-[#0a0f1c] to-[#121B2A]">
           <div>
