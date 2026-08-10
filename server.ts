@@ -911,9 +911,9 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       socket.broadcast.emit("stop_typing", data);
     });
 
-        socket.on("song_request", async (data) => {
+            socket.on("song_request", async (data) => {
       if (!currentUsername) return;
-      const song: any = {
+      const song = {
           id: Date.now().toString(),
           title: data.title,
           url: data.url,
@@ -922,81 +922,69 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           status: 'pending'
       };
       
-      if (currentLiveDJ === "Elizabeth") {
-          // Elizabeth Auto-DJ Logic
+      const msg = {
+          id: Date.now().toString(),
+          text: "He recibido tu solicitud para la canción '" + data.title + "'. ¿Es esta la canción que deseas enviar?",
+          sender: "Elizabeth",
+          isAi: true,
+          type: "song_confirmation",
+          songData: song
+      };
+      
+      try {
+          const docRef = doc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'));
+          await addDoc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'), {
+             ...msg,
+             createdAt: serverTimestamp()
+          });
+      } catch(e) {}
+      
+      socket.emit("receive_private", { ...msg, chat: "Elizabeth" });
+    });
+
+    socket.on("confirm_song_request", async (song) => {
+        if (!currentUsername) return;
+        const msg = {
+            id: Date.now().toString(),
+            text: "¡Excelente! Estoy procesando tu solicitud para '" + song.title + "'. Te avisaré en cuanto esté lista.",
+            sender: "Elizabeth",
+            isAi: true
+        };
+        socket.emit("receive_private", { ...msg, chat: "Elizabeth" });
+        
+        if (currentLiveDJ === "Elizabeth") {
           socket.emit("dj_request_status", { id: song.id, status: 'pending', title: song.title });
-          
           try {
               if (!song.url) {
                   try {
                       const r = await ytSearch(song.title);
-                      const videos = r.videos;
-                      if (videos.length > 0) {
-                          song.url = videos[0].url;
-                      }
-                  } catch (e) {
-                      console.error("ytSearch error:", e);
-                  }
+                      if (r.videos.length > 0) song.url = r.videos[0].url;
+                  } catch (e) {}
               }
-
-              const prompt = `Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
-Canción: ${data.title}
-Dedicatoria del usuario (${currentUsername}): ${data.dedication || 'Ninguna'}
-Url encontrada: ${song.url || 'Ninguna'}
-
-1. ¿Es una canción apta o es ofensiva? (acepta casi todo a menos que sea muy explícito).
-2. Genera un breve anuncio de locución de máximo 2 oraciones (ej. "¡Siguiente tema pedido por Juan! Una hermosa canción. ¡Escuchemos!"). Si hay dedicatoria, menciónala tiernamente.
-
-Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }`;
-              
-              const resp = await safeGenerateContent(ai, {
-                  model: "gemini-2.5-flash",
-                  contents: prompt,
-                  config: { responseMimeType: "application/json", temperature: 0.7 }
-              });
-              
+              const prompt = `Como Elizabeth, analiza esta solicitud de canción. Canción: ${song.title}. Genera un anuncio. Responde en JSON con { "accepted": true/false, "announcement": "..." }`;
+              const resp = await safeGenerateContent(ai, { model: "gemini-2.5-flash", contents: prompt, config: { responseMimeType: "application/json", temperature: 0.7 } });
               const resJson = JSON.parse(resp.text?.trim() || "{}");
               if (resJson.accepted) {
                   song.status = 'accepted';
-                  song.announcementUrl = googleTTS.getAudioUrl((resJson.announcement || '').substring(0, 199) || `Siguiente tema pedido por ${currentUsername}`, { lang: 'es-US', slow: false, host: 'https://translate.google.com' });
-                  
-                  if (!currentRequestedSong) {
-                      currentRequestedSong = song;
-                      io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
-                  } else {
-                      songQueue.push(song);
-                      io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
-                  }
-                  
-                  if (activeUsers[currentUsername]) {
-                      io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'accepted', title: song.title });
-                  }
+                  song.announcementUrl = googleTTS.getAudioUrl((resJson.announcement || '').substring(0, 199) || "Tema pedido por " + currentUsername, { lang: 'es-US', slow: false, host: 'https://translate.google.com' });
+                  if (!currentRequestedSong) { currentRequestedSong = song; io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
+                  else { songQueue.push(song); io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
+                  if (activeUsers[currentUsername]) io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'accepted', title: song.title });
               } else {
-                  if (activeUsers[currentUsername]) {
-                      io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'rejected', title: song.title });
-                  }
+                  if (activeUsers[currentUsername]) io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'rejected', title: song.title });
               }
-          } catch (e) {
-              console.error("Elizabeth DJ Error:", e);
-          }
+          } catch (e) {}
       } else if (currentLiveDJ) {
           djQueue.push(song);
-          if (activeUsers[currentLiveDJ]) {
-              io.to(activeUsers[currentLiveDJ].socketId).emit("dj_queue_update", djQueue);
-          }
+          if (activeUsers[currentLiveDJ]) io.to(activeUsers[currentLiveDJ].socketId).emit("dj_queue_update", djQueue);
           socket.emit("dj_request_status", { id: song.id, status: 'pending', title: song.title });
       } else {
-          if (!currentRequestedSong) {
-              currentRequestedSong = song;
-              io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
-          } else {
-              songQueue.push(song);
-              io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
-          }
+          if (!currentRequestedSong) { currentRequestedSong = song; io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
+          else { songQueue.push(song); io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
+          socket.emit("dj_request_status", { id: song.id, status: 'accepted', title: song.title });
       }
     });
-
-    socket.on("dj_go_live", (streamUrl) => {
+socket.on("dj_go_live", (streamUrl) => {
         if (!currentUsername || activeUsers[currentUsername]?.role !== 'dj') return;
         currentLiveDJ = currentUsername;
         djStreamUrl = streamUrl || "https://listen.moe/stream";
@@ -1006,6 +994,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
         }
     });
 
+    socket.on('dj_fader_update', (data) => { io.emit('dj_fader_update', data); });
     socket.on("dj_stop_live", () => {
         if (!currentUsername || currentUsername !== currentLiveDJ) return;
         currentLiveDJ = null;

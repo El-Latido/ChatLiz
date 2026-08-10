@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import { 
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle, Bell
 } from 'lucide-react';
 import { collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
@@ -108,6 +108,8 @@ function MainApp() {
   
   const [activeChat, setActiveChat] = useState('global');
   const [messages, setMessages] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   
 
@@ -294,6 +296,19 @@ function MainApp() {
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         });
     }
+
+    
+    socket.on('dj_request_status', (req: { id: string, status: string, title: string }) => {
+        setNotifications(prev => [
+            {
+                id: Date.now().toString(),
+                text: req.status === 'accepted' ? `Tu canción "${req.title}" ha sido aceptada y está en cola.` : `Tu canción "${req.title}" no cumple con las normas (contenido inapropiado/fuera de contexto).`,
+                read: false,
+                type: req.status
+            },
+            ...prev
+        ]);
+    });
 
     socket.on('receive_global', (msg: any) => {
       if (msg.sender === 'Elizabeth' || msg.isAi) {
@@ -677,8 +692,37 @@ function MainApp() {
                  </div>
                  <span className="font-medium text-[#E8D9B0] text-[14px] tracking-wide hidden sm:block">{user.username}</span>
              </div>
-             <button 
-                onClick={() => { closeAllModals(); setIsConfigOpen(true); }}
+             
+             <div className="relative">
+                 <button onClick={() => setShowNotifications(!showNotifications)} className="w-8 h-8 rounded-full flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-white/5 transition-colors relative">
+                    <Bell size={18} strokeWidth={1.5} />
+                    {notifications.filter(n => !n.read).length > 0 && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    )}
+                 </button>
+                 {showNotifications && (
+                     <div className="absolute right-0 mt-2 w-64 bg-[#121B2A] border border-[#D4AF37]/30 rounded-xl shadow-2xl overflow-hidden z-50">
+                         <div className="p-3 border-b border-[#D4AF37]/20 flex justify-between items-center bg-black/20">
+                             <span className="text-[#E8D9B0] font-semibold text-sm">Notificaciones</span>
+                             <button onClick={() => setNotifications(prev => prev.map(n => ({...n, read: true})))} className="text-xs text-[#D4AF37] hover:text-white">Marcar leídas</button>
+                         </div>
+                         <div className="max-h-64 overflow-y-auto scrollbar-thin">
+                             {notifications.length === 0 ? (
+                                 <div className="p-4 text-center text-[#8B98B0] text-xs">No hay notificaciones</div>
+                             ) : (
+                                 notifications.map(n => (
+                                     <div key={n.id} className={`p-3 border-b border-white/5 text-xs ${!n.read ? 'bg-white/5' : ''}`}>
+                                         <div className={`${n.type === 'accepted' ? 'text-green-400' : 'text-red-400'} font-medium`}>{n.text}</div>
+                                     </div>
+                                 ))
+                             )}
+                         </div>
+                     </div>
+                 )}
+             </div>
+             <button
+                 onClick={() => { closeAllModals(); setIsConfigOpen(true); }}
+
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] transition-colors"
              >
                 <Settings size={20} strokeWidth={1.5} />
@@ -1024,7 +1068,17 @@ function MainApp() {
                                                     <span className="text-gray-700 text-[13px] leading-snug flex-1">{m.text}</span>
                                                     <span className="text-gray-400 text-[10px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
                                                 </div>
-                                                {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/5 max-w-full shadow-md h-20 object-cover" alt="adjunto"/></div>}
+                                                
+                                         {m.type === 'song_confirmation' && m.songData && (
+                                             <button onClick={() => {
+                                                 socket.emit('confirm_song_request', m.songData);
+                                                 // Hide the button locally or something, but let's just leave it for now or we could add a handled flag
+                                             }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-green-400 hover:to-emerald-500 transition-colors flex items-center justify-center gap-2">
+                                                 <Music size={16} /> [Sí, enviar canción]
+                                             </button>
+                                         )}
+
+                                         {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/5 max-w-full shadow-md h-20 object-cover" alt="adjunto"/></div>}
                                                 {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
                                             </div>
                                         </div>
