@@ -27,7 +27,7 @@ const ai = new GoogleGenAI({
 });
 
 
-async function safeGenerateContent(aiInstance: any, params: any, timeoutMs: number = 20000): Promise<any> {
+async function safeGenerateContent(aiInstance: any, params: any, timeoutMs: number = 10000): Promise<any> {
     let timeoutId: NodeJS.Timeout;
     const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => reject(new Error("Timeout")), timeoutMs);
@@ -1105,7 +1105,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
           const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) await addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() });
+          if (fdb) addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           else { fallbackState.globalMessages.push(banMsg); saveFallbackDB(); }
           io.emit("receive_global", banMsg);
           return; // Drop the malicious message completely
@@ -1137,7 +1137,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
 
       if (fdb) {
         let dbMsg: any = { ...msg, createdAt: serverTimestamp() };
-        await addDoc(collection(fdb, 'messages'), dbMsg);
+        addDoc(collection(fdb, 'messages'), dbMsg).catch(e => console.error('Firebase addDoc Error:', e));
         const countSnapshot = await getCountFromServer(collection(fdb, 'messages'));
         if (countSnapshot.data().count > 100) {
            const oldestQ = query(collection(fdb, 'messages'), orderBy('createdAt', 'asc'), limit(1));
@@ -1207,7 +1207,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
           let contextMsgs = [];
           if (fdb) {
              const recentQ = query(collection(fdb, 'messages'), orderBy('createdAt', 'desc'), limit(3));
-             const snapshot = await getDocs(recentQ);
+             const snapshot: any = await Promise.race([getDocs(recentQ), new Promise((_, r) => setTimeout(() => r(new Error("Firebase Timeout")), 3000))]);
              contextMsgs = snapshot.docs.map(doc => doc.data()).reverse();
           } else {
              contextMsgs = fallbackState.globalMessages.slice(-3);
@@ -1258,7 +1258,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                config: {
                  systemInstruction: sysInstruction,
                }
-             }, 30000);
+             }, 10000);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI ===", apiError.message || apiError);
              if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
@@ -1280,7 +1280,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
           
           if (fdb) {
-            await addDoc(collection(fdb, 'messages'), { ...eliMsg, createdAt: serverTimestamp() });
+            addDoc(collection(fdb, 'messages'), { ...eliMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           } else {
             fallbackState.globalMessages.push(eliMsg);
             saveFallbackDB();
@@ -1316,7 +1316,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const errorMsg = { text: "Uf, me quedé sin energía por un momento. Denme un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
           try {
             if (fdb) {
-                await addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+                addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
             } else {
                 fallbackState.globalMessages.push(errorMsg);
                 saveFallbackDB();
@@ -1550,7 +1550,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
           const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) await addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() });
+          if (fdb) addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           io.emit("receive_global", banMsg); // Public announcement
           return callback({ success: false, error: `Has sido baneado por contenido inapropiado: ${modResult.reason}` });
       }
@@ -1584,7 +1584,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const docMsg = { ...msg, createdAt: serverTimestamp() };
           const participants = [currentUsername, toUser].sort();
           const convoId = participants.join("_");
-          await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), docMsg);
+          addDoc(collection(fdb, 'private_messages', convoId, 'messages'), docMsg).catch(e => console.error('Firebase addDoc Error:', e));
           // Update the msg so it matches what we return back to sender
           msg.createdAt = Date.now();
       }
@@ -1659,7 +1659,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
              const participants = [currentUsername, "Elizabeth"].sort();
              const convoId = participants.join("_");
              const recentQ = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'desc'), limit(3));
-             const snapshot = await getDocs(recentQ);
+             const snapshot: any = await Promise.race([getDocs(recentQ), new Promise((_, r) => setTimeout(() => r(new Error("Firebase Timeout")), 3000))]);
              contextMsgs = snapshot.docs.map(doc => doc.data()).reverse();
           }
           
@@ -1680,7 +1680,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                model: "gemini-2.5-flash",
                contents: parts,
                config: { systemInstruction: sysInstruction }
-             }, 30000);
+             }, 10000);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI (PRIVADO) ===", apiError.message || apiError);
              if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
@@ -1704,7 +1704,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           if (fdb) {
             const participants = [currentUsername, "Elizabeth"].sort();
             const convoId = participants.join("_");
-            await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, createdAt: serverTimestamp() });
+            addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           }
           
           socket.emit("receive_private", eliMsg, "Elizabeth");
@@ -1715,7 +1715,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
               if (fdb) {
                 const participants = [currentUsername, "Elizabeth"].sort();
                 const convoId = participants.join("_");
-                await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+                addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
               }
           } catch (dbErr) {
               console.error("Failed to save private error msg", dbErr);

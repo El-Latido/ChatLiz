@@ -109,41 +109,7 @@ function MainApp() {
   const [activeChat, setActiveChat] = useState('global');
   const [messages, setMessages] = useState<any[]>([]);
 
-  const lastSpokenMessageId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const latestMessage = messages[messages.length - 1];
-    
-    if (
-        (latestMessage.sender === 'Elizabeth' || latestMessage.isAi) && 
-        latestMessage.id !== lastSpokenMessageId.current &&
-        latestMessage.text
-    ) {
-        lastSpokenMessageId.current = latestMessage.id;
-
-        const msgTime = latestMessage.createdAt?.seconds ? latestMessage.createdAt.seconds * 1000 : (typeof latestMessage.createdAt === 'number' ? latestMessage.createdAt : Date.now());
-        
-        if (Date.now() - msgTime < 15000) {
-            const utterance = new SpeechSynthesisUtterance(latestMessage.text);
-            utterance.lang = 'es-ES';
-            
-            const voices = window.speechSynthesis.getVoices();
-            const esVoices = voices.filter(v => v.lang.startsWith('es'));
-            const preferredVoice = esVoices.find(v => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('mujer') || v.name.toLowerCase().includes('google español')) || esVoices[0];
-            
-            if (preferredVoice) {
-                utterance.voice = preferredVoice;
-            }
-            
-            utterance.rate = 1.05;
-            utterance.pitch = 1.1;
-            
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utterance);
-        }
-    }
-  }, [messages]);
+  
 
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
@@ -306,7 +272,7 @@ function MainApp() {
                 return { ...data, id: data.id || doc.id };
             });
             // Modo Silencio: Filter out Elizabeth's messages if playing
-            const filteredMsgs = msgs.filter(m => {
+            const filteredMsgs = msgs.filter((m: any) => {
                 if (m.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
                     return false;
                 }
@@ -330,13 +296,17 @@ function MainApp() {
     }
 
     socket.on('receive_global', (msg: any) => {
-      // Just for translation if needed, but onSnapshot handles display
-      // We can keep it to trigger notifications if we had them
+      if (msg.sender === 'Elizabeth' || msg.isAi) {
+         if (msg.text) hablarElizabeth(msg.text);
+      }
     });
 
     socket.on('receive_private', (msg: any, fromUser: string) => {
       if (activeChat !== fromUser) {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
+      }
+      if (fromUser === 'Elizabeth' && msg.text) {
+          hablarElizabeth(msg.text);
       }
     });
 
@@ -1582,6 +1552,14 @@ function MainApp() {
        )}
     </div>
   );
+}
+
+
+function hablarElizabeth(texto: string) {
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'es-ES';
+  utterance.rate = 1;
+  window.speechSynthesis.speak(utterance);
 }
 
 export default function App() {
