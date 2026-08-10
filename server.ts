@@ -26,6 +26,20 @@ const ai = new GoogleGenAI({
   },
 });
 
+
+async function safeGenerateContent(aiInstance: any, params: any, timeoutMs: number = 20000): Promise<any> {
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Timeout")), timeoutMs);
+    });
+    try {
+        const fetchPromise = aiInstance.models.generateContent(params);
+        return await Promise.race([fetchPromise, timeoutPromise]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
 async function moderateMessage(msg: any, aiClient: any): Promise<{banned: boolean, reason?: string, mentionsElizabeth?: boolean, transcription?: string}> {
     try {
         const parts: any[] = [];
@@ -54,7 +68,7 @@ Mensaje de texto: ${msg.text || "[Ninguno]"}` });
             }
         }
         
-        const filterResp = await aiClient.models.generateContent({
+        const filterResp = await safeGenerateContent(ai, {
             model: "gemini-2.5-flash",
             contents: { parts: parts },
             config: { 
@@ -306,7 +320,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       let resultJson: any = { scores: {}, details: {} };
       try {
           if (process.env.GEMINI_API_KEY && Object.keys(answers).length > 0) {
-              const response = await ai.models.generateContent({
+              const response = await safeGenerateContent(ai, {
                   model: 'gemini-2.5-flash',
                   contents: prompt,
                   config: {
@@ -935,7 +949,7 @@ Url encontrada: ${song.url || 'Ninguna'}
 
 Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }`;
               
-              const resp = await aiClient.models.generateContent({
+              const resp = await safeGenerateContent(ai, {
                   model: "gemini-2.5-flash",
                   contents: prompt,
                   config: { responseMimeType: "application/json", temperature: 0.7 }
@@ -1150,7 +1164,7 @@ Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí
                finalMsgText = translationCache.get(senderLanguage + '_' + receiverLanguage + '_' + msg.text);
             } else {
                try {
-                  const resp = await ai.models.generateContent({
+                  const resp = await safeGenerateContent(ai, {
                      model: "gemini-2.5-flash",
                      contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
                   });
@@ -1238,18 +1252,13 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           let response: any;
           try {
              // Promise race to simulate a 30s timeout
-             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Timeout de 30 segundos alcanzado")), 30000)
-             );
-             const fetchPromise = ai.models.generateContent({
+             response = await safeGenerateContent(ai, {
                model: "gemini-2.5-flash",
                contents: parts,
                config: {
                  systemInstruction: sysInstruction,
                }
-             });
-             
-             response = await Promise.race([fetchPromise, timeoutPromise]);
+             }, 30000);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI ===", apiError.message || apiError);
              if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
@@ -1289,7 +1298,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                    finalMsgText = eliTranslationCache.get(eliSenderLanguage + '_' + receiverLanguage + '_' + eliMsg.text);
                 } else {
                    try {
-                      const resp = await ai.models.generateContent({
+                      const resp = await safeGenerateContent(ai, {
                          model: "gemini-2.5-flash",
                          contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${eliMsg.text}`,
                       });
@@ -1304,12 +1313,16 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           }
         } catch (e) {
           console.error("Gemini Error:", e);
-          const errorMsg = { text: "Uf, me quedé sin energía por un momento (Límites de IA alcanzados). Denme un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) {
-            await addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
-          } else {
-            fallbackState.globalMessages.push(errorMsg);
-            saveFallbackDB();
+          const errorMsg = { text: "Uf, me quedé sin energía por un momento. Denme un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          try {
+            if (fdb) {
+                await addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+            } else {
+                fallbackState.globalMessages.push(errorMsg);
+                saveFallbackDB();
+            }
+          } catch(dbErr) {
+            console.error("Failed to save error msg to db", dbErr);
           }
           io.emit("receive_global", errorMsg);
         } finally {
@@ -1586,7 +1599,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                finalMsgTextForReceiver = translationCache.get(cacheKey);
            } else {
            try {
-              const resp = await ai.models.generateContent({
+              const resp = await safeGenerateContent(ai, {
                  model: "gemini-2.5-flash",
                  contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/país: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducción directa, sin comillas adicionales.\n\nTexto:\n${msg.text}`,
               });
@@ -1612,12 +1625,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
       let triggerPrivateElizabeth = false;
       if (toUser === "Elizabeth") {
-          if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
-              triggerPrivateElizabeth = true;
-          }
-          if (modResult.mentionsElizabeth) {
-              triggerPrivateElizabeth = true;
-          }
+          triggerPrivateElizabeth = true;
       }
 
       if (triggerPrivateElizabeth) {
@@ -1668,15 +1676,11 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
           let response: any;
           try {
-             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Timeout de 30 segundos alcanzado")), 30000)
-             );
-             const fetchPromise = ai.models.generateContent({
+             response = await safeGenerateContent(ai, {
                model: "gemini-2.5-flash",
                contents: parts,
                config: { systemInstruction: sysInstruction }
-             });
-             response = await Promise.race([fetchPromise, timeoutPromise]);
+             }, 30000);
           } catch (apiError: any) {
              console.error("=== ERROR API GEMINI (PRIVADO) ===", apiError.message || apiError);
              if (apiError.status === 429 || apiError.message?.includes("429") || apiError.message?.includes("resource_exhausted") || apiError.message?.includes("quota")) {
@@ -1706,11 +1710,15 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           socket.emit("receive_private", eliMsg, "Elizabeth");
         } catch (e) {
           console.error("Gemini Error:", e);
-          const errorMsg = { text: "Uf, me quedé sin energía por un momento (Límites de IA alcanzados). Dame un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) {
-            const participants = [currentUsername, "Elizabeth"].sort();
-            const convoId = participants.join("_");
-            await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+          const errorMsg = { text: "Uf, me quedé sin energía por un momento. Dame un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
+          try {
+              if (fdb) {
+                const participants = [currentUsername, "Elizabeth"].sort();
+                const convoId = participants.join("_");
+                await addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() });
+              }
+          } catch (dbErr) {
+              console.error("Failed to save private error msg", dbErr);
           }
           socket.emit("receive_private", errorMsg, "Elizabeth");
         } finally {
