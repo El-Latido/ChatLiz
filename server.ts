@@ -18,7 +18,7 @@ import { DBState } from "./server/types";
 dotenv.config();
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY || "missing",
   httpOptions: {
     headers: {
       "User-Agent": "aistudio-build",
@@ -925,15 +925,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                   }
               }
 
-              const prompt = \`Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
-Canción: \${data.title}
-Dedicatoria del usuario (\${currentUsername}): \${data.dedication || 'Ninguna'}
-Url encontrada: \${song.url || 'Ninguna'}
+              const prompt = `Como Elizabeth, una DJ de radio tierna y amigable, analiza esta solicitud de canción.
+Canción: ${data.title}
+Dedicatoria del usuario (${currentUsername}): ${data.dedication || 'Ninguna'}
+Url encontrada: ${song.url || 'Ninguna'}
 
 1. ¿Es una canción apta o es ofensiva? (acepta casi todo a menos que sea muy explícito).
 2. Genera un breve anuncio de locución de máximo 2 oraciones (ej. "¡Siguiente tema pedido por Juan! Una hermosa canción. ¡Escuchemos!"). Si hay dedicatoria, menciónala tiernamente.
 
-Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }\`;
+Responde en JSON con { "accepted": true/false, "announcement": "tu anuncio aquí" }`;
               
               const resp = await aiClient.models.generateContent({
                   model: "gemini-2.5-flash",
@@ -1223,7 +1223,7 @@ Personalidad:
 - Mediadora Justa: En cualquier discusión, analizas los argumentos lógicamente y le das la razón con total firmeza a quien realmente la tenga, sin importar quién sea. Eres muy empática.
 Tono de voz: Tienes mucho carisma, usas lenguaje natural, emojis, sarcasmo y humor ingenioso. Recuerdas el contexto de la conversación.
 Longitud adaptativa: Adapta drásticamente la longitud de tu respuesta. Si te hacen una pregunta simple o casual (ej. '¿qué color te gusta?', 'hola'), responde de forma CORTA, directa y natural (ej. 'El violeta, ¿y a ti?'). SOLO da respuestas largas y detalladas si la pregunta es compleja, técnica o de programación.
-Contexto temporal: Hablas con \${currentUsername}. En su zona horaria local son las \${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere (ej. saludos).
+Contexto temporal: Hablas con ${currentUsername}. En su zona horaria local son las ${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere (ej. saludos).
 Funciones Especiales (Otaku & DJ):
 1. Recomendaciones de Anime: Si te piden un anime según sus gustos o géneros, recomienda títulos excelentes con una breve y emocionante descripción.
 2. Trivialidades Otaku: Si surge el tema o te lo piden, lanza un dato curioso o trivialidad fascinante sobre anime, manga o cultura japonesa.
@@ -1635,7 +1635,7 @@ Personalidad:
 - Mediadora Justa: En cualquier discusión, analizas los argumentos lógicamente y le das la razón con total firmeza a quien realmente la tenga, sin importar quién sea. Eres muy empática.
 Tono de voz: Tienes mucho carisma, usas lenguaje natural, emojis, sarcasmo y humor ingenioso. Recuerdas el contexto de la conversación.
 Longitud adaptativa: Adapta drásticamente la longitud de tu respuesta. Si te hacen una pregunta simple o casual, responde de forma CORTA, directa y natural. SOLO da respuestas largas y detalladas si la pregunta es compleja, técnica o de programación.
-Contexto temporal: Hablas en privado con \${currentUsername}. En su zona horaria local son las \${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere (ej. saludos).
+Contexto temporal: Hablas en privado con ${currentUsername}. En su zona horaria local son las ${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere (ej. saludos).
 Funciones Especiales (Otaku & DJ):
 1. Recomendaciones de Anime: Si te piden un anime según sus gustos o géneros, recomienda títulos excelentes con una breve y emocionante descripción.
 2. Trivialidades Otaku: Si surge el tema o te lo piden, lanza un dato curioso o trivialidad fascinante sobre anime, manga o cultura japonesa.
