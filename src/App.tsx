@@ -18,6 +18,7 @@ import { EmojiGifPicker } from './components/EmojiGifPicker';
 
 import { StoreModal } from './components/StoreModal';
 import { ChessGameModal } from './components/ChessGameModal';
+import { ChessBotModal } from './components/ChessBotModal';
 import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 import { InlineRadio } from './components/InlineRadio';
@@ -58,6 +59,10 @@ class ErrorBoundary extends React.Component<any, any> {
 }
 
 const DECORATIONS = [
+  // Ajedrez (Themes & Efectos)
+  { id: 'chess_theme_wood', type: 'basic', category: 'ajedrez', price: 100, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wood' },
+  { id: 'chess_theme_neon', type: 'intermediate', category: 'ajedrez', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=neon' },
+  { id: 'chess_theme_gold', type: 'premium', category: 'ajedrez', price: 1500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=gold' },
   // Marcos
   { id: 'dec_b1', type: 'basic', category: 'marcos', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=flower1' },
   { id: 'dec_b2', type: 'basic', category: 'marcos', price: 500, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=star' },
@@ -1345,11 +1350,21 @@ function MainApp() {
           </main>
       </div>
 
-      {activeChessGame && (
+      {activeChessGame && activeChessGame.isBot && (
+          <ChessBotModal
+              onClose={() => setActiveChessGame(null)}
+              user={user}
+              gameId={activeChessGame.gameId}
+              opponent={activeChessGame.opponent}
+              bet={activeChessGame.bet}
+              isHost={activeChessGame.isHost}
+          />
+      )}
+      {activeChessGame && !activeChessGame.isBot && (
           <ChessGameModal
               onClose={() => setActiveChessGame(null)}
               user={user}
-              gameId={activeChessGame.id}
+              gameId={activeChessGame.gameId || activeChessGame.id}
               opponent={activeChessGame.opponent}
               bet={activeChessGame.bet}
               isHost={activeChessGame.isHost}
@@ -1564,6 +1579,26 @@ function MainApp() {
                           type: 'chess_invite',
                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
                       });
+                  } else if (gameId.startsWith('chessbot_')) {
+                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      if ((user.lizCoins || 0) < bet) {
+                          alert("No tienes suficientes Liz-Moneditas.");
+                          return;
+                      }
+                      // Ask server to start bot game and deduct bet
+                      socket.emit('start_chess_bot', { bet }, (res: any) => {
+                          if (res.success) {
+                              setActiveChessGame({
+                                  gameId: res.gameId,
+                                  opponent: { username: 'Elizabeth_Bot', elo: 800, profilePic: 'https://api.dicebear.com/7.x/bottts/svg?seed=Elizabeth' } as any,
+                                  bet: bet,
+                                  isHost: true,
+                                  isBot: true
+                              });
+                          } else {
+                              alert(res.error || 'Error al iniciar vs Bot');
+                          }
+                      });
                   }
               }}
           />
@@ -1600,6 +1635,25 @@ function MainApp() {
                            type: 'chess_invite',
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
                        });
+                   } else if (gameId.startsWith('chessbot_')) {
+                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      if ((user.lizCoins || 0) < bet) {
+                          alert("No tienes suficientes Liz-Moneditas.");
+                          return;
+                      }
+                      socket.emit('start_chess_bot', { bet }, (res: any) => {
+                          if (res.success) {
+                              setActiveChessGame({
+                                  gameId: res.gameId,
+                                  opponent: { username: 'Elizabeth_Bot', elo: 800, profilePic: 'https://api.dicebear.com/7.x/bottts/svg?seed=Elizabeth' } as any,
+                                  bet: bet,
+                                  isHost: true,
+                                  isBot: true
+                              });
+                          } else {
+                              alert(res.error || 'Error al iniciar vs Bot');
+                          }
+                      });
                    }
                }}
            />

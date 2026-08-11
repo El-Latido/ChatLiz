@@ -76,17 +76,22 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
 
           <div className="w-full px-4">
               {currentGame.id === 'chess' && (
-                  <div className="flex w-full gap-3 mb-4">
-                      <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="bg-[#121B2A] border border-indigo-500/30 rounded-xl text-indigo-300 font-bold p-3 w-1/3 outline-none">
-                          <option value={5}>5 LM</option>
-                          <option value={10}>10 LM</option>
-                          <option value={20}>20 LM</option>
-                          <option value={30}>30 LM</option>
-                          <option value={40}>40 LM</option>
+                  <div className="flex flex-col gap-3 mb-4">
+                      <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="bg-[#121B2A] border border-indigo-500/30 rounded-xl text-indigo-300 font-bold p-3 w-full outline-none">
+                          <option value={5}>Apuesta: 5 LM</option>
+                          <option value={10}>Apuesta: 10 LM</option>
+                          <option value={20}>Apuesta: 20 LM</option>
+                          <option value={30}>Apuesta: 30 LM</option>
+                          <option value={40}>Apuesta: 40 LM</option>
                       </select>
-                      <button onClick={() => { onSelectGame(`chess_${chessBet}`); onClose(); }} className="flex-1 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                          <Swords size={20} /> Reto Global
-                      </button>
+                      <div className="flex gap-3">
+                          <button onClick={() => { onSelectGame(`chessbot_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                              🤖 vs Bot
+                          </button>
+                          <button onClick={() => { onSelectGame(`chess_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                              <Swords size={20} /> PvP Global
+                          </button>
+                      </div>
                   </div>
               )}
               {currentGame.id === 'tutifrutti' && (

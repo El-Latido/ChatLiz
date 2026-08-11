@@ -1915,6 +1915,62 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
         }
     });
 
+    socket.on('start_chess_bot', async (data: { bet: number }, callback) => {
+        if (!currentUsername) return callback({ success: false, error: 'Not logged in' });
+        
+        const bet = data.bet;
+        const userCoins = activeUsers[currentUsername]?.lizCoins || 0;
+        if (userCoins < bet) return callback({ success: false, error: 'No tienes suficientes monedas.' });
+
+        activeUsers[currentUsername].lizCoins -= bet;
+        if (fdb) {
+            try { await updateDoc(doc(fdb, 'users', currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins }); } catch(e) {}
+        } else {
+            if (fallbackState.users[currentUsername]) fallbackState.users[currentUsername].lizCoins = activeUsers[currentUsername].lizCoins;
+            saveFallbackDB();
+        }
+
+        const gameId = `chessbot_${Date.now()}_${currentUsername}`;
+        chessGames[gameId] = {
+            id: gameId,
+            host: currentUsername,
+            guest: 'Elizabeth_Bot',
+            bet: bet,
+            moves: 0,
+            isBot: true
+        };
+
+        emitActiveUsers();
+        callback({ success: true, gameId });
+    });
+
+    socket.on('chess_bot_game_over', async (data: { gameId: string, result: string, winner: string }) => {
+        const game = chessGames[data.gameId];
+        if (!game || !game.isBot || game.host !== currentUsername) return;
+
+        if (data.result === 'user_won' && data.winner === currentUsername) {
+            activeUsers[currentUsername].lizCoins += (game.bet * 2);
+            if (fdb) {
+                try { await updateDoc(doc(fdb, 'users', currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins }); } catch(e) {}
+            }
+        } else if (data.result === 'draw') {
+            activeUsers[currentUsername].lizCoins += game.bet;
+            if (fdb) {
+                try { await updateDoc(doc(fdb, 'users', currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins }); } catch(e) {}
+            }
+        } // if bot_won, bet is lost (already deducted)
+
+        if (!fdb) saveFallbackDB();
+
+        io.to(data.gameId).emit('chess_bot_end', { reason: data.result, winner: data.winner });
+        delete chessGames[data.gameId];
+        emitActiveUsers();
+    });
+
+    socket.on('leave_chess_bot_game', (gameId) => {
+        socket.leave(gameId);
+    });
+
     // --- END CHESS LOGIC ---
 
     socket.on("disconnect", () => {

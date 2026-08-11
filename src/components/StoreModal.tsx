@@ -47,6 +47,7 @@ export function StoreModal({ onClose, user, decorations, initialCategory, onSele
   };
 
   const categories = [
+    { id: 'ajedrez', label: 'Ajedrez', icon: '♟️', color: 'from-amber-400 to-orange-400' },
     { id: 'marcos', label: 'Marcos', icon: '🖼️', color: 'from-blue-400 to-cyan-400' },
     { id: 'emblemas', label: 'Emblemas', icon: '🛡️', color: 'from-purple-400 to-pink-400' },
     { id: 'mascotas', label: 'Mascotas', icon: '🐾', color: 'from-green-400 to-emerald-400' },
