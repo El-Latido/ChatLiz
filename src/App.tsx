@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import {  
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle, Bell
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
 import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
@@ -317,7 +317,6 @@ function MainApp() {
 
     socket.on('receive_global', (msg: any) => {
       if (msg.sender === 'Elizabeth' || msg.isAi) {
-         if (msg.text) hablarElizabeth(msg.text);
       }
     });
 
@@ -326,7 +325,6 @@ function MainApp() {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
       }
       if (fromUser === 'Elizabeth' && msg.text) {
-          hablarElizabeth(msg.text);
       }
     });
 
@@ -1714,12 +1712,7 @@ function MainApp() {
 }
 
 
-function hablarElizabeth(texto: string) {
-  const utterance = new SpeechSynthesisUtterance(texto);
-  utterance.lang = 'es-ES';
-  utterance.rate = 1;
-  window.speechSynthesis.speak(utterance);
-}
+
 
 export default function App() {
   useEffect(() => {

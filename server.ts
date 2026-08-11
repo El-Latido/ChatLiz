@@ -9,7 +9,6 @@ import fs from "fs";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import * as googleTTS from 'google-tts-api';
 import ytSearch from 'yt-search';
 import { fdb, fStorage } from "./server/firebase";
 import { updateUserProfileInFirebase, updateAiProfileInFirebase, saveMessageToFirebase } from "./server/firebaseLogic";
@@ -1080,7 +1079,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
             }
               if (resJson.accepted) {
                   song.status = 'accepted';
-                  song.announcementUrl = googleTTS.getAudioUrl((resJson.announcement || '').substring(0, 199) || "Tema pedido por " + currentUsername, { lang: 'es-US', slow: false, host: 'https://translate.google.com' });
+                  song.announcementUrl = "";
                   if (!currentRequestedSong) { currentRequestedSong = song; io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
                   else { songQueue.push(song); io.emit("queue_update", { queue: songQueue, current: currentRequestedSong }); }
                   if (activeUsers[currentUsername]) io.to(activeUsers[currentUsername].socketId).emit("dj_request_status", { id: song.id, status: 'accepted', title: song.title });
