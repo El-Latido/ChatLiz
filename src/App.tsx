@@ -1616,18 +1616,20 @@ function MainApp() {
                   if (gameId === 'tutifrutti') {
                       setActiveChat('tutifrutti');
                   } else if (gameId.startsWith('chess_')) {
-                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
                       if ((user.lizCoins || 0) < bet) {
                           alert("No tienes suficientes Liz-Moneditas.");
                           return;
                       }
                       socket.emit('send_global', { 
-                          text: `¡Reto de Ajedrez por ${bet * 2} LM!`,
+                          text: bet > 0 ? `¡Reto de Ajedrez por ${bet * 2} LM!` : `¡Reto de Ajedrez Amistoso!`,
                           type: 'chess_invite',
                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
                       });
                   } else if (gameId.startsWith('chessbot_')) {
-                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
                       if ((user.lizCoins || 0) < bet) {
                           alert("No tienes suficientes Liz-Moneditas.");
                           return;
@@ -1672,18 +1674,20 @@ function MainApp() {
                    if (gameId === 'tutifrutti') {
                        setActiveChat('tutifrutti');
                    } else if (gameId.startsWith('chess_')) {
-                       const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                       const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
                        if ((user.lizCoins || 0) < bet) {
                            alert("No tienes suficientes Liz-Moneditas.");
                            return;
                        }
                        socket.emit('send_global', { 
-                           text: `¡Reto de Ajedrez por ${bet * 2} LM!`,
+                           text: bet > 0 ? `¡Reto de Ajedrez por ${bet * 2} LM!` : `¡Reto de Ajedrez Amistoso!`,
                            type: 'chess_invite',
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
                        });
                    } else if (gameId.startsWith('chessbot_')) {
-                      const bet = parseInt(gameId.split('_')[1], 10) || 10;
+                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
                       if ((user.lizCoins || 0) < bet) {
                           alert("No tienes suficientes Liz-Moneditas.");
                           return;
