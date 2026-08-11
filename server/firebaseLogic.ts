@@ -1,11 +1,32 @@
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, query, orderBy, limit, limitToLast, getDocs, getCountFromServer, onSnapshot } from "firebase/firestore";
-import { fdb } from "./firebase";
-import { DBState } from "./types"; // We will create this
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { fdb, fStorage } from "./firebase";
+import { DBState } from "./types"; 
+
+const uploadProfilePicIfBase64 = async (username: string, profilePic: string) => {
+    if (fStorage && profilePic && profilePic.startsWith('data:image')) {
+        try {
+            const extension = profilePic.substring("data:image/".length, profilePic.indexOf(";base64"));
+            const storageRef = ref(fStorage, `profile_pics/${username}.${extension}`);
+            await uploadString(storageRef, profilePic, 'data_url');
+            const downloadUrl = await getDownloadURL(storageRef);
+            return downloadUrl;
+        } catch (e) {
+            console.error("Error uploading profile pic to storage:", e);
+            return profilePic; // fallback to base64 if upload fails
+        }
+    }
+    return profilePic;
+};
 
 export const updateUserProfileInFirebase = async (oldUsername: string, newUsername: string, data: any) => {
     if (!fdb) return null;
     
     try {
+        if (data.profilePic) {
+            data.profilePic = await uploadProfilePicIfBase64(newUsername, data.profilePic);
+        }
+
         if (newUsername !== oldUsername) {
             const existsDoc = await getDoc(doc(fdb, 'users', newUsername));
             if (existsDoc.exists()) throw new Error("El usuario ya existe");
@@ -27,7 +48,6 @@ export const updateUserProfileInFirebase = async (oldUsername: string, newUserna
             
             if (docSnap.exists()) {
                 currentRole = docSnap.data().role || "user";
-                // Ejecuta la actualización (aquí es donde los datos "pasan" a Firebase)
                 await updateDoc(docRef, { ...data });
             } else {
                 await setDoc(docRef, { ...data, username: oldUsername, role: currentRole });
@@ -43,6 +63,9 @@ export const updateUserProfileInFirebase = async (oldUsername: string, newUserna
 export const updateAiProfileInFirebase = async (aiUsername: string, data: any) => {
     if (!fdb) return;
     try {
+        if (data.profilePic) {
+            data.profilePic = await uploadProfilePicIfBase64(aiUsername, data.profilePic);
+        }
         await setDoc(doc(fdb, 'users', aiUsername), { ...data, username: aiUsername, role: "admin" }, { merge: true });
     } catch (e) {
         console.error("Error updating AI profile:", e);

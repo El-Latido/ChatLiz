@@ -21,6 +21,8 @@ export interface UserObj {
   activeDecoration?: string | null;
   ownedDecorations?: string[];
   elo?: number;
+  uid?: string;
+  profileLikes?: number;
 }
 
 export interface TutiFruttiState {

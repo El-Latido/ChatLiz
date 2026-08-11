@@ -78,6 +78,7 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
               {currentGame.id === 'chess' && (
                   <div className="flex flex-col gap-3 mb-4">
                       <select value={chessBet} onChange={(e) => setChessBet(Number(e.target.value))} className="bg-[#121B2A] border border-indigo-500/30 rounded-xl text-indigo-300 font-bold p-3 w-full outline-none">
+                          <option value={0}>Partida Amistosa (0 LM)</option>
                           <option value={5}>Apuesta: 5 LM</option>
                           <option value={10}>Apuesta: 10 LM</option>
                           <option value={20}>Apuesta: 20 LM</option>

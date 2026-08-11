@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react';
-import { 
+import {  
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Volume2, VolumeX, Users, UserPlus, AlertCircle, Bell
 } from 'lucide-react';
-import { collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from './firebaseConfig';
-import { socket } from './socket';
-import { UserObj, MessageObj } from './types';
-import { Login } from './components/Login';
-import { RecoveryModal } from './components/RecoveryModal';
-import { ProfileConfigModal } from './components/ProfileConfigModal';
-import { AdminConfigLizModal } from './components/AdminConfigLizModal';
-import { GamesMenuModal } from './components/GamesMenuModal';
-import { EmojiGifPicker } from './components/EmojiGifPicker';
+import {  collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
+import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import {  db, auth } from './firebaseConfig';
+import {  socket } from './socket';
+import {  UserObj, MessageObj } from './types';
+import {  Login } from './components/Login';
+import {  RecoveryModal } from './components/RecoveryModal';
+import {  ProfileConfigModal } from './components/ProfileConfigModal';
+import {  AdminConfigLizModal } from './components/AdminConfigLizModal';
+import {  GamesMenuModal } from './components/GamesMenuModal';
+import {  EmojiGifPicker } from './components/EmojiGifPicker';
 
-import { StoreModal } from './components/StoreModal';
-import { ChessGameModal } from './components/ChessGameModal';
-import { ChessBotModal } from './components/ChessBotModal';
-import { PremiumAudioPlayer } from './components/PremiumAudioPlayer';
-import { PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
-import { InlineRadio } from './components/InlineRadio';
-import { SongRequestModal } from './components/SongRequestModal';
-import { DjControlPanelModal } from './components/DjControlPanelModal';
+import {  StoreModal } from './components/StoreModal';
+import {  ChessGameModal } from './components/ChessGameModal';
+import {  ChessBotModal } from './components/ChessBotModal';
+import {  PremiumAudioPlayer } from './components/PremiumAudioPlayer';
+import {  PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
+import {  InlineRadio } from './components/InlineRadio';
+import {  SongRequestModal } from './components/SongRequestModal';
+import {  DjControlPanelModal } from './components/DjControlPanelModal';
 
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -806,6 +806,31 @@ function MainApp() {
               
               <div className="w-full h-px bg-white/5 my-2"></div>
 
+              {/* User Search */}
+              <div className="px-4 py-2">
+                 <form onSubmit={(e) => {
+                     e.preventDefault();
+                     const q = (e.target as any).elements.searchQuery.value.trim();
+                     if(q) {
+                         socket.emit('search_user', q, (res: any) => {
+                             if(res.success) {
+                                 setSelectedUserModal(res.user);
+                             } else {
+                                 alert('Usuario no encontrado');
+                             }
+                         });
+                     }
+                 }} className="relative">
+                     <input 
+                         name="searchQuery"
+                         type="text" 
+                         placeholder="Buscar por UID o Nombre..." 
+                         className="w-full bg-[#12141c] text-sm text-white px-3 py-2 pl-8 rounded-xl border border-white/10 focus:border-[#D4AF37] focus:outline-none placeholder-gray-500"
+                     />
+                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                 </form>
+              </div>
+
               {/* Users List */}
               <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">
                  {usersOnline.map(u => {
@@ -1051,7 +1076,12 @@ function MainApp() {
                                     💬 Chat del Juego
                                 </h3>
                                 <div className="flex-1 overflow-y-auto mb-3 space-y-2 pr-2 scrollbar-thin">
-                                    {messages.slice(-15).map((m: any, idx) => {
+                                    {messages.slice(-15).filter((m: any) => {
+                                        if (user.blocked_list?.includes(m.sender)) return false;
+                                        const senderInfo = usersOnline.find(u => u.username === m.sender);
+                                        if (senderInfo?.blocked_list?.includes(user.username)) return false;
+                                        return true;
+                                    }).map((m: any, idx) => {
                                         const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
                                         const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
                                         let date = new Date();
@@ -1150,7 +1180,12 @@ function MainApp() {
                 <>
                   {/* Chat Feed */}
               <div className="flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin">
-                  {messages.filter(m => m && m.sender).map((m, idx) => {
+                  {messages.filter(m => m && m.sender).filter(m => {
+                      if (user.blocked_list?.includes(m.sender)) return false;
+                      const senderInfo = usersOnline.find(u => u.username === m.sender);
+                      if (senderInfo?.blocked_list?.includes(user.username)) return false;
+                      return true;
+                  }).map((m, idx) => {
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
                      const isMe = m.sender === user.username;
                      let date = new Date();
@@ -1463,13 +1498,25 @@ function MainApp() {
              
              {selectedUserModal.username !== user.username && (
                <div className="flex flex-col gap-2 mt-6">
-                   <button 
-                     onClick={() => { setActiveChat(selectedUserModal.username); setSelectedUserModal(null); }}
-                     className="w-full flex items-center justify-center gap-2 text-white bg-white/5 hover:bg-white/10 p-3 rounded-xl font-medium transition-colors border border-white/10"
-                   >
-                     <MessageCircle size={18} />
-                     Enviar mensaje
-                   </button>
+                   <div className="flex gap-2">
+                       <button 
+                         onClick={() => { setActiveChat(selectedUserModal.username); setSelectedUserModal(null); }}
+                         className="flex-1 flex items-center justify-center gap-2 text-white bg-white/5 hover:bg-white/10 p-3 rounded-xl font-medium transition-colors border border-white/10"
+                       >
+                         <MessageCircle size={18} />
+                         Mensaje
+                       </button>
+                       <button 
+                         onClick={() => {
+                             socket.emit('like_user', selectedUserModal.username);
+                             setSelectedUserModal(prev => prev ? { ...prev, profileLikes: (prev.profileLikes || 0) + 1 } : null);
+                         }}
+                         className="flex-1 flex items-center justify-center gap-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 p-3 rounded-xl font-medium transition-colors border border-pink-500/20"
+                       >
+                         <Heart size={18} />
+                         Dar Like
+                       </button>
+                   </div>
                    {selectedUserModal.username !== 'Elizabeth' && (
                      <div className="flex gap-2">
                          <button 

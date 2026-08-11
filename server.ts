@@ -516,6 +516,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       let activeDecoration: string | null = null;
       let ownedDecorations: string[] = [];
       let elo = 0;
+      let uid = "";
+      let profileLikes = 0;
 
       if (username === "Axiss" && password === "2@$3fabian18") {
          role = "admin";
@@ -546,6 +548,12 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
             activeDecoration = user?.activeDecoration || null;
             ownedDecorations = user?.ownedDecorations || [];
             elo = user?.elo || 0;
+            uid = user?.uid || "";
+            profileLikes = user?.profileLikes || 0;
+            if (!uid) {
+                uid = Math.random().toString(36).substring(2, 8).toUpperCase();
+                await setDoc(userDocRef, { uid, profileLikes: profileLikes || 0 }, { merge: true });
+            }
             
             // update timezone if it changed
             if (user?.timezone !== timezone) {
@@ -553,7 +561,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                userTimezone = timezone;
             }
           } else {
-            await setDoc(userDocRef, { username, password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone });
+            const newUid = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await setDoc(userDocRef, { username, password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone, uid: newUid, profileLikes: 0 });
           }
         } catch (err) {
           console.error(err);
@@ -579,6 +588,14 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           activeDecoration = fallbackState.users[username].activeDecoration || null;
           ownedDecorations = fallbackState.users[username].ownedDecorations || [];
           elo = fallbackState.users[username].elo || 0;
+          uid = fallbackState.users[username].uid || "";
+          profileLikes = fallbackState.users[username].profileLikes || 0;
+          if (!uid) {
+              uid = Math.random().toString(36).substring(2, 8).toUpperCase();
+              fallbackState.users[username].uid = uid;
+              fallbackState.users[username].profileLikes = profileLikes || 0;
+              saveFallbackDB();
+          }
           
           if (fallbackState.users[username].timezone !== timezone) {
              fallbackState.users[username].timezone = timezone;
@@ -586,7 +603,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
              saveFallbackDB();
           }
         } else {
-          fallbackState.users[username] = { password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone };
+          const newUid = Math.random().toString(36).substring(2, 8).toUpperCase();
+          fallbackState.users[username] = { password, profilePic, statusMessage, role, pais_idioma: userCountryLanguage, securityEmail: userSecurityEmail, timezone: userTimezone, uid: newUid, profileLikes: 0 };
           saveFallbackDB();
         }
       }
@@ -608,7 +626,9 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           lizCoins,
           activeDecoration,
           ownedDecorations,
-          elo
+          elo,
+          uid,
+          profileLikes
       };
       emitActiveUsers();
       callback({ 
@@ -777,6 +797,76 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       
       emitActiveUsers();
       callback({ success: true, username: currentUsername, profilePic: safeProfilePic, statusMessage: safeStatusMessage, countryLanguage: safeLanguage, is_friends_public: safeIsFriendsPublic });
+    });
+
+    socket.on("search_user", async (queryStr, callback) => {
+        if (!queryStr) return callback({ success: false });
+        let q = queryStr.trim();
+        // check online users first
+        let found = Object.values(activeUsers).find(u => u.username.toLowerCase() === q.toLowerCase() || u.uid === q.toUpperCase());
+        if (found) {
+            return callback({ success: true, user: found });
+        }
+        // check database
+        if (fdb) {
+            try {
+                // try by username
+                const docSnap = await getDoc(doc(fdb, 'users', q));
+                if (docSnap.exists()) return callback({ success: true, user: docSnap.data() });
+                // try by uid
+                const queryRef = query(collection(fdb, 'users'), where('uid', '==', q.toUpperCase()));
+                const querySnap = await getDocs(queryRef);
+                if (!querySnap.empty) return callback({ success: true, user: querySnap.docs[0].data() });
+            } catch(e){}
+        } else {
+            const fbUser = Object.values(fallbackState.users).find(u => u.username?.toLowerCase() === q.toLowerCase() || u.uid === q.toUpperCase());
+            if (fbUser) return callback({ success: true, user: fbUser });
+        }
+        return callback({ success: false });
+    });
+
+    socket.on("like_user", async (targetUser) => {
+        if (!currentUsername) return;
+        if (fdb) {
+            try {
+                const uRef = doc(fdb, 'users', targetUser);
+                const snap = await getDoc(uRef);
+                if (snap.exists()) {
+                    const currentLikes = snap.data().profileLikes || 0;
+                    await updateDoc(uRef, { profileLikes: currentLikes + 1 });
+                    if (activeUsers[targetUser]) {
+                        activeUsers[targetUser].profileLikes = currentLikes + 1;
+                        emitActiveUsers();
+                    }
+                }
+            } catch(e) {}
+        } else {
+            if (fallbackState.users[targetUser]) {
+                fallbackState.users[targetUser].profileLikes = (fallbackState.users[targetUser].profileLikes || 0) + 1;
+                if (activeUsers[targetUser]) activeUsers[targetUser].profileLikes = fallbackState.users[targetUser].profileLikes;
+                saveFallbackDB();
+                emitActiveUsers();
+            }
+        }
+    });
+
+    socket.on("toggle_block_user", async (targetUser) => {
+        if (!currentUsername) return;
+        let blocked = activeUsers[currentUsername].blocked_list || [];
+        if (blocked.includes(targetUser)) {
+            blocked = blocked.filter((u: string) => u !== targetUser);
+        } else {
+            blocked.push(targetUser);
+        }
+        activeUsers[currentUsername].blocked_list = blocked;
+        
+        if (fdb) {
+            try { await updateDoc(doc(fdb, 'users', currentUsername), { blocked_list: blocked }); } catch(e) {}
+        } else {
+            if (fallbackState.users[currentUsername]) fallbackState.users[currentUsername].blocked_list = blocked;
+            saveFallbackDB();
+        }
+        emitActiveUsers();
     });
 
     socket.on("update_ai_config", async (data, callback) => {
@@ -1202,7 +1292,7 @@ socket.on("dj_go_live", (streamUrl) => {
       }
 
       let triggerElizabeth = false;
-      if (msg.text && (msg.text.toLowerCase().includes("elizabeth") || msg.text.toLowerCase().includes("liz"))) {
+      if (msg.text && /\b(@?elizabeth|@?liz)\b/i.test(msg.text)) {
           triggerElizabeth = true;
       }
       if (modResult.mentionsElizabeth) {
@@ -1210,18 +1300,6 @@ socket.on("dj_go_live", (streamUrl) => {
       }
 
       if (triggerElizabeth) {
-        let isPlayingChess = false;
-        for (const gId in chessGames) {
-            const g = chessGames[gId];
-            if (g.host === currentUsername || g.guest === currentUsername) {
-                isPlayingChess = true;
-            }
-        }
-        
-        if (tutiFruttiState.isActive || isPlayingChess) {
-            // Modo Silencio durante juegos
-            return;
-        }
 
         try {
           io.emit("typing", { username: "Elizabeth", chat: "global" });
