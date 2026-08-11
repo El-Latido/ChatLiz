@@ -77,12 +77,20 @@ Mensaje de texto: ${msg.text || "[Ninguno]"}` });
             }
         });
         
-        const responseJson = JSON.parse(filterResp.text?.trim() || "{}");
+        let responseJson: any = {};
+        try {
+            const rawText = filterResp.text?.trim() || "{}";
+            const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            responseJson = JSON.parse(cleanedText);
+        } catch (parseErr) {
+            console.error("Moderation JSON parse error:", parseErr, "Raw output:", filterResp.text);
+        }
+        
         return { 
-            banned: !!responseJson.banned, 
-            reason: responseJson.reason || "",
-            transcription: responseJson.transcription || "",
-            mentionsElizabeth: !!responseJson.mentionsElizabeth
+            banned: !!responseJson?.banned, 
+            reason: responseJson?.reason || "",
+            transcription: responseJson?.transcription || "",
+            mentionsElizabeth: !!responseJson?.mentionsElizabeth
         };
     } catch(e: any) {
         if (e?.status === 429 || e?.status === 503 || e?.message?.includes('429') || e?.message?.includes('503') || e?.message?.includes("resource_exhausted") || e?.message?.includes("quota")) {
@@ -327,7 +335,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
                       responseMimeType: "application/json",
                   }
               });
-              resultJson = JSON.parse(response.text || '{}');
+            let resultJson: any = {};
+            try {
+              const rawText = response.text?.trim() || "{}";
+              const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+              resultJson = JSON.parse(cleanedText);
+            } catch (parseErr) {
+              console.error("AI Assistant JSON parse error:", parseErr, "Raw output:", response.text);
+              resultJson = { text: "Lo siento, tuve un problema procesando eso. 😅" };
+            }
           } else {
               throw new Error("No API key or no answers");
           }
@@ -963,7 +979,15 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
               }
               const prompt = `Como Elizabeth, analiza esta solicitud de canción. Canción: ${song.title}. Genera un anuncio. Responde en JSON con { "accepted": true/false, "announcement": "..." }`;
               const resp = await safeGenerateContent(ai, { model: "gemini-2.5-flash", contents: prompt, config: { responseMimeType: "application/json", temperature: 0.7 } });
-              const resJson = JSON.parse(resp.text?.trim() || "{}");
+            let resJson: any = {};
+            try {
+              const rawText = resp.text?.trim() || "{}";
+              const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+              resJson = JSON.parse(cleanedText);
+            } catch (parseErr) {
+              console.error("DJ JSON parse error:", parseErr, "Raw output:", resp.text);
+              resJson = { responseText: "¡Sigan disfrutando de la música! 🎶" };
+            }
               if (resJson.accepted) {
                   song.status = 'accepted';
                   song.announcementUrl = googleTTS.getAudioUrl((resJson.announcement || '').substring(0, 199) || "Tema pedido por " + currentUsername, { lang: 'es-US', slow: false, host: 'https://translate.google.com' });
@@ -1101,6 +1125,7 @@ socket.on("dj_go_live", (streamUrl) => {
       }
 
       if (msg.audio && msg.audio.startsWith('data:audio')) {
+         let uploadedToStorage = false;
          if (fStorage) {
              try {
                  const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
@@ -1108,17 +1133,25 @@ socket.on("dj_go_live", (streamUrl) => {
                  const downloadUrl = await getDownloadURL(audioRef);
                  msg.audio = downloadUrl;
                  msg.type = 'audio';
+                 uploadedToStorage = true;
              } catch (e) {
                  console.error("Audio upload error (Firebase Storage):", e);
-                 // No enviamos el audio base64 si falló para no exceder el límite de 1MB de Firestore
+             }
+         }
+         
+         if (!uploadedToStorage) {
+             try {
+                 const base64Data = msg.audio.split(',')[1];
+                 const fileName = `audio_${Date.now()}_${currentUsername}.wav`;
+                 const filePath = path.join(uploadsDir, fileName);
+                 fs.writeFileSync(filePath, base64Data, 'base64');
+                 msg.audio = `/static/uploads/${fileName}`;
+                 msg.type = 'audio';
+             } catch (localErr) {
+                 console.error("Local audio save error:", localErr);
                  delete msg.audio;
                  if (!msg.text) msg.text = "🎤 (Audio no pudo ser enviado)";
              }
-         } else {
-             // Si no hay Storage, enviamos base64 bajo nuestro propio riesgo,
-             // o lo limitamos.
-             msg.type = 'audio';
-             // Podría exceder 1MB, pero lo dejamos pasar
          }
       } else if (msg.audio) {
          msg.type = 'audio';
@@ -1545,6 +1578,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       }
 
       if (msg.audio && msg.audio.startsWith('data:audio')) {
+         let uploadedToStorage = false;
          if (fStorage) {
              try {
                  const audioRef = ref(fStorage, `audios/${Date.now()}_${currentUsername}.wav`);
@@ -1552,13 +1586,25 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
                  const downloadUrl = await getDownloadURL(audioRef);
                  msg.audio = downloadUrl;
                  msg.type = 'audio';
+                 uploadedToStorage = true;
              } catch (e) {
                  console.error("Private Audio upload error (Firebase Storage):", e);
+             }
+         }
+         
+         if (!uploadedToStorage) {
+             try {
+                 const base64Data = msg.audio.split(',')[1];
+                 const fileName = `private_audio_${Date.now()}_${currentUsername}.wav`;
+                 const filePath = path.join(uploadsDir, fileName);
+                 fs.writeFileSync(filePath, base64Data, 'base64');
+                 msg.audio = `/static/uploads/${fileName}`;
+                 msg.type = 'audio';
+             } catch (localErr) {
+                 console.error("Local private audio save error:", localErr);
                  delete msg.audio;
                  if (!msg.text) msg.text = "🎤 (Audio no pudo ser enviado)";
              }
-         } else {
-             msg.type = 'audio';
          }
       } else if (msg.audio) {
          msg.type = 'audio';

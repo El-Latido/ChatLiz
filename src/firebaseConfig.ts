@@ -3,12 +3,12 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDPnyUYiErVRr-AiHuftNEqJ4SQd7l2qVM",
-  authDomain: "chatliz-app.firebaseapp.com",
-  projectId: "chatliz-app",
-  storageBucket: "chatliz-app.firebasestorage.app",
-  messagingSenderId: "371309552333",
-  appId: "1:371309552333:web:3b7f061bc90ac45468bf84"
+  apiKey: "AIzaSyBgTuV7xHa3PAPSzacRsEkcnJ59Fukye1A",
+  authDomain: "eighth-ability-8szp9.firebaseapp.com",
+  projectId: "eighth-ability-8szp9",
+  storageBucket: "eighth-ability-8szp9.appspot.com",
+  messagingSenderId: "389253128291",
+  appId: "1:389253128291:web:087a456f72bbc4bf0b1856"
 };
 
 const app = initializeApp(firebaseConfig);
