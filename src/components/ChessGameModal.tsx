@@ -19,8 +19,10 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
   const [game, setGame] = useState(new Chess());
   const [messages, setMessages] = useState<{sender: string, text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [status, setStatus] = useState('playing'); // playing, won, lost, draw, abandoned
+  const [status, setStatus] = useState('playing');
   const [winner, setWinner] = useState('');
+  const [moveFrom, setMoveFrom] = useState('');
+  const [optionSquares, setOptionSquares] = useState({});
   
   const myColor = isHost ? 'w' : 'b';
 
@@ -55,27 +57,72 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
     };
   }, [gameId, user.username]);
 
-  function onDrop(sourceSquare: string, targetSquare: string) {
-    if (status !== 'playing' || game.turn() !== myColor) return false;
+  function onSquareClick(square: string) {
+    const myColor = isHost ? 'w' : 'b';
+    if (status !== 'playing' || game.turn() !== myColor) return;
 
+    function getOptionSquares(sq: string) {
+      const moves = game.moves({ square: sq as any, verbose: true }) as any[];
+      const newSquares: Record<string, any> = {};
+      moves.forEach((m) => {
+        newSquares[m.to] = {
+          background:
+            game.get(m.to as any) && game.get(m.to as any).color !== myColor
+              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
+              : 'radial-gradient(circle, rgba(0,0,0,.3) 25%, transparent 25%)',
+          borderRadius: '50%',
+        };
+      });
+      newSquares[sq] = { background: 'rgba(255, 255, 0, 0.4)' };
+      return newSquares;
+    }
+
+    // If clicked on same square, deselect
+    if (moveFrom === square) {
+      setMoveFrom('');
+      setOptionSquares({});
+      return;
+    }
+
+    // Try selecting piece
+    const piece = game.get(square as any);
+    if (piece && piece.color === myColor) {
+      setMoveFrom(square);
+      setOptionSquares(getOptionSquares(square));
+      return;
+    }
+
+    // If no piece selected yet, and we didn't just select one, do nothing
+    if (!moveFrom) return;
+
+    // Try to move
     try {
       const move = game.move({
-        from: sourceSquare,
-        to: targetSquare,
+        from: moveFrom as any,
+        to: square as any,
         promotion: 'q',
       });
-      if (move === null) return false;
       
+      if (move === null) {
+        setMoveFrom('');
+        setOptionSquares({});
+        return;
+      }
+
       const newGame = new Chess(game.fen());
       setGame(newGame);
-      socket.emit('chess_move', { gameId, move, fen: newGame.fen() });
+      setMoveFrom('');
+      setOptionSquares({});
       
+      
+      socket.emit('chess_move', { gameId, move, fen: newGame.fen() });
       if (newGame.isGameOver()) {
         socket.emit('chess_game_over', { gameId, result: newGame.isCheckmate() ? 'checkmate' : 'draw', winner: user.username });
       }
-      return true;
+      
     } catch (e) {
-      return false;
+      setMoveFrom('');
+      setOptionSquares({});
     }
   }
 
@@ -172,10 +219,12 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
             <div className={`w-full max-w-[500px] aspect-square relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 ${boardStyles.border} ${boardStyles.bg} ${boardStyles.drop}`}>
                 <ChessboardAny 
                     position={game.fen()} 
-                    onPieceDrop={onDrop}
+                    onSquareClick={onSquareClick}
+                    arePiecesDraggable={false}
                     boardOrientation={isHost ? 'white' : 'black'}
                     customDarkSquareStyle={{ backgroundColor: boardStyles.dark }}
                     customLightSquareStyle={{ backgroundColor: boardStyles.light }}
+                customSquareStyles={optionSquares}
                 />
             </div>
 
