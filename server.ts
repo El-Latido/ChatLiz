@@ -802,23 +802,26 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
         if (!queryStr) return callback({ success: false });
         let q = queryStr.trim();
         // check online users first
-        let found = Object.values(activeUsers).find(u => u.username.toLowerCase() === q.toLowerCase() || u.uid === q.toUpperCase());
+        let qLower = q.toLowerCase();
+        let found = Object.values(activeUsers).find(u => u.username.toLowerCase().includes(qLower) || (u.uid && u.uid.toLowerCase().includes(qLower)));
         if (found) {
             return callback({ success: true, user: found });
         }
         // check database
         if (fdb) {
             try {
-                // try by username
-                const docSnap = await getDoc(doc(fdb, 'users', q));
-                if (docSnap.exists()) return callback({ success: true, user: docSnap.data() });
-                // try by uid
-                const queryRef = query(collection(fdb, 'users'), where('uid', '==', q.toUpperCase()));
-                const querySnap = await getDocs(queryRef);
-                if (!querySnap.empty) return callback({ success: true, user: querySnap.docs[0].data() });
+                const allUsersSnap = await getDocs(collection(fdb, 'users'));
+                let dbUser = null;
+                allUsersSnap.forEach(d => {
+                    const data = d.data();
+                    if ((data.username && data.username.toLowerCase().includes(qLower)) || (data.uid && data.uid.toLowerCase().includes(qLower))) {
+                        if (!dbUser) dbUser = data;
+                    }
+                });
+                if (dbUser) return callback({ success: true, user: dbUser });
             } catch(e){}
         } else {
-            const fbUser = Object.values(fallbackState.users).find(u => u.username?.toLowerCase() === q.toLowerCase() || u.uid === q.toUpperCase());
+            const fbUser = Object.values(fallbackState.users).find(u => u.username?.toLowerCase().includes(qLower) || u.uid?.toLowerCase().includes(qLower));
             if (fbUser) return callback({ success: true, user: fbUser });
         }
         return callback({ success: false });

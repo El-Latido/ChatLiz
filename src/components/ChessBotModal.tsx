@@ -98,9 +98,6 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
     if (!chatInput.trim()) return;
     setMessages(prev => [...prev, { sender: user.username, text: chatInput }]);
     setChatInput('');
-    setTimeout(() => {
-        setMessages(prev => [...prev, { sender: 'Elizabeth_Bot', text: '¡Buen movimiento! 🤖' }]);
-    }, 1000);
   };
 
   const abandonGame = () => {
@@ -260,9 +257,6 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                 {['😂', '🤔', '😡', '👏', '😱'].map(emo => (
                     <button key={emo} type="button" onClick={() => {
                         setMessages(prev => [...prev, { sender: user.username, text: emo }]);
-                        setTimeout(() => {
-                            setMessages(prev => [...prev, { sender: 'Elizabeth_Bot', text: emo }]);
-                        }, 500);
                     }} className="text-2xl hover:scale-110 transition-transform p-1">
                         {emo}
                     </button>

@@ -180,15 +180,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
             </div>
 
 
-            <div className="w-full max-w-[500px] aspect-square relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 border-[#8B5A2B] bg-[#f0d9b5]">
-                <ChessboardAny 
-                    position={game.fen()} 
-                    onPieceDrop={onDrop}
-                    boardOrientation={isHost ? 'white' : 'black'}
-                    customDarkSquareStyle={{ backgroundColor: '#b58863' }}
-                    customLightSquareStyle={{ backgroundColor: '#f0d9b5' }}
-                />
-            </div>
+            
 
             <div className="w-full max-w-[500px] flex justify-between items-center mt-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">

@@ -4,7 +4,7 @@ import { fdb, fStorage } from "./firebase";
 import { DBState } from "./types"; 
 
 const uploadProfilePicIfBase64 = async (username: string, profilePic: string) => {
-    if (fStorage && profilePic && profilePic.startsWith('data:image')) {
+    if (fStorage && fStorage.app?.options?.storageBucket && profilePic && profilePic.startsWith('data:image')) {
         try {
             const extension = profilePic.substring("data:image/".length, profilePic.indexOf(";base64"));
             const storageRef = ref(fStorage, `profile_pics/${username}.${extension}`);
@@ -12,8 +12,8 @@ const uploadProfilePicIfBase64 = async (username: string, profilePic: string) =>
             const downloadUrl = await getDownloadURL(storageRef);
             return downloadUrl;
         } catch (e) {
-            console.error("Error uploading profile pic to storage:", e);
-            return profilePic; // fallback to base64 if upload fails
+            console.log("Firebase Storage fallback: Saving base64 directly to Firestore");
+            return profilePic; 
         }
     }
     return profilePic;
