@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import {  
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
 import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';

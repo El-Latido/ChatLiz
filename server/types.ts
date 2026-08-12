@@ -18,7 +18,10 @@ export interface DBState {
     lizCoins?: number,
     activeDecoration?: string | null,
     ownedDecorations?: string[],
-    elo?: number
+    elo?: number,
+    uid?: string,
+    profileLikes?: number,
+    username?: string
   }>;
   globalMessages: any[];
   hallOfFame?: any[];
