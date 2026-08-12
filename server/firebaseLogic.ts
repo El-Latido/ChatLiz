@@ -8,8 +8,15 @@ const uploadProfilePicIfBase64 = async (username: string, profilePic: string) =>
         try {
             const extension = profilePic.substring("data:image/".length, profilePic.indexOf(";base64"));
             const storageRef = ref(fStorage, `profile_pics/${username}.${extension}`);
-            await uploadString(storageRef, profilePic, 'data_url');
-            const downloadUrl = await getDownloadURL(storageRef);
+            
+            const uploadTask = async () => {
+                await uploadString(storageRef, profilePic, 'data_url');
+                return await getDownloadURL(storageRef);
+            };
+            
+            const timeoutTask = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout upload")), 3000));
+            
+            const downloadUrl = await Promise.race([uploadTask(), timeoutTask]);
             return downloadUrl;
         } catch (e) {
             console.log("Firebase Storage fallback: Saving base64 directly to Firestore");

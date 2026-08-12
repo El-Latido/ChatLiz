@@ -68,12 +68,14 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
         newSquares[m.to] = {
           background:
             game.get(m.to as any) && game.get(m.to as any).color !== myColor
-              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
-              : 'radial-gradient(circle, rgba(0,0,0,.3) 25%, transparent 25%)',
+              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)',
+          zIndex: 10
+              : 'radial-gradient(circle, rgba(0,255,0,.5) 25%, transparent 25%)',
+          zIndex: 10,
           borderRadius: '50%',
         };
       });
-      newSquares[sq] = { background: 'rgba(255, 255, 0, 0.4)' };
+      newSquares[sq] = { background: 'rgba(255, 255, 0, 0.6)' };
       return newSquares;
     }
 
@@ -195,17 +197,17 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
   const boardStyles = getBoardStyles();
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0B1220] p-2 sm:p-6 animate-in fade-in">
-      <div className="bg-gradient-to-b from-[#0a0f1c] to-[#121B2A] border border-[#D4AF37]/30 rounded-3xl w-full max-w-6xl max-h-[95vh] flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.15)]">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0B1220] md:p-6 animate-in fade-in">
+      <div className="bg-gradient-to-b from-[#0a0f1c] to-[#121B2A] border border-[#D4AF37]/30 md:rounded-3xl w-full h-[100dvh] md:h-auto md:max-h-[95vh] max-w-6xl flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.15)]">
         
         {/* Left Side: Game Board (3D effect container) */}
-        <div className="flex-1 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="md:flex-1 p-2 md:p-6 shrink-0 flex flex-col items-center justify-center relative overflow-hidden">
             {/* 3D Table Background */}
             <div className="absolute inset-x-10 bottom-0 top-1/4 bg-[#3d2314] rounded-[100%] shadow-[inset_0_-20px_50px_rgba(0,0,0,0.8)] opacity-50 transform perspective-[1000px] rotateX(60deg) scale-150 pointer-events-none"></div>
             
-            <div className="w-full max-w-[500px] flex justify-between items-center mb-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
+            <div className="w-full max-w-[500px] flex justify-between items-center mb-2 md:mb-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
-                    <img src={opponent.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent.username}`} className="w-12 h-12 rounded-full border-2 border-red-500/50" alt="" />
+                    <img src={opponent.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-500/50" alt="" />
                     <div>
                         <div className="font-bold text-white text-lg">{opponent.username}</div>
                         <div className={`text-xs font-bold ${opRank.color}`}>Nivel: {opRank.name} ({opponent.elo || 0})</div>
@@ -231,9 +233,9 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
 
             
 
-            <div className="w-full max-w-[500px] flex justify-between items-center mt-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
+            <div className="w-full max-w-[500px] flex justify-between items-center mt-2 md:mt-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
-                    <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-12 h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
+                    <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
                     <div>
                         <div className="font-bold text-[#D4AF37] text-lg">{user.username} (Tú)</div>
                         <div className={`text-xs font-bold ${myRank.color}`}>Nivel: {myRank.name} ({user.elo || 0})</div>
@@ -263,7 +265,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
         </div>
 
         {/* Right Side: Chat & Controls */}
-        <div className="w-full md:w-80 border-l border-[#D4AF37]/20 bg-black/40 flex flex-col z-10">
+        <div className="w-full md:w-80 border-t md:border-t-0 border-l-0 md:border-l border-[#D4AF37]/20 bg-black/40 flex-1 flex flex-col min-h-0 z-10">
             <div className="p-4 border-b border-[#D4AF37]/20 flex justify-between items-center bg-[#D4AF37]/5">
                 <div className="font-bold text-[#D4AF37] flex items-center gap-2">
                     <Trophy size={18} /> Apuesta: {bet * 2} LM
@@ -273,8 +275,8 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
-                {messages.map((m, i) => (
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-3">
+                {[...messages].reverse().map((m, i) => (
                     <div key={i} className={`flex flex-col ${m.sender === user.username ? 'items-end' : 'items-start'}`}>
                         <span className="text-xs text-gray-500 mb-0.5 px-1">{m.sender}</span>
                         <div className={`px-3 py-1.5 rounded-xl max-w-[85%] text-sm ${m.sender === user.username ? 'bg-[#D4AF37]/20 text-[#E8D9B0]' : 'bg-white/10 text-gray-200'}`}>

@@ -69,9 +69,10 @@ export function InlineRadio() {
   }, []);
 
   useEffect(() => {
-    const handleQueueUpdate = (data: { queue: any[], current: any }) => {
+    const handleQueueUpdate = (data: { queue: any[], current: any, history?: any[] }) => {
        setSongQueue(data.queue);
        setCurrentRequestedSong(data.current);
+       if (data.history) setSongHistory(data.history);
     };
     const handleRadioState = (data: { currentLiveDJ: string | null, streamUrl: string }) => {
        setCurrentLiveDJ(data.currentLiveDJ);
@@ -94,12 +95,14 @@ export function InlineRadio() {
     };
     
     socket.on('queue_update', handleQueueUpdate);
+    socket.on('radio_history_update', (history: any[]) => setSongHistory(history));
     socket.on('radio_state_update', handleRadioState);
     socket.on('dj_queue_update', handleDjQueueUpdate);
     socket.on('dj_request_status', handleDjRequestStatus);
     
     return () => {
        socket.off('queue_update', handleQueueUpdate);
+       socket.off('radio_history_update');
        socket.off('radio_state_update', handleRadioState);
        socket.off('dj_queue_update', handleDjQueueUpdate);
        socket.off('dj_request_status', handleDjRequestStatus);
@@ -339,14 +342,14 @@ export function InlineRadio() {
                </div>
            )}
 
-           {!currentRequestedSong && songHistory && songHistory.length > 0 && (
+           {songHistory && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> Escuchadas</span>
                   <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
-                      {songHistory.slice(0, 4).map((s:any, idx:number) => (
+                      {songHistory.map((s:any, idx:number) => (
                           <div key={idx} className="flex flex-col opacity-80 hover:opacity-100 transition-opacity">
-                              <span className="text-[12px] font-medium text-gray-200 truncate">{s.title}</span>
-                              <span className="text-[10px] text-gray-400 truncate">{s.artists?.map((a:any) => a.name).join(", ")}</span>
+                              <span className="text-[12px] font-medium text-gray-200 truncate">{s.title || 'Canción Desconocida'}</span>
+                              <span className="text-[10px] text-gray-400 truncate">{s.artists ? s.artists.map((a:any) => a.name).join(", ") : (s.requester ? `Añadida por: ${s.requester}` : '')}</span>
                           </div>
                       ))}
                   </div>

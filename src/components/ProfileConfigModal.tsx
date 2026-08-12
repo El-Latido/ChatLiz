@@ -114,7 +114,7 @@ export function ProfileConfigModal({
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        const MAX_SIZE = 400; // Resize to max 400px to save space in Firestore
+                        const MAX_SIZE = 150; // Resize to max 150px for fast fallback to Base64 in Firestore (< 50KB)
 
                         if (width > height) {
                           if (width > MAX_SIZE) {
@@ -132,7 +132,7 @@ export function ProfileConfigModal({
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx?.drawImage(img, 0, 0, width, height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                         setFotoURL(dataUrl);
                       };
                       img.src = event.target?.result as string;
