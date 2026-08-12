@@ -68,11 +68,10 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
         newSquares[m.to] = {
           background:
             game.get(m.to as any) && game.get(m.to as any).color !== myColor
-              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)',
-          zIndex: 10
+              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
               : 'radial-gradient(circle, rgba(0,255,0,.5) 25%, transparent 25%)',
-          zIndex: 10,
           borderRadius: '50%',
+          zIndex: 10,
         };
       });
       newSquares[sq] = { background: 'rgba(255, 255, 0, 0.6)' };
