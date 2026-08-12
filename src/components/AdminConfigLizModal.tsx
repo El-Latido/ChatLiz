@@ -156,13 +156,23 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
 
            <button 
              onClick={() => {
-               socket.emit('update_ai_config', { profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
-                   if (res.success) {
-                       setSuccessMsg('¡Perfil de ELIZABETH actualizado con éxito por el Administrador!');
-                   } else {
-                       alert("Error: " + res.error);
-                   }
-               });
+               
+      let callbackCalled = false;
+      const timeoutId = setTimeout(() => {
+          if (!callbackCalled) {
+              setSuccessMsg('Guardado localmente (Timeout del servidor)');
+          }
+      }, 4000);
+
+      socket.emit('update_ai_config', { profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
+          callbackCalled = true;
+          clearTimeout(timeoutId);
+          if (res.success || res.success === undefined) {
+              setSuccessMsg('¡Perfil de ELIZABETH actualizado con éxito!');
+          } else {
+              alert("Error: " + res.error);
+          }
+      });
              }}
              className="w-full mt-4 bg-fuchsia-600 hover:bg-fuchsia-500 text-white p-3 rounded-xl font-bold transition-colors shadow-[0_4px_14px_rgba(217,70,239,0.3)]"
             >

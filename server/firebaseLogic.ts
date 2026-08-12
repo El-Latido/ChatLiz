@@ -3,36 +3,12 @@ import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { fdb, fStorage } from "./firebase";
 import { DBState } from "./types"; 
 
-const uploadProfilePicIfBase64 = async (username: string, profilePic: string) => {
-    if (fStorage && fStorage.app?.options?.storageBucket && profilePic && profilePic.startsWith('data:image')) {
-        try {
-            const extension = profilePic.substring("data:image/".length, profilePic.indexOf(";base64"));
-            const storageRef = ref(fStorage, `profile_pics/${username}.${extension}`);
-            
-            const uploadTask = async () => {
-                await uploadString(storageRef, profilePic, 'data_url');
-                return await getDownloadURL(storageRef);
-            };
-            
-            const timeoutTask = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout upload")), 3000));
-            
-            const downloadUrl = await Promise.race([uploadTask(), timeoutTask]);
-            return downloadUrl;
-        } catch (e) {
-            console.log("Firebase Storage fallback: Saving base64 directly to Firestore");
-            return profilePic; 
-        }
-    }
-    return profilePic;
-};
 
 export const updateUserProfileInFirebase = async (oldUsername: string, newUsername: string, data: any) => {
     if (!fdb) return null;
     
     try {
-        if (data.profilePic) {
-            data.profilePic = await uploadProfilePicIfBase64(newUsername, data.profilePic);
-        }
+        
 
         if (newUsername !== oldUsername) {
             const existsDoc = await getDoc(doc(fdb, 'users', newUsername));
@@ -70,9 +46,7 @@ export const updateUserProfileInFirebase = async (oldUsername: string, newUserna
 export const updateAiProfileInFirebase = async (aiUsername: string, data: any) => {
     if (!fdb) return;
     try {
-        if (data.profilePic) {
-            data.profilePic = await uploadProfilePicIfBase64(aiUsername, data.profilePic);
-        }
+        
         await setDoc(doc(fdb, 'users', aiUsername), { ...data, username: aiUsername, role: "admin" }, { merge: true });
     } catch (e) {
         console.error("Error updating AI profile:", e);

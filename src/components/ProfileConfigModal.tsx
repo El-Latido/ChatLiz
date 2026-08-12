@@ -55,6 +55,15 @@ export function ProfileConfigModal({
       }));
 
       // Aún emitimos a socket para otras cosas de conexión
+      
+      let callbackCalled = false;
+      const timeoutId = setTimeout(() => {
+          if (!callbackCalled) {
+              setSaveStatus("Guardado (Timeout servidor)");
+              setTimeout(() => setSaveStatus(null), 3000);
+          }
+      }, 4000);
+
       socket.emit('update_profile', { 
         oldUsername: user.username, 
         newUsername: nombre, 
@@ -65,22 +74,15 @@ export function ProfileConfigModal({
         is_friends_public: isFriendsPublic,
         preferred_theme: backgroundBase64
       }, (res: any) => {
-          if (res.success) {
-              setUser(prev => ({ 
-                  ...prev, 
-                  username: res.username, 
-                  profilePic: res.profilePic, 
-                  statusMessage: res.statusMessage, 
-                  countryLanguage: res.countryLanguage, 
-                  is_friends_public: res.is_friends_public,
-                  preferred_theme: backgroundBase64
-              }));
-              setSaveStatus("Tema guardado correctamente");
+         callbackCalled = true;
+         clearTimeout(timeoutId);
+         if (res.success || res.success === undefined) {
+              setSaveStatus("Guardado correctamente");
               setTimeout(() => setSaveStatus(null), 3000);
-          } else {
-              setSaveStatus("Error al guardar: " + res.error);
+         } else {
+              setSaveStatus("Error servidor: " + res.error);
               setTimeout(() => setSaveStatus(null), 3000);
-          }
+         }
       });
     } catch (error) {
       setSaveStatus("Error al guardar");

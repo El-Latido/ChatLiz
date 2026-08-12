@@ -715,7 +715,27 @@ function MainApp() {
                              ) : (
                                  notifications.map(n => (
                                      <div key={n.id} className={`p-3 border-b border-white/5 text-xs ${!n.read ? 'bg-white/5' : ''}`}>
-                                         <div className={`${n.type === 'accepted' ? 'text-green-400' : 'text-red-400'} font-medium`}>{n.text}</div>
+                                         <div className={`${n.type === 'accepted' ? 'text-green-400' : n.type === 'friend_request' ? 'text-cyan-400' : n.type === 'like' ? 'text-pink-400' : 'text-red-400'} font-medium`}>{n.text}</div>
+                                         {n.type === 'friend_request' && (
+                                             <div className="flex gap-2 mt-2">
+                                                 <button onClick={() => {
+                                                     import('firebase/firestore').then(({ doc, deleteDoc, updateDoc, arrayUnion, setDoc }) => {
+                                                         deleteDoc(doc(db, 'friendRequests', n.id));
+                                                         setDoc(doc(db, 'friends', n.id), { user1: user.username, user2: n.frData.from });
+                                                         updateDoc(doc(db, 'users', user.username), { friends_list: arrayUnion(n.frData.from) });
+                                                         updateDoc(doc(db, 'users', n.frData.from), { friends_list: arrayUnion(user.username) });
+                                                     });
+                                                     setNotifications(prev => prev.filter(x => x.id !== n.id));
+                                                 }} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-xs font-bold hover:bg-green-500/30 transition-colors">Aceptar</button>
+                                                 
+                                                 <button onClick={() => {
+                                                     import('firebase/firestore').then(({ doc, deleteDoc }) => {
+                                                         deleteDoc(doc(db, 'friendRequests', n.id));
+                                                     });
+                                                     setNotifications(prev => prev.filter(x => x.id !== n.id));
+                                                 }} className="bg-red-500/20 text-red-400 px-3 py-1 rounded-md text-xs font-bold hover:bg-red-500/30 transition-colors">Rechazar</button>
+                                             </div>
+                                         )}
                                      </div>
                                  ))
                              )}
@@ -1498,7 +1518,12 @@ function MainApp() {
                <div className="flex flex-col gap-2 mt-6">
                    <div className="flex gap-2">
                        <button 
-                         onClick={() => { setActiveChat(selectedUserModal.username); setSelectedUserModal(null); }}
+                         onClick={() => { 
+    window.history.pushState({}, '', '/chat/' + encodeURIComponent(selectedUserModal.username));
+    setActiveChat(selectedUserModal.username); 
+    setSelectedUserModal(null); 
+    setIsSidebarOpen(false);
+}}
                          className="flex-1 flex items-center justify-center gap-2 text-white bg-white/5 hover:bg-white/10 p-3 rounded-xl font-medium transition-colors border border-white/10"
                        >
                          <MessageCircle size={18} />
@@ -1508,6 +1533,9 @@ function MainApp() {
                          onClick={() => {
                              socket.emit('like_user', selectedUserModal.username);
                              setSelectedUserModal(prev => prev ? { ...prev, profileLikes: (prev.profileLikes || 0) + 1 } : null);
+                             import('firebase/firestore').then(({ addDoc, collection }) => {
+                                 addDoc(collection(db, 'notifications'), { to: selectedUserModal.username, from: user.username, type: 'like', createdAt: Date.now() });
+                             });
                          }}
                          className="flex-1 flex items-center justify-center gap-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 p-3 rounded-xl font-medium transition-colors border border-pink-500/20"
                        >
@@ -1519,20 +1547,25 @@ function MainApp() {
                      <div className="flex gap-2">
                          <button 
                              onClick={() => {
-                                 socket.emit('toggle_friend', selectedUserModal.username, (res: any) => {
-                                     if(res.success) {
-                                         setUser(prev => ({
-                                             ...prev,
-                                             friends_list: res.isFriend ? [...(prev.friends_list || []), selectedUserModal.username] : (prev.friends_list || []).filter(f => f !== selectedUserModal.username)
-                                         }));
-                                         setSelectedUserModal(null);
-                                     }
-                                 });
+                                 if (user.friends_list?.includes(selectedUserModal.username)) {
+                                     import('firebase/firestore').then(({ doc, updateDoc, arrayRemove }) => {
+                                         updateDoc(doc(db, 'users', user.username), { friends_list: arrayRemove(selectedUserModal.username) });
+                                         updateDoc(doc(db, 'users', selectedUserModal.username), { friends_list: arrayRemove(user.username) });
+                                     });
+                                     setUser(prev => ({ ...prev, friends_list: prev.friends_list?.filter(f => f !== selectedUserModal.username) }));
+                                     setSelectedUserModal(null);
+                                 } else {
+                                     import('firebase/firestore').then(({ addDoc, collection }) => {
+                                         addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', createdAt: Date.now() });
+                                     });
+                                     setSelectedUserModal(null);
+                                     alert("Solicitud enviada");
+                                 }
                              }}
                              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-medium transition-colors border ${user.friends_list?.includes(selectedUserModal.username) ? 'text-green-400 bg-green-500/10 border-green-500/20 hover:bg-green-500/20' : 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20'}`}
                          >
                              <UserPlus size={18} />
-                             {user.friends_list?.includes(selectedUserModal.username) ? 'Quitar Amigo' : 'Añadir Amigo'}
+                             {user.friends_list?.includes(selectedUserModal.username) ? 'Quitar Amigo' : 'Enviar Solicitud'}
                          </button>
                          {selectedUserModal.role !== 'admin' && (
                              <button 
