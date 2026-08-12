@@ -70,6 +70,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
   };
 
   function onSquareClick(square: string) {
+    console.log('Pieza tocada en:', square);
     const myColor = 'w';
     if (status !== 'playing' || game.turn() !== myColor) return;
 
@@ -90,25 +91,17 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
       return newSquares;
     }
 
-    // If clicked on same square, deselect
-    if (moveFrom === square) {
-      setMoveFrom('');
-      setOptionSquares({});
+    if (!moveFrom) {
+      // Paso 1: Seleccionar pieza
+      const piece = game.get(square as any);
+      if (piece && piece.color === myColor) {
+        setMoveFrom(square);
+        setOptionSquares(getOptionSquares(square));
+      }
       return;
     }
 
-    // Try selecting piece
-    const piece = game.get(square as any);
-    if (piece && piece.color === myColor) {
-      setMoveFrom(square);
-      setOptionSquares(getOptionSquares(square));
-      return;
-    }
-
-    // If no piece selected yet, and we didn't just select one, do nothing
-    if (!moveFrom) return;
-
-    // Try to move
+    // Paso 2: Intentar mover
     try {
       const move = game.move({
         from: moveFrom as any,
@@ -116,26 +109,29 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
         promotion: 'q',
       });
       
-      if (move === null) {
-        setMoveFrom('');
-        setOptionSquares({});
-        return;
-      }
-
-      const newGame = new Chess(game.fen());
-      setGame(newGame);
+      // Paso 3: Resetear selección (sea éxito o error)
       setMoveFrom('');
       setOptionSquares({});
-      
-      
-      if (newGame.isGameOver()) {
-        const isDraw = newGame.isDraw() || newGame.isStalemate() || newGame.isThreefoldRepetition();
-        socket.emit('chess_bot_game_over', { gameId, result: isDraw ? 'draw' : 'user_won', winner: user.username });
-        setStatus(isDraw ? 'draw' : 'won');
+
+      if (move) {
+        const newGame = new Chess(game.fen());
+        setGame(newGame);
+        
+        if (newGame.isGameOver()) {
+          const isDraw = newGame.isDraw() || newGame.isStalemate() || newGame.isThreefoldRepetition();
+          socket.emit('chess_bot_game_over', { gameId, result: isDraw ? 'draw' : 'user_won', winner: user.username });
+          setStatus(isDraw ? 'draw' : 'won');
+        } else {
+          makeBotMove(newGame);
+        }
       } else {
-        makeBotMove(newGame);
+         // Si el movimiento falló pero tocaron otra pieza de su color, seleccionarla
+         const piece = game.get(square as any);
+         if (piece && piece.color === myColor) {
+           setMoveFrom(square);
+           setOptionSquares(getOptionSquares(square));
+         }
       }
-      
     } catch (e) {
       setMoveFrom('');
       setOptionSquares({});
@@ -228,7 +224,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                 </div>
             </div>
 
-            <div className={`w-full max-w-[500px] aspect-square relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 ${boardStyles.border} ${boardStyles.bg} ${boardStyles.drop}`}>
+            <div className={`w-full max-w-[500px] aspect-square relative z-[100] pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 ${boardStyles.border} ${boardStyles.bg} ${boardStyles.drop}`}>
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
@@ -272,7 +268,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
         </div>
 
         {/* Right Side: Chat & Controls */}
-        <div className="w-full md:w-80 border-t md:border-t-0 border-l-0 md:border-l border-[#D4AF37]/20 bg-black/40 flex-1 flex flex-col min-h-0 z-10">
+        <div className="w-full md:w-80 border-t md:border-t-0 border-l-0 md:border-l border-[#D4AF37]/20 bg-black/40 flex-1 flex flex-col min-h-0 z-1 relative">
             <div className="p-4 border-b border-[#D4AF37]/20 flex justify-between items-center bg-[#D4AF37]/5">
                 <div className="font-bold text-[#D4AF37] flex items-center gap-2">
                     <Trophy size={18} /> Apuesta: {bet} LM
