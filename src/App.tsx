@@ -217,7 +217,7 @@ function MainApp() {
        setMessages(prev => {
           const twelveMinAgo = Date.now() - 12 * 60 * 1000;
           const filtered = prev.filter(m => {
-             const time = m.createdAt?.seconds ? (m.createdAt?.seconds || m.timestamp?.seconds) * 1000 : ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number') ? m.createdAt : Date.now());
+             const time = m.timestamp?.seconds ? m.timestamp.seconds * 1000 : (m.createdAt?.seconds ? m.createdAt.seconds * 1000 : (typeof m.timestamp === 'number' ? m.timestamp : (typeof m.createdAt === 'number' ? m.createdAt : Date.now())));
              return time > twelveMinAgo;
           });
           return filtered.length !== prev.length ? filtered : prev;
@@ -1103,11 +1103,12 @@ function MainApp() {
                                         const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
                                         const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
                                         let date = new Date();
-                                        if (m.createdAt || m.timestamp) {
-                                            if ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number')) date = new Date(m.createdAt);
-                                            else if ((m.createdAt?.seconds || m.timestamp?.seconds)) date = new Date((m.createdAt?.seconds || m.timestamp?.seconds) * 1000);
-                                            else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
-                                            else date = new Date(m.createdAt);
+                                        if (m.timestamp || m.createdAt) {
+                                            const t = m.timestamp || m.createdAt;
+                                            if (typeof t === 'number') date = new Date(t);
+                                            else if (t.seconds) date = new Date(t.seconds * 1000);
+                                            else if (typeof t.toDate === 'function') date = t.toDate();
+                                            else date = new Date(t);
                                         }
                                         const timeStr = isNaN(date.getTime()) ? '10:00' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                         return (
@@ -1207,12 +1208,13 @@ function MainApp() {
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
                      const isMe = m.sender === user.username;
                      let date = new Date();
-                     if (m.createdAt || m.timestamp) {
-                         if ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number')) date = new Date(m.createdAt);
-                         else if ((m.createdAt?.seconds || m.timestamp?.seconds)) date = new Date((m.createdAt?.seconds || m.timestamp?.seconds) * 1000);
-                         else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
-                         else date = new Date(m.createdAt);
-                     }
+                                        if (m.timestamp || m.createdAt) {
+                                            const t = m.timestamp || m.createdAt;
+                                            if (typeof t === 'number') date = new Date(t);
+                                            else if (t.seconds) date = new Date(t.seconds * 1000);
+                                            else if (typeof t.toDate === 'function') date = t.toDate();
+                                            else date = new Date(t);
+                                        }
                      const timeStr = isNaN(date.getTime()) ? `10:0${idx % 10}` : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                      const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;

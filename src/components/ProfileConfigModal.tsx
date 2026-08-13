@@ -31,7 +31,9 @@ export function ProfileConfigModal({
     try {
       setSaveStatus("Guardando...");
       const userRef = doc(db, "users", user.username); 
-      await setDoc(userRef, {
+      
+      // Forzar timeout para que no se quede bloqueado si Firebase no responde
+      const savePromise = setDoc(userRef, {
         password: password,
         profilePic: fotoURL,
         statusMessage: comentario,
@@ -39,6 +41,10 @@ export function ProfileConfigModal({
         is_friends_public: isFriendsPublic,
         preferred_background: backgroundBase64
       }, { merge: true });
+
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 5000));
+      
+      await Promise.race([savePromise, timeoutPromise]);
 
       setUser(prev => ({
         ...prev,
@@ -50,15 +56,19 @@ export function ProfileConfigModal({
         preferred_background: backgroundBase64
       }));
 
-      // A lightweight broadcast just to update active users in real-time
       socket.emit('broadcast_profile_change', { username: user.username, profilePic: fotoURL, statusMessage: comentario });
 
       setSaveStatus("Guardado correctamente");
       setTimeout(() => setSaveStatus(null), 3000);
-    } catch (error) {
+      alert("¡Perfil actualizado con éxito!");
+    } catch (error: any) {
       console.error(error);
       setSaveStatus("Error al guardar");
       setTimeout(() => setSaveStatus(null), 3000);
+      // alert("Hubo un error al guardar (o guardado local): " + error.message); // Omitted to not annoy the user on offline sync
+    } finally {
+      // ESTO ES LO MÁS IMPORTANTE: quita el mensaje "Guardando..." pase lo que pase
+      setSaveStatus(prev => prev === "Guardando..." ? null : prev);
     }
   };
 

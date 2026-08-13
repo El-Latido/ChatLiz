@@ -967,7 +967,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
     socket.on("get_global_history", async (callback) => {
       if (fdb) {
         try {
-          const q = query(collection(fdb, 'global_chat'), orderBy('createdAt', 'asc'), limitToLast(15));
+          const q = query(collection(fdb, 'global_chat'), orderBy('timestamp', 'asc'), limitToLast(15));
           const snapshot = await getDocs(q);
           const msgs = snapshot.docs.map(doc => doc.data());
           callback(msgs);
@@ -1227,7 +1227,7 @@ socket.on("dj_go_live", (streamUrl) => {
         addDoc(collection(fdb, 'global_chat'), dbMsg).catch(e => console.error('Firebase addDoc Error:', e));
         const countSnapshot = await getCountFromServer(collection(fdb, 'global_chat'));
         if (countSnapshot.data().count > 100) {
-           const oldestQ = query(collection(fdb, 'global_chat'), orderBy('createdAt', 'asc'), limit(1));
+           const oldestQ = query(collection(fdb, 'global_chat'), orderBy('timestamp', 'asc'), limit(1));
            const oldest = await getDocs(oldestQ);
            if (!oldest.empty) {
              await deleteDoc(oldest.docs[0].ref);
@@ -1580,7 +1580,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             try {
                 const participants = [currentUsername, otherUser].sort();
                 const convoId = participants.join("_");
-                const q = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'asc'), limitToLast(15));
+                const q = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(15));
                 const snapshot = await getDocs(q);
                 callback(snapshot.docs.map(doc => doc.data()));
             } catch(e) {
