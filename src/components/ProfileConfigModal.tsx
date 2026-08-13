@@ -3,7 +3,8 @@ import { Settings, X, LogOut, Bot } from 'lucide-react';
 import { socket } from '../socket';
 import { UserObj } from '../types';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, storage } from '../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface ProfileConfigModalProps {
   user: UserObj & { password?: string };
@@ -25,49 +26,67 @@ export function ProfileConfigModal({
   const [fotoURL, setFotoURL] = useState(user.profilePic || '');
   const [isFriendsPublic, setIsFriendsPublic] = useState(user.is_friends_public || false);
   const [backgroundBase64, setBackgroundBase64] = useState(user.preferred_background || '');
+  const [selectedBgFile, setSelectedBgFile] = useState<File | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleSaveProfile = async () => {
     try {
       setSaveStatus("Guardando...");
+      let finalPhotoURL = fotoURL;
+      let finalBgURL = backgroundBase64;
+      
+      // Si el usuario seleccionó un nuevo archivo, súbelo a Firebase Storage
+      if (selectedFile) {
+        const storageRef = ref(storage, `users/${user.username}/profile.jpg`);
+        await uploadBytes(storageRef, selectedFile);
+        finalPhotoURL = await getDownloadURL(storageRef);
+      }
+
+      if (selectedBgFile) {
+        const bgRef = ref(storage, `users/${user.username}/background.jpg`);
+        await uploadBytes(bgRef, selectedBgFile);
+        finalBgURL = await getDownloadURL(bgRef);
+      }
+
       const userRef = doc(db, "users", user.username); 
       
-      // Forzar timeout para que no se quede bloqueado si Firebase no responde
       const savePromise = setDoc(userRef, {
         password: password,
-        profilePic: fotoURL,
+        profilePic: finalPhotoURL,
         statusMessage: comentario,
         pais_idioma: pais,
         is_friends_public: isFriendsPublic,
-        preferred_background: backgroundBase64
+        preferred_background: finalBgURL,
+        updatedAt: new Date()
       }, { merge: true });
 
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 5000));
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 10000));
       
       await Promise.race([savePromise, timeoutPromise]);
 
       setUser(prev => ({
         ...prev,
         password: password,
-        profilePic: fotoURL,
+        profilePic: finalPhotoURL,
         statusMessage: comentario,
         countryLanguage: pais,
         is_friends_public: isFriendsPublic,
-        preferred_background: backgroundBase64
+        preferred_background: finalBgURL
       }));
 
-      socket.emit('broadcast_profile_change', { username: user.username, profilePic: fotoURL, statusMessage: comentario });
+      socket.emit('broadcast_profile_change', { username: user.username, profilePic: finalPhotoURL, statusMessage: comentario });
 
       setSaveStatus("Guardado correctamente");
       setTimeout(() => setSaveStatus(null), 3000);
-      alert("¡Perfil actualizado con éxito!");
+      alert("¡Perfil guardado correctamente!");
     } catch (error: any) {
-      console.error(error);
+      console.error("Error detallado al guardar en Firebase:", error);
       setSaveStatus("Error al guardar");
       setTimeout(() => setSaveStatus(null), 3000);
-      // alert("Hubo un error al guardar (o guardado local): " + error.message); // Omitted to not annoy the user on offline sync
+      alert("No se pudo guardar: " + error.message);
     } finally {
-      // ESTO ES LO MÁS IMPORTANTE: quita el mensaje "Guardando..." pase lo que pase
+      // OBLIGATORIO: Apaga el "Guardando..." pase lo que pase
       setSaveStatus(prev => prev === "Guardando..." ? null : prev);
     }
   };
@@ -117,6 +136,7 @@ export function ProfileConfigModal({
                         ctx?.drawImage(img, 0, 0, width, height);
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                         setFotoURL(dataUrl);
+                        setSelectedFile(file);
                       };
                       img.src = event.target?.result as string;
                     };
@@ -228,6 +248,7 @@ export function ProfileConfigModal({
                           ctx?.drawImage(img, 0, 0, width, height);
                           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
                           setBackgroundBase64(dataUrl);
+                          setSelectedBgFile(file);
                         };
                         img.src = event.target?.result as string;
                       };

@@ -12,6 +12,7 @@ interface ChessBotModalProps {
   gameId: string;
   opponent: UserObj;
   bet: number;
+  isHost?: boolean;
 }
 
 export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBotModalProps) {
