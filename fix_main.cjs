@@ -1,4 +1,7 @@
-import React, { StrictMode, Component } from 'react';
+const fs = require('fs');
+let file = fs.readFileSync('src/main.tsx', 'utf8');
+
+const newMain = `import React, { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -39,4 +42,6 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </ErrorBoundary>
   </StrictMode>
-);
+);`;
+
+fs.writeFileSync('src/main.tsx', newMain);

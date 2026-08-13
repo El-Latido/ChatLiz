@@ -450,7 +450,9 @@ function MainApp() {
     };
         const authUnsubscribe = onAuthStateChanged(auth, (authUser) => {
         if (authUser) {
-            setupListeners();
+            if (user.username) {
+                setupListeners();
+            }
         } else {
             signInAnonymously(auth).catch((error) => {
                console.error("Error signing in anonymously to Firebase:", error);
