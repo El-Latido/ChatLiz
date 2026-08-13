@@ -233,7 +233,7 @@ export function InlineRadio() {
         <button 
           onClick={togglePlay}
           className={`w-[30px] h-[30px] flex items-center justify-center rounded-full transition-all ${isPlaying ? 'text-[#D4AF37] bg-[#D4AF37]/20 shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-[#D4AF37] hover:bg-[#D4AF37]/10'}`}
-          title="Otakus Dream Radio"
+          title="Radio Global"
         >
           {isLoading ? (
              <Loader2 size={18} strokeWidth={2.5} className="animate-spin" />
@@ -270,10 +270,18 @@ export function InlineRadio() {
            <div className="flex justify-between items-center pb-2 border-b border-[#D4AF37]/20">
               <h3 className="text-[#E8D9B0] font-bold text-sm flex items-center gap-1.5">
                  <Radio size={14} className="text-pink-400" />
-                 {currentLiveDJ ? `Live: DJ ${currentLiveDJ}` : 'Al Aire'}
+                 {currentLiveDJ ? `Live: DJ ${currentLiveDJ}` : 'SONANDO AHORA'}
               </h3>
               <button onClick={() => setShowHistory(false)} className="text-[#D4AF37]/50 hover:text-[#D4AF37]"><ChevronDown size={16}/></button>
            </div>
+           
+           {!currentLiveDJ && (currentRequestedSong || currentSong) && (
+               <div className="flex flex-col mb-1 pb-2 border-b border-[#D4AF37]/20">
+                   <span className="text-[12px] font-bold text-white truncate text-center w-full">
+                       {currentRequestedSong ? currentRequestedSong.title : (currentSong?.title || 'Cargando...')}
+                   </span>
+               </div>
+           )}
            
            {myRequests.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
@@ -344,10 +352,10 @@ export function InlineRadio() {
 
            {songHistory && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
-                  <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> Escuchadas</span>
-                  <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
+                  <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> ESCUCHADAS (Últimas 30)</span>
+                  <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
                       {songHistory.map((s:any, idx:number) => (
-                          <div key={idx} className="flex flex-col opacity-80 hover:opacity-100 transition-opacity">
+                          <div key={idx} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity">
                               <span className="text-[12px] font-medium text-gray-200 truncate">{s.title || 'Canción Desconocida'}</span>
                               <span className="text-[10px] text-gray-400 truncate">{s.artists ? s.artists.map((a:any) => a.name).join(", ") : (s.requester ? `Añadida por: ${s.requester}` : '')}</span>
                           </div>
