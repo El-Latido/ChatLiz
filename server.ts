@@ -178,14 +178,42 @@ const top30Songs = [
   { title: "Shape of You - Ed Sheeran", url: "https://www.youtube.com/watch?v=JGwWNGJdvx8" },
   { title: "As It Was - Harry Styles", url: "https://www.youtube.com/watch?v=H5v3kku4y6Q" },
   { title: "Stay - The Kid LAROI, Justin Bieber", url: "https://www.youtube.com/watch?v=kTJczUoc26U" },
-  // 80s
+  { title: "Levitating - Dua Lipa", url: "https://www.youtube.com/watch?v=TUVcZfQe-Kw" },
+  { title: "Despacito - Luis Fonsi ft. Daddy Yankee", url: "https://www.youtube.com/watch?v=kJQP7kiw5Fk" },
+  { title: "Dakiti - Bad Bunny, Jhay Cortez", url: "https://www.youtube.com/watch?v=TmKh7lAwnBI" },
+  { title: "Bailando - Enrique Iglesias", url: "https://www.youtube.com/watch?v=NUsoVlDFqZg" },
+  { title: "Provenza - Karol G", url: "https://www.youtube.com/watch?v=ca48oMV59LU" },
+  
+  // 80s & 90s
   { title: "Take On Me - a-ha", url: "https://www.youtube.com/watch?v=djV11Xbc914" },
   { title: "Billie Jean - Michael Jackson", url: "https://www.youtube.com/watch?v=Zi_XLOBDo_Y" },
   { title: "Sweet Child O' Mine - Guns N' Roses", url: "https://www.youtube.com/watch?v=1w7OgIMMRc4" },
-  // Rock
+  { title: "Livin' On A Prayer - Bon Jovi", url: "https://www.youtube.com/watch?v=lDK9QqIzhwk" },
+  { title: "De Música Ligera - Soda Stereo", url: "https://www.youtube.com/watch?v=T_FkEw27XJ0" },
+  { title: "Lamento Boliviano - Enanitos Verdes", url: "https://www.youtube.com/watch?v=khbDnaGFDvs" },
+  { title: "La Célula Que Explota - Caifanes", url: "https://www.youtube.com/watch?v=rX_3YdKkO8E" },
+  { title: "Rayando El Sol - Maná", url: "https://www.youtube.com/watch?v=yYJ4wT2a4_s" },
+
+  // Rock / Alternative
   { title: "Bohemian Rhapsody - Queen", url: "https://www.youtube.com/watch?v=fJ9rUzIMcZQ" },
   { title: "Smells Like Teen Spirit - Nirvana", url: "https://www.youtube.com/watch?v=hTWKbfoikeg" },
-  { title: "Hotel California - Eagles", url: "https://www.youtube.com/watch?v=EqPtz5qN7HM" }
+  { title: "Hotel California - Eagles", url: "https://www.youtube.com/watch?v=EqPtz5qN7HM" },
+  { title: "In The End - Linkin Park", url: "https://www.youtube.com/watch?v=eVTXPUF4Oz4" },
+  { title: "Numb - Linkin Park", url: "https://www.youtube.com/watch?v=kXYiU_JCYtU" },
+
+  // Electronic / Dance
+  { title: "Wake Me Up - Avicii", url: "https://www.youtube.com/watch?v=IcrbM1l_BoI" },
+  { title: "Faded - Alan Walker", url: "https://www.youtube.com/watch?v=60ItHLz5WEA" },
+  { title: "Titanium - David Guetta ft. Sia", url: "https://www.youtube.com/watch?v=JRfuAukYTKg" },
+  { title: "Lean On - Major Lazer & DJ Snake", url: "https://www.youtube.com/watch?v=YqeW9_5kURI" },
+  
+  // Japanese (Pop / Rock / Anime Hits)
+  { title: "Idol - YOASOBI", url: "https://www.youtube.com/watch?v=ZRtdQ81jPUQ" },
+  { title: "Gurenge - LiSA", url: "https://www.youtube.com/watch?v=CwkzK-F0Y00" },
+  { title: "KICK BACK - Kenshi Yonezu", url: "https://www.youtube.com/watch?v=M2cckDmNLMI" },
+  { title: "Unravel - TK from Ling tosite sigure", url: "https://www.youtube.com/watch?v=Fve_lHIPa-I" },
+  { title: "Pretender - Official HIGE DANdism", url: "https://www.youtube.com/watch?v=TQ8WlA2GXbk" },
+  { title: "Lemon - Kenshi Yonezu", url: "https://www.youtube.com/watch?v=SX_ViT4Ra7k" }
 ];
 
 function generateAutoSong() {
@@ -731,76 +759,14 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
         }
     });
 
-    socket.on("update_profile", async (data, callback) => {
-      const { oldUsername, newUsername, newPassword, profilePic, statusMessage, countryLanguage, is_friends_public, preferred_theme } = data;
-      if (oldUsername !== currentUsername) return callback({ success: false, error: "Unauthorized" });
-
-      let currentRole = "user";
-
-      // Sanitize to avoid undefined properties throwing errors in Firebase
-      const safePassword = newPassword || "";
-      const safeProfilePic = profilePic || "";
-      const safeStatusMessage = statusMessage || "Disponible";
-      const safeLanguage = countryLanguage || "es";
-      const safeNewUsername = newUsername || oldUsername;
-      const safeIsFriendsPublic = !!is_friends_public;
-      const safePreferredTheme = preferred_theme || "classic";
-
-      if (fdb) {
-        try {
-           currentRole = await updateUserProfileInFirebase(oldUsername, safeNewUsername, {
-               password: safePassword,
-               profilePic: safeProfilePic,
-               statusMessage: safeStatusMessage,
-               pais_idioma: safeLanguage,
-               is_friends_public: safeIsFriendsPublic,
-               preferred_theme: safePreferredTheme
-           }) || "user";
-        } catch (err) {
-           return callback({ success: false, error: "Database error" });
-        }
-      } else {
-         if (safeNewUsername !== oldUsername && fallbackState.users[safeNewUsername]) return callback({ success: false, error: "El usuario ya existe" });
-         const oldData = fallbackState.users[oldUsername] || {};
-         currentRole = oldData.role || "user";
-         if (safeNewUsername !== oldUsername) delete fallbackState.users[oldUsername];
-         fallbackState.users[safeNewUsername] = { password: safePassword, profilePic: safeProfilePic, statusMessage: safeStatusMessage, role: currentRole, pais_idioma: safeLanguage, is_friends_public: safeIsFriendsPublic, preferred_theme: safePreferredTheme };
-         saveFallbackDB();
+    socket.on("broadcast_profile_change", (data) => {
+      if (activeUsers[data.username]) {
+          activeUsers[data.username].profilePic = data.profilePic;
+          activeUsers[data.username].statusMessage = data.statusMessage;
+          io.emit("active_users", Object.values(activeUsers));
       }
-
-      const existingAwards = activeUsers[oldUsername]?.awards || [];
-      const existingFriends = activeUsers[oldUsername]?.friends_list || [];
-      const existingBlocked = activeUsers[oldUsername]?.blocked_list || [];
-      const existingLizCoins = activeUsers[oldUsername]?.lizCoins || 0;
-      const existingOwnedDecorations = activeUsers[oldUsername]?.ownedDecorations || [];
-      const existingActiveDecoration = activeUsers[oldUsername]?.activeDecoration;
-      const existingElo = activeUsers[oldUsername]?.elo || 0;
-
-      delete activeUsers[oldUsername];
-      currentUsername = safeNewUsername;
-      activeUsers[currentUsername] = { 
-         socketId: socket.id, 
-         status: "online", 
-         username: currentUsername, 
-         profilePic: safeProfilePic, 
-         statusMessage: safeStatusMessage, 
-         role: currentRole, 
-         pais_idioma: safeLanguage, 
-         is_friends_public: safeIsFriendsPublic,
-         preferred_theme: safePreferredTheme,
-         awards: existingAwards,
-         friends_list: existingFriends,
-         blocked_list: existingBlocked,
-         lizCoins: existingLizCoins,
-         ownedDecorations: existingOwnedDecorations,
-         activeDecoration: existingActiveDecoration,
-         elo: existingElo
-      };
-      if (currentUsername === "Axiss") activeUsers[currentUsername].role = "admin";
-      
-      emitActiveUsers();
-      callback({ success: true, username: currentUsername, profilePic: safeProfilePic, statusMessage: safeStatusMessage, countryLanguage: safeLanguage, is_friends_public: safeIsFriendsPublic });
     });
+
 
     socket.on("search_user", async (queryStr, callback) => {
         if (!queryStr) return callback({ success: false });
@@ -1001,7 +967,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
     socket.on("get_global_history", async (callback) => {
       if (fdb) {
         try {
-          const q = query(collection(fdb, 'messages'), orderBy('createdAt', 'asc'), limitToLast(15));
+          const q = query(collection(fdb, 'global_chat'), orderBy('createdAt', 'asc'), limitToLast(15));
           const snapshot = await getDocs(q);
           const msgs = snapshot.docs.map(doc => doc.data());
           callback(msgs);
@@ -1047,7 +1013,7 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
           const docRef = doc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'));
           await addDoc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'), {
              ...msg,
-             createdAt: serverTimestamp()
+             timestamp: serverTimestamp()
           });
       } catch(e) {}
       
@@ -1217,7 +1183,7 @@ socket.on("dj_go_live", (streamUrl) => {
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
           const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+          if (fdb) addDoc(collection(fdb, 'global_chat'), { ...banMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           else { fallbackState.globalMessages.push(banMsg); saveFallbackDB(); }
           io.emit("receive_global", banMsg);
           return; // Drop the malicious message completely
@@ -1257,11 +1223,11 @@ socket.on("dj_go_live", (streamUrl) => {
       }
 
       if (fdb) {
-        let dbMsg: any = { ...msg, createdAt: serverTimestamp() };
-        addDoc(collection(fdb, 'messages'), dbMsg).catch(e => console.error('Firebase addDoc Error:', e));
-        const countSnapshot = await getCountFromServer(collection(fdb, 'messages'));
+        let dbMsg: any = { ...msg, timestamp: serverTimestamp() };
+        addDoc(collection(fdb, 'global_chat'), dbMsg).catch(e => console.error('Firebase addDoc Error:', e));
+        const countSnapshot = await getCountFromServer(collection(fdb, 'global_chat'));
         if (countSnapshot.data().count > 100) {
-           const oldestQ = query(collection(fdb, 'messages'), orderBy('createdAt', 'asc'), limit(1));
+           const oldestQ = query(collection(fdb, 'global_chat'), orderBy('createdAt', 'asc'), limit(1));
            const oldest = await getDocs(oldestQ);
            if (!oldest.empty) {
              await deleteDoc(oldest.docs[0].ref);
@@ -1315,7 +1281,7 @@ socket.on("dj_go_live", (streamUrl) => {
           
           let contextMsgs = [];
           if (fdb) {
-             const recentQ = query(collection(fdb, 'messages'), orderBy('createdAt', 'desc'), limit(3));
+             const recentQ = query(collection(fdb, 'global_chat'), orderBy('createdAt', 'desc'), limit(3));
              const snapshot: any = await Promise.race([getDocs(recentQ), new Promise((_, r) => setTimeout(() => r(new Error("Firebase Timeout")), 3000))]);
              contextMsgs = snapshot.docs.map(doc => doc.data()).reverse();
           } else {
@@ -1389,7 +1355,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const eliMsg: any = { text: cleanText, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
           
           if (fdb) {
-            addDoc(collection(fdb, 'messages'), { ...eliMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+            addDoc(collection(fdb, 'global_chat'), { ...eliMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           } else {
             fallbackState.globalMessages.push(eliMsg);
             saveFallbackDB();
@@ -1425,7 +1391,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const errorMsg = { text: "Uf, me quedé sin energía por un momento. Denme un respiro.", sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
           try {
             if (fdb) {
-                addDoc(collection(fdb, 'messages'), { ...errorMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+                addDoc(collection(fdb, 'global_chat'), { ...errorMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
             } else {
                 fallbackState.globalMessages.push(errorMsg);
                 saveFallbackDB();
@@ -1659,7 +1625,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       if (modResult.banned) {
           bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1000; // 15 mins ban
           const banMsg = { text: `🚨 El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`, sender: "Elizabeth", id: Date.now().toString(), createdAt: Date.now() };
-          if (fdb) addDoc(collection(fdb, 'messages'), { ...banMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+          if (fdb) addDoc(collection(fdb, 'global_chat'), { ...banMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           io.emit("receive_global", banMsg); // Public announcement
           return callback({ success: false, error: `Has sido baneado por contenido inapropiado: ${modResult.reason}` });
       }
@@ -1703,7 +1669,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
       
       // Save original message to DB
       if (fdb) {
-          const docMsg = { ...msg, createdAt: serverTimestamp() };
+          const docMsg = { ...msg, timestamp: serverTimestamp() };
           const participants = [currentUsername, toUser].sort();
           const convoId = participants.join("_");
           addDoc(collection(fdb, 'private_messages', convoId, 'messages'), docMsg).catch(e => console.error('Firebase addDoc Error:', e));
@@ -1826,7 +1792,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           if (fdb) {
             const participants = [currentUsername, "Elizabeth"].sort();
             const convoId = participants.join("_");
-            addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+            addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           }
           
           socket.emit("receive_private", eliMsg, "Elizabeth");
@@ -1837,7 +1803,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
               if (fdb) {
                 const participants = [currentUsername, "Elizabeth"].sort();
                 const convoId = participants.join("_");
-                addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, createdAt: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+                addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
               }
           } catch (dbErr) {
               console.error("Failed to save private error msg", dbErr);

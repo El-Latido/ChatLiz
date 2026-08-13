@@ -80,7 +80,6 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
     }
 
     if (!moveFrom) {
-      // Paso 1: Seleccionar pieza
       const piece = game.get(square as any);
       if (piece && piece.color === myColor) {
         setMoveFrom(square);
@@ -89,7 +88,6 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
       return;
     }
 
-    // Paso 2: Intentar mover
     try {
       const move = game.move({
         from: moveFrom as any,
@@ -97,27 +95,28 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
         promotion: 'q',
       });
       
-      // Paso 3: Resetear selección (sea éxito o error)
-      setMoveFrom('');
-      setOptionSquares({});
-
       if (move) {
         const newGame = new Chess(game.fen());
         setGame(newGame);
+        setMoveFrom('');
+        setOptionSquares({});
         
         socket.emit('chess_move', { gameId, move, fen: newGame.fen() });
         if (newGame.isGameOver()) {
           socket.emit('chess_game_over', { gameId, result: newGame.isCheckmate() ? 'checkmate' : 'draw', winner: user.username });
         }
       } else {
-         // Si el movimiento falló pero tocaron otra pieza de su color, seleccionarla
          const piece = game.get(square as any);
          if (piece && piece.color === myColor) {
            setMoveFrom(square);
            setOptionSquares(getOptionSquares(square));
+         } else {
+           setMoveFrom('');
+           setOptionSquares({});
          }
       }
     } catch (e) {
+      console.error("Movimiento inválido:", e);
       setMoveFrom('');
       setOptionSquares({});
     }

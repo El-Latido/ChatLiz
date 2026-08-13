@@ -217,7 +217,7 @@ function MainApp() {
        setMessages(prev => {
           const twelveMinAgo = Date.now() - 12 * 60 * 1000;
           const filtered = prev.filter(m => {
-             const time = m.createdAt?.seconds ? m.createdAt.seconds * 1000 : (typeof m.createdAt === 'number' ? m.createdAt : Date.now());
+             const time = m.createdAt?.seconds ? (m.createdAt?.seconds || m.timestamp?.seconds) * 1000 : ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number') ? m.createdAt : Date.now());
              return time > twelveMinAgo;
           });
           return filtered.length !== prev.length ? filtered : prev;
@@ -272,7 +272,7 @@ function MainApp() {
     let unsubMessages: any = null;
     
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
-        const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'), limitToLast(30));
+        const q = query(collection(db, 'global_chat'), orderBy('timestamp', 'asc'), limitToLast(30));
         unsubMessages = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -291,7 +291,7 @@ function MainApp() {
     } else {
         const participants = [user.username, activeChat].sort();
         const convoId = participants.join("_");
-        const q = query(collection(db, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'asc'), limitToLast(30));
+        const q = query(collection(db, 'private_messages', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(30));
         unsubMessages = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -491,12 +491,12 @@ function MainApp() {
     if (audioUrl) payload.audio = audioUrl;
 
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
-      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, createdAt: Date.now() };
+      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
       setMessages(prev => [...prev, optimisticMsg]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       socket.emit('send_global', payload);
     } else {
-      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, createdAt: Date.now() };
+      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
       setMessages(prev => [...prev, optimisticMsg]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       
@@ -1103,9 +1103,9 @@ function MainApp() {
                                         const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
                                         const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
                                         let date = new Date();
-                                        if (m.createdAt) {
-                                            if (typeof m.createdAt === 'number') date = new Date(m.createdAt);
-                                            else if (m.createdAt.seconds) date = new Date(m.createdAt.seconds * 1000);
+                                        if (m.createdAt || m.timestamp) {
+                                            if ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number')) date = new Date(m.createdAt);
+                                            else if ((m.createdAt?.seconds || m.timestamp?.seconds)) date = new Date((m.createdAt?.seconds || m.timestamp?.seconds) * 1000);
                                             else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
                                             else date = new Date(m.createdAt);
                                         }
@@ -1207,9 +1207,9 @@ function MainApp() {
                      const isLiz = m.sender === 'Elizabeth' || m.isAi;
                      const isMe = m.sender === user.username;
                      let date = new Date();
-                     if (m.createdAt) {
-                         if (typeof m.createdAt === 'number') date = new Date(m.createdAt);
-                         else if (m.createdAt.seconds) date = new Date(m.createdAt.seconds * 1000);
+                     if (m.createdAt || m.timestamp) {
+                         if ((typeof m.createdAt === 'number' || typeof m.timestamp === 'number')) date = new Date(m.createdAt);
+                         else if ((m.createdAt?.seconds || m.timestamp?.seconds)) date = new Date((m.createdAt?.seconds || m.timestamp?.seconds) * 1000);
                          else if (typeof m.createdAt.toDate === 'function') date = m.createdAt.toDate();
                          else date = new Date(m.createdAt);
                      }
@@ -1534,7 +1534,7 @@ function MainApp() {
                              socket.emit('like_user', selectedUserModal.username);
                              setSelectedUserModal(prev => prev ? { ...prev, profileLikes: (prev.profileLikes || 0) + 1 } : null);
                              import('firebase/firestore').then(({ addDoc, collection }) => {
-                                 addDoc(collection(db, 'notifications'), { to: selectedUserModal.username, from: user.username, type: 'like', createdAt: Date.now() });
+                                 addDoc(collection(db, 'notifications'), { to: selectedUserModal.username, from: user.username, type: 'like', timestamp: Date.now(), createdAt: Date.now() });
                              });
                          }}
                          className="flex-1 flex items-center justify-center gap-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 p-3 rounded-xl font-medium transition-colors border border-pink-500/20"
@@ -1556,7 +1556,7 @@ function MainApp() {
                                      setSelectedUserModal(null);
                                  } else {
                                      import('firebase/firestore').then(({ addDoc, collection }) => {
-                                         addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', createdAt: Date.now() });
+                                         addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', timestamp: Date.now(), createdAt: Date.now() });
                                      });
                                      setSelectedUserModal(null);
                                      alert("Solicitud enviada");

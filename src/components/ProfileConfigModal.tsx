@@ -30,10 +30,7 @@ export function ProfileConfigModal({
   const handleSaveProfile = async () => {
     try {
       setSaveStatus("Guardando...");
-      // 1. Referencia al documento específico de este usuario en Firebase
       const userRef = doc(db, "users", user.username); 
-
-      // 2. Ejecuta la actualización (aquí es donde los datos "pasan" a Firebase)
       await setDoc(userRef, {
         password: password,
         profilePic: fotoURL,
@@ -43,7 +40,6 @@ export function ProfileConfigModal({
         preferred_background: backgroundBase64
       }, { merge: true });
 
-      // Update local state (though onSnapshot will also catch it)
       setUser(prev => ({
         ...prev,
         password: password,
@@ -54,40 +50,15 @@ export function ProfileConfigModal({
         preferred_background: backgroundBase64
       }));
 
-      // Aún emitimos a socket para otras cosas de conexión
-      
-      let callbackCalled = false;
-      const timeoutId = setTimeout(() => {
-          if (!callbackCalled) {
-              setSaveStatus("Guardado (Timeout servidor)");
-              setTimeout(() => setSaveStatus(null), 3000);
-          }
-      }, 4000);
+      // A lightweight broadcast just to update active users in real-time
+      socket.emit('broadcast_profile_change', { username: user.username, profilePic: fotoURL, statusMessage: comentario });
 
-      socket.emit('update_profile', { 
-        oldUsername: user.username, 
-        newUsername: nombre, 
-        newPassword: password, 
-        profilePic: fotoURL, 
-        statusMessage: comentario, 
-        countryLanguage: pais,
-        is_friends_public: isFriendsPublic,
-        preferred_theme: backgroundBase64
-      }, (res: any) => {
-         callbackCalled = true;
-         clearTimeout(timeoutId);
-         if (res.success || res.success === undefined) {
-              setSaveStatus("Guardado correctamente");
-              setTimeout(() => setSaveStatus(null), 3000);
-         } else {
-              setSaveStatus("Error servidor: " + res.error);
-              setTimeout(() => setSaveStatus(null), 3000);
-         }
-      });
+      setSaveStatus("Guardado correctamente");
+      setTimeout(() => setSaveStatus(null), 3000);
     } catch (error) {
+      console.error(error);
       setSaveStatus("Error al guardar");
       setTimeout(() => setSaveStatus(null), 3000);
-      alert("Error: " + (error as Error).message); 
     }
   };
 

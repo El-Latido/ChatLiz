@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+const content = `import React, { useState, useEffect } from 'react';
 import { X, Trophy, AlertTriangle, Send } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
@@ -202,7 +203,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                     <img src={opponent.profilePic} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-500/50" alt="" />
                     <div>
                         <div className="font-bold text-white text-lg">Elizabeth (Bot)</div>
-                        <div className={`text-xs font-bold ${opRank.color}`}>Nivel: {opRank.name} (∞)</div>
+                        <div className={\`text-xs font-bold \${opRank.color}\`}>Nivel: {opRank.name} (∞)</div>
                     </div>
                 </div>
                 <div className="text-xl tracking-tight text-white/70">
@@ -210,7 +211,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                 </div>
             </div>
 
-            <div className={`w-full max-w-[500px] aspect-square relative z-[100] pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 ${boardStyles.border} ${boardStyles.bg} ${boardStyles.drop}`}>
+            <div className={\`w-full max-w-[500px] aspect-square relative z-[100] pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-md border-4 \${boardStyles.border} \${boardStyles.bg} \${boardStyles.drop}\`}>
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
@@ -224,10 +225,10 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
 
             <div className="w-full max-w-[500px] flex justify-between items-center mt-2 md:mt-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
-                    <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
+                    <img src={user.profilePic || \`https://api.dicebear.com/7.x/avataaars/svg?seed=\${user.username}\`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
                     <div>
                         <div className="font-bold text-[#D4AF37] text-lg">{user.username} (Tú)</div>
-                        <div className={`text-xs font-bold ${myRank.color}`}>Nivel: {myRank.name} ({user.elo || 0})</div>
+                        <div className={\`text-xs font-bold \${myRank.color}\`}>Nivel: {myRank.name} ({user.elo || 0})</div>
                     </div>
                 </div>
                  <div className="text-xl tracking-tight text-[#D4AF37]">
@@ -243,7 +244,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                             {status === 'won' ? '¡Has Ganado!' : status === 'lost' ? 'Has Perdido' : 'Empate'}
                         </h2>
                         <p className="text-[#D4AF37] text-lg mb-6">
-                            {status === 'won' ? `+${bet} Liz-Moneditas` : status === 'lost' ? `-${bet} Liz-Moneditas` : 'No hay cambios'}
+                            {status === 'won' ? \`+\${bet} Liz-Moneditas\` : status === 'lost' ? \`-\${bet} Liz-Moneditas\` : 'No hay cambios'}
                         </p>
                         <button onClick={onClose} className="px-6 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-yellow-400 transition-colors">
                             Cerrar
@@ -266,9 +267,9 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col-reverse gap-3">
                 {[...messages].reverse().map((m, i) => (
-                    <div key={i} className={`flex flex-col ${m.sender === user.username ? 'items-end' : 'items-start'}`}>
+                    <div key={i} className={\`flex flex-col \${m.sender === user.username ? 'items-end' : 'items-start'}\`}>
                         <span className="text-xs text-gray-500 mb-0.5 px-1">{m.sender}</span>
-                        <div className={`px-3 py-1.5 rounded-xl max-w-[85%] text-sm ${m.sender === user.username ? 'bg-[#D4AF37]/20 text-[#E8D9B0]' : 'bg-white/10 text-gray-200'}`}>
+                        <div className={\`px-3 py-1.5 rounded-xl max-w-[85%] text-sm \${m.sender === user.username ? 'bg-[#D4AF37]/20 text-[#E8D9B0]' : 'bg-white/10 text-gray-200'}\`}>
                             {m.text}
                         </div>
                     </div>
@@ -302,3 +303,6 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
     </div>
   );
 }
+`
+
+fs.writeFileSync('src/components/ChessBotModal.tsx', content);
