@@ -11,3 +11,21 @@ body {
   background-color: #000;
   color: #fff;
 }
+
+/* Scroll e Historial Dinámico de Radio */
+.song-history-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.song-history-container::-webkit-scrollbar {
+  width: 8px;
+}
+.song-history-container::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 4px;
+}
