@@ -135,9 +135,9 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   app.use((err: any, req: any, res: any, next: any) => {
-    if (err instanceof SyntaxError && 'body' in err) {
-      console.error('Error de sintaxis JSON detectado en el body:', err.message);
-      return res.status(400).json({ error: 'Formato JSON inválido recibido en el servidor.' });
+    if (err instanceof SyntaxError) {
+      console.error("Petición con JSON inválido bloqueada para evitar crash.");
+      return res.status(400).json({ error: "Invalid JSON format" });
     }
     next();
   });
