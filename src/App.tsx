@@ -881,7 +881,7 @@ function MainApp() {
                                </div>
                                <button className="text-left flex-1 truncate flex items-center gap-1" onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat(u.username); }}>
                                  <span className="font-medium text-gray-300 text-[15px] truncate block">{u.username}</span>
-                                 {u.awards && u.awards.map((award, idx) => (
+                                 {Array.isArray(u.awards) && u.awards.map((award, idx) => (
                                      <span key={idx} className="text-xs">{award}</span>
                                  ))}
                                  <span className="text-gray-500">~</span>
@@ -954,20 +954,20 @@ function MainApp() {
                                         </>
                                     )}
                                     
-                                    {!tutiFruttiState.players.includes(user.username) ? (
+                                    {!(tutiFruttiState.players || []).includes(user.username) ? (
                                         <div className="flex flex-col items-center gap-4 mt-auto">
                                             <button 
                                                 onClick={() => socket.emit('join_tutifrutti')} 
-                                                disabled={tutiFruttiState.players.length >= tutiFruttiState.maxPlayers}
+                                                disabled={(tutiFruttiState.players || []).length >= tutiFruttiState.maxPlayers}
                                                 className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
                                             >
-                                                {tutiFruttiState.players.length >= tutiFruttiState.maxPlayers ? 'Sala Llena' : 'Unirme al Juego ✨'}
+                                                {(tutiFruttiState.players || []).length >= tutiFruttiState.maxPlayers ? 'Sala Llena' : 'Unirme al Juego ✨'}
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center gap-4 mt-auto">
                                             <p className="text-pink-500 font-bold text-xl">
-                                                Esperando jugadores... ({tutiFruttiState.players.length}/{tutiFruttiState.maxPlayers})
+                                                Esperando jugadores... ({(tutiFruttiState.players || []).length}/{tutiFruttiState.maxPlayers})
                                             </p>
                                             
                                             <div className="flex items-center gap-2 mb-2 text-pink-500 font-bold">
@@ -986,7 +986,7 @@ function MainApp() {
 
                                             <button 
                                                 onClick={() => socket.emit('start_tutifrutti_round')} 
-                                                disabled={tutiFruttiState.players.length < tutiFruttiState.maxPlayers || tutiFruttiState.isCalculating}
+                                                disabled={(tutiFruttiState.players || []).length < tutiFruttiState.maxPlayers || tutiFruttiState.isCalculating}
                                                 className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
                                             >
                                                 {tutiFruttiState.currentRound > 0 && tutiFruttiState.currentRound < tutiFruttiState.totalRounds ? 'Siguiente Ronda' : '¡Comenzar Ronda! 🚀'}
@@ -1016,7 +1016,7 @@ function MainApp() {
                                                     {cat === 'name' ? 'Nombre' : cat === 'color' ? 'Color' : cat === 'animal' ? 'Animal' : cat === 'fruit' ? 'Fruta' : 'Cosa'}
                                                 </label>
                                                 <input 
-                                                    disabled={!tutiFruttiState.players.includes(user.username)}
+                                                    disabled={!(tutiFruttiState.players || []).includes(user.username)}
                                                     value={(tfAnswers as any)[cat]}
                                                     onChange={e => setTfAnswers({...tfAnswers, [cat]: e.target.value})}
                                                     className="bg-white border-2 border-pink-200 p-3 rounded-2xl outline-none text-gray-700 focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all font-medium text-lg placeholder-pink-200"
@@ -1027,7 +1027,7 @@ function MainApp() {
                                     </div>
                                     
                                     <button 
-                                        disabled={!tutiFruttiState.players.includes(user.username)}
+                                        disabled={!(tutiFruttiState.players || []).includes(user.username)}
                                         onClick={() => {
                                             socket.emit('stop_tutifrutti');
                                         }}
@@ -1065,12 +1065,12 @@ function MainApp() {
                                     🎮 Jugadores ({tutiFruttiState.players?.length || 0})
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
-                                    {tutiFruttiState.players?.map((p: string) => (
+                                    {Array.isArray(tutiFruttiState.players) && tutiFruttiState.players.map((p: string) => (
                                         <span key={p} className="bg-blue-50 text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border border-blue-100">
                                             {p}
                                         </span>
                                     ))}
-                                    {(!tutiFruttiState.players || tutiFruttiState.players.length === 0) && (
+                                    {(!tutiFruttiState.players || (tutiFruttiState.players || []).length === 0) && (
                                         <span className="text-blue-300 text-sm italic">Esperando jugadores...</span>
                                     )}
                                 </div>
@@ -1480,7 +1480,7 @@ function MainApp() {
              </div>
              <h3 className="text-xl font-bold text-white mb-1 flex items-center justify-center gap-2">
                 {selectedUserModal.username}
-                {selectedUserModal.awards && selectedUserModal.awards.map((award, idx) => (
+                {Array.isArray(selectedUserModal.awards) && selectedUserModal.awards.map((award, idx) => (
                     <span key={idx} className="text-xl" title="Galardón: Pluma Infinita">{award}</span>
                 ))}
                 {selectedUserModal.role === 'admin' && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30">Admin</span>}
@@ -1611,10 +1611,10 @@ function MainApp() {
                    </button>
                </div>
                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                   {(!user.friends_list || user.friends_list.length === 0) ? (
+                   {(!Array.isArray(user.friends_list) || user.friends_list.length === 0) ? (
                        <p className="text-gray-500 text-center text-sm mt-10">No tienes amigos agregados aún.</p>
                    ) : (
-                       user.friends_list.map(friendUsername => {
+                       Array.isArray(user.friends_list) && user.friends_list.map(friendUsername => {
                            const isOnline = usersOnline.some(u => u.username === friendUsername);
                            const friendInfo = usersOnline.find(u => u.username === friendUsername);
                            return (

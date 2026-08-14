@@ -283,15 +283,15 @@ export function InlineRadio() {
                </div>
            )}
            
-           {myRequests.length > 0 && (
+           {Array.isArray(myRequests) && myRequests.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> Mis Pedidos DJ</span>
                   <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
                       {myRequests.map((req:any, idx:number) => (
                           <div key={idx} className="flex flex-col bg-white/5 p-1.5 rounded">
-                              <span className="text-[11px] font-medium text-gray-200 truncate">{req.title}</span>
-                              <span className={`text-[10px] font-bold ${req.status === 'accepted' ? 'text-green-400' : req.status === 'rejected' ? 'text-red-400' : 'text-yellow-400'}`}>
-                                  {req.status === 'accepted' ? '✔ Aceptado' : req.status === 'rejected' ? '❌ Rechazado' : '⏳ Pendiente'}
+                              <span className="text-[11px] font-medium text-gray-200 truncate">{req?.title}</span>
+                              <span className={`text-[10px] font-bold ${req?.status === 'accepted' ? 'text-green-400' : req?.status === 'rejected' ? 'text-red-400' : 'text-yellow-400'}`}>
+                                  {req?.status === 'accepted' ? '✔ Aceptado' : req?.status === 'rejected' ? '❌ Rechazado' : '⏳ Pendiente'}
                               </span>
                           </div>
                       ))}
@@ -326,7 +326,7 @@ export function InlineRadio() {
                   <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Sonando Ahora</span>
                   <div className="text-sm font-semibold text-white leading-tight break-words">{currentSong.title}</div>
                   <div className="text-xs text-[#D4AF37]/80 truncate">
-                      {currentSong.artists?.map((a:any) => a.name).join(", ")}
+                      {Array.isArray(currentSong?.artists) ? currentSong.artists.map((a:any) => a.name).join(', ') : ''}
                   </div>
                   {currentSong.sources && currentSong.sources.length > 0 && (
                       <div className="text-[10px] text-gray-400 mt-0.5 px-1.5 py-0.5 bg-white/5 rounded w-fit truncate max-w-full">
@@ -336,31 +336,31 @@ export function InlineRadio() {
                </div>
            ) : null}
 
-           {songQueue && songQueue.length > 0 && (
+           {Array.isArray(songQueue) && songQueue.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> En Cola ({songQueue.length})</span>
                   <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
                       {songQueue.map((s:any, idx:number) => (
                           <div key={idx} className="flex flex-col opacity-80 hover:opacity-100 transition-opacity">
-                              <span className="text-[12px] font-medium text-gray-200 truncate">{s.title}</span>
-                              <span className="text-[10px] text-pink-400/80 truncate flex items-center gap-1"><User size={10}/> {s.requester}</span>
+                              <span className="text-[12px] font-medium text-gray-200 truncate">{s?.title}</span>
+                              <span className="text-[10px] text-pink-400/80 truncate flex items-center gap-1"><User size={10}/> {s?.requester}</span>
                           </div>
                       ))}
                   </div>
                </div>
            )}
 
-           {songHistory && songHistory.length > 0 && (
+           {Array.isArray(songHistory) && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> ESCUCHADAS (Últimas 30)</span>
                   <div className="song-history-container flex flex-col gap-2">
                       {songHistory.map((s:any, index:number) => (
                           <div key={index} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity" style={{ marginBottom: '5px' }}>
                               <span className="text-[12px] font-medium text-gray-200 truncate">
-                                  <strong className="text-[#D4AF37] mr-1">{index + 1}.</strong> {s.title || 'Canción Desconocida'}
+                                  <strong className="text-[#D4AF37] mr-1">{index + 1}.</strong> {s?.title || 'Canción Desconocida'}
                               </span>
                               <span className="text-[10px] text-gray-400 truncate ml-4">
-                                  {s.artists ? s.artists.map((a:any) => a.name).join(", ") : (s.requester ? `Añadida por: ${s.requester}` : '')}
+                                  {Array.isArray(s?.artists) ? s.artists.map((a:any) => a.name).join(', ') : (s?.requester ? `Añadida por: ${s?.requester}` : '')}
                               </span>
                           </div>
                       ))}
