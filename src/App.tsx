@@ -72,6 +72,24 @@ function checkVersion() {
 // Verificar cada 15 segundos
 setInterval(checkVersion, 15000);
 
+
+export const sendNotification = async (recipientUid: string, type: string, senderData: any) => {
+  try {
+    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    await addDoc(collection(db, "notifications"), {
+      recipientUid: recipientUid,
+      senderUid: senderData.uid,
+      senderName: senderData.displayName || "Usuario",
+      type: type,
+      isRead: false,
+      frData: senderData.frData || null,
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error al enviar notificación:", error);
+  }
+};
+
 function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<UserObj & {password?: string, securityEmail?: string}>({ username: '', password: '', countryLanguage: 'es', securityEmail: '' });
@@ -373,9 +391,34 @@ function MainApp() {
     let unsubscribe: any = null;
     
     // Ensure user is authenticated before setting up listeners
+    let unsubNotif: any = null;
     const setupListeners = () => {
         if (unsubUser) unsubUser();
         if (unsubscribe) unsubscribe();
+        if (unsubNotif) unsubNotif();
+        
+        const qNotif = query(
+            collection(db, "notifications"), 
+            where("recipientUid", "==", user.username),
+            where("isRead", "==", false)
+        );
+        unsubNotif = onSnapshot(qNotif, (snapshot) => {
+            const msgs = snapshot.docs.map(doc => {
+                const data = doc.data();
+                let text = data.text || '';
+                if (!text) {
+                    if (data.type === 'LIKE' || data.type === 'like') text = `${data.senderName} le ha dado Like a tu perfil.`;
+                    else if (data.type === 'REQUEST' || data.type === 'friend_request') text = `${data.senderName} te ha enviado una solicitud de amistad.`;
+                    else if (data.type === 'MESSAGE') text = `Nuevo mensaje de ${data.senderName}.`;
+                    else text = `Notificación de ${data.senderName}`;
+                }
+                return { ...data, id: doc.id, text, read: data.isRead, type: data.type === 'LIKE' ? 'like' : (data.type === 'REQUEST' ? 'friend_request' : data.type) };
+            });
+            setNotifications(prev => {
+                const localNotifs = prev.filter(p => !p.recipientUid); // Keep local socket notifications
+                return [...msgs, ...localNotifs];
+            });
+        });
         
         unsubUser = onSnapshot(doc(db, "users", user.username!), (docSnap) => {
             if (docSnap.exists()) {
@@ -436,6 +479,7 @@ function MainApp() {
       socket.off('active_users');
       if (unsubscribe) unsubscribe();
       if (unsubUser) unsubUser();
+      if (typeof unsubNotif === 'function') unsubNotif();
       authUnsubscribe();
     };
   }, [isLoggedIn, activeChat, user.username]);
@@ -474,6 +518,7 @@ function MainApp() {
         .then(() => {
              // Let socket also know for other features, but don't depend on it for messages
              socket.emit('send_private_event', msgData, activeChat);
+             sendNotification(activeChat, 'MESSAGE', { uid: user.username, displayName: user.username });
         })
         .catch(err => {
              console.error("Error sending message", err);
@@ -676,7 +721,14 @@ function MainApp() {
                      <div className="absolute right-0 mt-2 w-64 bg-[#121B2A] border border-[#D4AF37]/30 rounded-xl shadow-2xl overflow-hidden z-50">
                          <div className="p-3 border-b border-[#D4AF37]/20 flex justify-between items-center bg-black/20">
                              <span className="text-[#E8D9B0] font-semibold text-sm">Notificaciones</span>
-                             <button onClick={() => setNotifications(prev => prev.map(n => ({...n, read: true})))} className="text-xs text-[#D4AF37] hover:text-white">Marcar leídas</button>
+                             <button onClick={() => {
+    setNotifications(prev => prev.map(n => ({...n, read: true})));
+    import('firebase/firestore').then(({ doc, updateDoc }) => {
+        notifications.forEach(n => {
+            if (n.recipientUid) updateDoc(doc(db, 'notifications', n.id), { isRead: true });
+        });
+    });
+}} className="text-xs text-[#D4AF37] hover:text-white">Marcar leídas</button>
                          </div>
                          <div className="max-h-64 overflow-y-auto scrollbar-thin">
                              {notifications.length === 0 ? (
@@ -689,17 +741,23 @@ function MainApp() {
                                              <div className="flex gap-2 mt-2">
                                                  <button onClick={() => {
                                                      import('firebase/firestore').then(({ doc, deleteDoc, updateDoc, arrayUnion, setDoc }) => {
-                                                         deleteDoc(doc(db, 'friendRequests', n.id));
-                                                         setDoc(doc(db, 'friends', n.id), { user1: user.username, user2: n.frData.from });
-                                                         updateDoc(doc(db, 'users', user.username), { friends_list: arrayUnion(n.frData.from) });
-                                                         updateDoc(doc(db, 'users', n.frData.from), { friends_list: arrayUnion(user.username) });
+                                                         if (n.frData?.docId) deleteDoc(doc(db, 'friendRequests', n.frData.docId));
+                                                         else deleteDoc(doc(db, 'friendRequests', n.id));
+                                                         
+                                                         const fromUser = n.senderUid || n.frData?.from;
+                                                         setDoc(doc(db, 'friends', n.id), { user1: user.username, user2: fromUser });
+                                                         updateDoc(doc(db, 'users', user.username), { friends_list: arrayUnion(fromUser) });
+                                                         updateDoc(doc(db, 'users', fromUser), { friends_list: arrayUnion(user.username) });
+                                                         updateDoc(doc(db, 'notifications', n.id), { isRead: true });
                                                      });
                                                      setNotifications(prev => prev.filter(x => x.id !== n.id));
                                                  }} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-xs font-bold hover:bg-green-500/30 transition-colors">Aceptar</button>
                                                  
                                                  <button onClick={() => {
-                                                     import('firebase/firestore').then(({ doc, deleteDoc }) => {
-                                                         deleteDoc(doc(db, 'friendRequests', n.id));
+                                                     import('firebase/firestore').then(({ doc, deleteDoc, updateDoc }) => {
+                                                         if (n.frData?.docId) deleteDoc(doc(db, 'friendRequests', n.frData.docId));
+                                                         else deleteDoc(doc(db, 'friendRequests', n.id));
+                                                         updateDoc(doc(db, 'notifications', n.id), { isRead: true });
                                                      });
                                                      setNotifications(prev => prev.filter(x => x.id !== n.id));
                                                  }} className="bg-red-500/20 text-red-400 px-3 py-1 rounded-md text-xs font-bold hover:bg-red-500/30 transition-colors">Rechazar</button>
@@ -1504,8 +1562,9 @@ function MainApp() {
                          onClick={() => {
                              socket.emit('like_user', selectedUserModal.username);
                              setSelectedUserModal(prev => prev ? { ...prev, profileLikes: (prev.profileLikes || 0) + 1 } : null);
-                             import('firebase/firestore').then(({ addDoc, collection }) => {
-                                 addDoc(collection(db, 'notifications'), { to: selectedUserModal.username, from: user.username, type: 'like', timestamp: Date.now(), createdAt: Date.now() });
+                             sendNotification(selectedUserModal.username, 'LIKE', {
+                                 uid: user.username,
+                                 displayName: user.username
                              });
                          }}
                          className="flex-1 flex items-center justify-center gap-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 p-3 rounded-xl font-medium transition-colors border border-pink-500/20"
@@ -1527,7 +1586,13 @@ function MainApp() {
                                      setSelectedUserModal(null);
                                  } else {
                                      import('firebase/firestore').then(({ addDoc, collection }) => {
-                                         addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', timestamp: Date.now(), createdAt: Date.now() });
+                                         addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', timestamp: Date.now(), createdAt: Date.now() }).then(docRef => {
+                                              sendNotification(selectedUserModal.username, 'friend_request', {
+                                                  uid: user.username,
+                                                  displayName: user.username,
+                                                  frData: { from: user.username, docId: docRef.id }
+                                              });
+                                         });
                                      });
                                      setSelectedUserModal(null);
                                      alert("Solicitud enviada");
