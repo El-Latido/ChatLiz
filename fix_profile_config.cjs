@@ -1,85 +1,66 @@
 const fs = require('fs');
 let file = fs.readFileSync('src/components/ProfileConfigModal.tsx', 'utf8');
 
-if (!file.includes("firebase/storage")) {
-  file = file.replace("import { db } from '../firebaseConfig';", "import { db, storage } from '../firebaseConfig';\nimport { ref, uploadBytes, getDownloadURL } from 'firebase/storage';");
-}
-
-const addState = `  const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);`;
-file = file.replace("  const [saveStatus, setSaveStatus] = useState<string | null>(null);", addState);
-
-const addStateBg = `  const [backgroundBase64, setBackgroundBase64] = useState(user.preferred_background || '');
-  const [selectedBgFile, setSelectedBgFile] = useState<File | null>(null);`;
-file = file.replace("  const [backgroundBase64, setBackgroundBase64] = useState(user.preferred_background || '');", addStateBg);
-
-
-const oldFunc = file.substring(file.indexOf("const handleSaveProfile = async () => {"), file.indexOf("return (", file.indexOf("const handleSaveProfile = async () => {")) - 4);
-
-const newFunc = `const handleSaveProfile = async () => {
+const targetSaveProfile = `  const handleSaveProfile = async () => {
     try {
       setSaveStatus("Guardando...");
       let finalPhotoURL = fotoURL;
       let finalBgURL = backgroundBase64;
       
-      // Si el usuario seleccionó un nuevo archivo, súbelo a Firebase Storage
-      if (selectedFile) {
+      // Si el usuario seleccionó un nuevo archivo, súbelo a Firebase Storage usando el blob ya reducido (max 500kb approx por la compresión local)
+      if (selectedFile && fotoURL.startsWith('data:image')) {
+        const blob = await (await fetch(fotoURL)).blob();
         const storageRef = ref(storage, \`users/\${user.username}/profile.jpg\`);
-        await uploadBytes(storageRef, selectedFile);
-        finalPhotoURL = await getDownloadURL(storageRef);
+        const uploadTask = uploadBytesResumable(storageRef, blob, { contentType: blob.type });
+
+        finalPhotoURL = await new Promise((resolve, reject) => {
+          uploadTask.on('state_changed', 
+            null,
+            (error) => {
+              if (error.code === 'storage/retry-limit-exceeded') {
+                 reject(new Error("Error de conexión: Por favor, intenta con una imagen más pequeña o verifica tu red."));
+              } else {
+                 reject(error);
+              }
+            },
+            async () => {
+              resolve(await getDownloadURL(uploadTask.snapshot.ref));
+            }
+          );
+        });
       }
 
-      if (selectedBgFile) {
+      if (selectedBgFile && backgroundBase64.startsWith('data:image')) {
+        const bgBlob = await (await fetch(backgroundBase64)).blob();
         const bgRef = ref(storage, \`users/\${user.username}/background.jpg\`);
-        await uploadBytes(bgRef, selectedBgFile);
-        finalBgURL = await getDownloadURL(bgRef);
+        const bgUploadTask = uploadBytesResumable(bgRef, bgBlob, { contentType: bgBlob.type });
+
+        finalBgURL = await new Promise((resolve, reject) => {
+          bgUploadTask.on('state_changed',
+            null,
+            (error) => {
+              if (error.code === 'storage/retry-limit-exceeded') {
+                 reject(new Error("Error de conexión: Por favor, intenta con un fondo más ligero o verifica tu red."));
+              } else {
+                 reject(error);
+              }
+            },
+            async () => {
+              resolve(await getDownloadURL(bgUploadTask.snapshot.ref));
+            }
+          );
+        });
       }
 
-      const userRef = doc(db, "users", user.username); 
+      const savePromise = setDoc(doc(db, "users", user.username!), {`;
+
+const replaceSaveProfile = `  const handleSaveProfile = async () => {
+    try {
+      setSaveStatus("Guardando...");
+      let finalPhotoURL = fotoURL;
+      let finalBgURL = backgroundBase64;
       
-      const savePromise = setDoc(userRef, {
-        password: password,
-        profilePic: finalPhotoURL,
-        statusMessage: comentario,
-        pais_idioma: pais,
-        is_friends_public: isFriendsPublic,
-        preferred_background: finalBgURL,
-        updatedAt: new Date()
-      }, { merge: true });
+      const savePromise = setDoc(doc(db, "users", user.username!), {`;
 
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 10000));
-      
-      await Promise.race([savePromise, timeoutPromise]);
-
-      setUser(prev => ({
-        ...prev,
-        password: password,
-        profilePic: finalPhotoURL,
-        statusMessage: comentario,
-        countryLanguage: pais,
-        is_friends_public: isFriendsPublic,
-        preferred_background: finalBgURL
-      }));
-
-      socket.emit('broadcast_profile_change', { username: user.username, profilePic: finalPhotoURL, statusMessage: comentario });
-
-      setSaveStatus("Guardado correctamente");
-      setTimeout(() => setSaveStatus(null), 3000);
-      alert("¡Perfil guardado correctamente!");
-    } catch (error: any) {
-      console.error("Error detallado al guardar en Firebase:", error);
-      setSaveStatus("Error al guardar");
-      setTimeout(() => setSaveStatus(null), 3000);
-      alert("No se pudo guardar: " + error.message);
-    } finally {
-      // OBLIGATORIO: Apaga el "Guardando..." pase lo que pase
-      setSaveStatus(prev => prev === "Guardando..." ? null : prev);
-    }
-  };`;
-
-file = file.replace(oldFunc, newFunc);
-
-file = file.replace("setFotoURL(dataUrl);", "setFotoURL(dataUrl);\n                        setSelectedFile(file);");
-file = file.replace("setBackgroundBase64(dataUrl);", "setBackgroundBase64(dataUrl);\n                          setSelectedBgFile(file);");
-
+file = file.replace(targetSaveProfile, replaceSaveProfile);
 fs.writeFileSync('src/components/ProfileConfigModal.tsx', file);
