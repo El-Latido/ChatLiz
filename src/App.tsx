@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart
 } from 'lucide-react';
-import {  collection, onSnapshot, query, doc, orderBy, limitToLast } from 'firebase/firestore';
+import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp } from 'firebase/firestore';
 import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import {  db, auth } from './firebaseConfig';
 import {  socket } from './socket';
@@ -260,7 +260,7 @@ function MainApp() {
     } else {
         const participants = [user.username, activeChat].sort();
         const convoId = participants.join("_");
-        const q = query(collection(db, 'private_messages', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(30));
+        const q = query(collection(db, 'chats', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(30));
         unsubMessages = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -461,26 +461,26 @@ function MainApp() {
     if (selectedGif) payload.image = selectedGif;
     if (audioUrl) payload.audio = audioUrl;
 
+    const msgData = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
-      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
-      setMessages(prev => [...prev, optimisticMsg]);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // Backend handles global chat moderation via socket, but we can also use addDoc if requested.
+      // The prompt asks to use addDoc for private chats. We'll use socket for global to keep moderation, 
+      // or addDoc for both to ensure real-time as requested.
+      // Let's use addDoc for global too if they want instant sync, but wait, the prompt says "en la colección específica del chat privado".
       socket.emit('send_global', payload);
     } else {
-      const optimisticMsg = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
-      setMessages(prev => [...prev, optimisticMsg]);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      
-      socket.emit('send_private', payload, activeChat, (res: any) => {
-         if (!res.success) {
-            // Remove optimistic message if failed
-            setMessages(prev => prev.filter(m => m.id !== msgId));
-            alert(res.error || "No se pudo enviar");
-         } else {
-            // Replace optimistic with real msg to get accurate timestamp and properties
-            setMessages(prev => prev.map(m => m.id === msgId ? res.msg : m));
-         }
-      });
+      const participants = [user.username, activeChat].sort();
+      const convoId = participants.join("_");
+      // Create document in 'chats' collection as requested: "colección en Firestore llamada chats con un ID compuesto por uid1_uid2"
+      addDoc(collection(db, 'chats', convoId, 'messages'), msgData)
+        .then(() => {
+             // Let socket also know for other features, but don't depend on it for messages
+             socket.emit('send_private_event', msgData, activeChat);
+        })
+        .catch(err => {
+             console.error("Error sending message", err);
+             alert("Error al enviar el mensaje.");
+        });
     }
     
     socket.emit("stop_typing", { username: user.username, chat: activeChat });
