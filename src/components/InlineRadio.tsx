@@ -266,7 +266,7 @@ export function InlineRadio() {
       </div>
 
       {showHistory && (
-        <div className="absolute bottom-[104px] left-0 w-64 bg-[#121B2A]/95 backdrop-blur-xl border border-[#D4AF37]/50 rounded-[16px] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-[104px] left-0 w-64 max-h-[60vh] overflow-y-auto scrollbar-thin bg-[#121B2A]/95 backdrop-blur-xl border border-[#D4AF37]/50 rounded-[16px] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
            <div className="flex justify-between items-center pb-2 border-b border-[#D4AF37]/20">
               <h3 className="text-[#E8D9B0] font-bold text-sm flex items-center gap-1.5">
                  <Radio size={14} className="text-pink-400" />
@@ -353,7 +353,7 @@ export function InlineRadio() {
            {Array.isArray(songHistory) && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> ESCUCHADAS (Últimas 30)</span>
-                  <div className="radio-sidebar" style={{ height: '400px', overflowY: 'scroll', border: '1px solid #333', padding: '10px' }}>
+                  <div className="radio-sidebar" style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #333', padding: '10px' }}>
                       <ol className="flex flex-col gap-2">
                       {songHistory.map((s:any, index:number) => (
                           <li key={index} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity" style={{ marginBottom: '8px' }}>
