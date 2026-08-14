@@ -123,7 +123,7 @@ function saveFallbackDB() {
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.APPLET_ID ? 3000 : (process.env.PORT || 7860);
+  const PORT = 3000;
 
   const server = http.createServer(app);
   const io = new Server(server, { 
