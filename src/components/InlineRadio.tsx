@@ -275,13 +275,7 @@ export function InlineRadio() {
               <button onClick={() => setShowHistory(false)} className="text-[#D4AF37]/50 hover:text-[#D4AF37]"><ChevronDown size={16}/></button>
            </div>
            
-           {!currentLiveDJ && (currentRequestedSong || currentSong) && (
-               <div className="flex flex-col mb-1 pb-2 border-b border-[#D4AF37]/20">
-                   <span className="text-[12px] font-bold text-white truncate text-center w-full">
-                       {currentRequestedSong ? currentRequestedSong.title : (currentSong?.title || 'Cargando...')}
-                   </span>
-               </div>
-           )}
+
            
            {Array.isArray(myRequests) && myRequests.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
@@ -353,10 +347,10 @@ export function InlineRadio() {
            {Array.isArray(songHistory) && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> ESCUCHADAS (Últimas 30)</span>
-                  <div className="radio-sidebar" style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #333', padding: '10px' }}>
+                  <div className="radio-sidebar max-h-[220px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#D4AF37]/50 scrollbar-track-transparent pr-1 touch-pan-y">
                       <ol className="flex flex-col gap-2">
                       {songHistory.map((s:any, index:number) => (
-                          <li key={index} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity" style={{ marginBottom: '8px' }}>
+                          <li key={index} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity" >
                               <span className="text-[12px] font-medium text-gray-200 truncate">
                                   <strong className="text-[#D4AF37] mr-1">{index + 1}.</strong> {s?.title || 'Canción Desconocida'} - {Array.isArray(s?.artists) ? s.artists.map((a:any) => a.name).join(', ') : (s?.requester ? `Añadida por: ${s?.requester}` : 'Desconocido')}
                               </span>
