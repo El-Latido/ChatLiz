@@ -25,38 +25,7 @@ import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
 
-class ErrorBoundary extends React.Component<any, any> {
-  constructor(props: any) {
-    super(props);
-    // @ts-ignore
-    this.state = { hasError: false, error: null };
-  }
 
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: any, errorInfo: any) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
-  }
-
-  render() {
-    // @ts-ignore
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '20px', background: 'red', color: 'white', zIndex: 9999, position: 'relative' }}>
-          <h1>Algo salió mal en la aplicación.</h1>
-          {/* @ts-ignore */}
-          <pre>{this.state.error?.toString()}</pre>
-          {/* @ts-ignore */}
-          <pre>{this.state.error?.stack}</pre>
-        </div>
-      );
-    }
-    // @ts-ignore
-    return this.props.children;
-  }
-}
 
 const DECORATIONS = [
   // Ajedrez (Themes & Efectos)
@@ -1762,7 +1731,7 @@ export default function App() {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body {
@@ -1787,6 +1756,6 @@ export default function App() {
         }
       `}</style>
       <MainApp />
-    </ErrorBoundary>
+    </>
   );
 }
