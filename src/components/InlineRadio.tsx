@@ -316,17 +316,12 @@ export function InlineRadio() {
                   )}
                </div>
            ) : currentSong ? (
-               <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Sonando Ahora</span>
-                  <div className="text-sm font-semibold text-white leading-tight break-words">{currentSong.title}</div>
-                  <div className="text-xs text-[#D4AF37]/80 truncate">
+               <div className="flex flex-col gap-0.5 mb-1 px-2 py-1.5 max-h-[70px]" style={{ fontSize: '0.85rem' }}>
+                  <span className="text-[9px] text-pink-400 font-bold uppercase tracking-wider">Sonando Ahora</span>
+                  <div className="text-xs font-semibold text-white leading-tight break-words truncate">{currentSong.title}</div>
+                  <div className="text-[10px] text-[#D4AF37]/80 truncate">
                       {Array.isArray(currentSong?.artists) ? currentSong.artists.map((a:any) => a.name).join(', ') : ''}
                   </div>
-                  {currentSong.sources && currentSong.sources.length > 0 && (
-                      <div className="text-[10px] text-gray-400 mt-0.5 px-1.5 py-0.5 bg-white/5 rounded w-fit truncate max-w-full">
-                          {currentSong.sources[0].name}
-                      </div>
-                  )}
                </div>
            ) : null}
 
@@ -347,7 +342,7 @@ export function InlineRadio() {
            {Array.isArray(songHistory) && songHistory.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
                   <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> ESCUCHADAS (Últimas 30)</span>
-                  <div className="radio-sidebar max-h-[220px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#D4AF37]/50 scrollbar-track-transparent pr-1 touch-pan-y">
+                  <div className="radio-sidebar max-h-[220px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#D4AF37]/50 scrollbar-track-transparent pr-1" style={{ WebkitOverflowScrolling: 'touch', padding: '5px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                       <ol className="flex flex-col gap-2">
                       {songHistory.map((s:any, index:number) => (
                           <li key={index} className="flex flex-col bg-[#1A2639]/50 p-1.5 rounded opacity-80 hover:opacity-100 transition-opacity" >
