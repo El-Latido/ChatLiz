@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart
 } from 'lucide-react';
-import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp } from 'firebase/firestore';
+import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import {  db, auth } from './firebaseConfig';
 import {  socket } from './socket';
