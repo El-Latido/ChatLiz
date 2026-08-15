@@ -1029,8 +1029,8 @@ No devuelvas bloques de código Markdown, solo el JSON crudo. Asegúrate de que 
       };
       
       try {
-          const docRef = doc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'));
-          await addDoc(collection(fdb, 'private_messages', "Elizabeth_" + currentUsername, 'messages'), {
+          const docRef = doc(collection(fdb, 'chats', "Elizabeth_" + currentUsername, 'messages'));
+          await addDoc(collection(fdb, 'chats', "Elizabeth_" + currentUsername, 'messages'), {
              ...msg,
              timestamp: serverTimestamp()
           });
@@ -1599,7 +1599,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             try {
                 const participants = [currentUsername, otherUser].sort();
                 const convoId = participants.join("_");
-                const q = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(15));
+                const q = query(collection(fdb, 'chats', convoId, 'messages'), orderBy('timestamp', 'asc'), limitToLast(15));
                 const snapshot = await getDocs(q);
                 callback(snapshot.docs.map(doc => doc.data()));
             } catch(e) {
@@ -1691,7 +1691,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           const docMsg = { ...msg, timestamp: serverTimestamp() };
           const participants = [currentUsername, toUser].sort();
           const convoId = participants.join("_");
-          addDoc(collection(fdb, 'private_messages', convoId, 'messages'), docMsg).catch(e => console.error('Firebase addDoc Error:', e));
+          addDoc(collection(fdb, 'chats', convoId, 'messages'), docMsg).catch(e => console.error('Firebase addDoc Error:', e));
           // Update the msg so it matches what we return back to sender
           msg.createdAt = Date.now();
       }
@@ -1765,7 +1765,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           if (fdb) {
              const participants = [currentUsername, "Elizabeth"].sort();
              const convoId = participants.join("_");
-             const recentQ = query(collection(fdb, 'private_messages', convoId, 'messages'), orderBy('createdAt', 'desc'), limit(3));
+             const recentQ = query(collection(fdb, 'chats', convoId, 'messages'), orderBy('createdAt', 'desc'), limit(3));
              const snapshot: any = await Promise.race([getDocs(recentQ), new Promise((_, r) => setTimeout(() => r(new Error("Firebase Timeout")), 3000))]);
              contextMsgs = snapshot.docs.map(doc => doc.data()).reverse();
           }
@@ -1811,7 +1811,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
           if (fdb) {
             const participants = [currentUsername, "Elizabeth"].sort();
             const convoId = participants.join("_");
-            addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...eliMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+            addDoc(collection(fdb, 'chats', convoId, 'messages'), { ...eliMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
           }
           
           socket.emit("receive_private", eliMsg, "Elizabeth");
@@ -1822,7 +1822,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
               if (fdb) {
                 const participants = [currentUsername, "Elizabeth"].sort();
                 const convoId = participants.join("_");
-                addDoc(collection(fdb, 'private_messages', convoId, 'messages'), { ...errorMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
+                addDoc(collection(fdb, 'chats', convoId, 'messages'), { ...errorMsg, timestamp: serverTimestamp() }).catch(e => console.error('Firebase addDoc Error:', e));
               }
           } catch (dbErr) {
               console.error("Failed to save private error msg", dbErr);
@@ -2056,7 +2056,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
             }
         }
 
-        if (activeUsers[currentUsername]) {
+        if (activeUsers[currentUsername] && activeUsers[currentUsername].socketId === socket.id) {
           delete activeUsers[currentUsername];
           emitActiveUsers();
         }

@@ -440,18 +440,33 @@ function MainApp() {
         });
 
         unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+            const cacheUpdates: Record<string, UserObj> = {};
+            let hasOnlineUpdates = false;
+
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "modified" || change.type === "added") {
                     const updatedUser = change.doc.data() as UserObj;
-                    setUsersOnline(prevOnline => {
-                        const exists = prevOnline.find(u => u.username === updatedUser.username);
-                        if (exists) {
-                            return prevOnline.map(u => u.username === updatedUser.username ? { ...u, ...updatedUser } : u);
-                        }
-                        return prevOnline;
-                    });
+                    cacheUpdates[updatedUser.username] = updatedUser;
+                    hasOnlineUpdates = true;
                 }
             });
+
+            if (Object.keys(cacheUpdates).length > 0) {
+                setUserCache(prev => ({ ...prev, ...cacheUpdates }));
+                setUsersOnline(prevOnline => {
+                    let newOnline = [...prevOnline];
+                    let changed = false;
+                    for (const username in cacheUpdates) {
+                        const updatedUser = cacheUpdates[username];
+                        const index = newOnline.findIndex(u => u.username === username);
+                        if (index !== -1) {
+                            newOnline[index] = { ...newOnline[index], ...updatedUser };
+                            changed = true;
+                        }
+                    }
+                    return changed ? newOnline : prevOnline;
+                });
+            }
         }, (error: any) => {
             console.error("onSnapshot unsubscribe error:", error);
             if (error?.code !== 'permission-denied') {
@@ -510,19 +525,14 @@ function MainApp() {
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       socket.emit('send_global', payload);
     } else {
-      const participants = [user.username, activeChat].sort();
-      const convoId = participants.join("_");
-      // Create document in 'chats' collection as requested: "colección en Firestore llamada chats con un ID compuesto por uid1_uid2"
-      addDoc(collection(db, 'chats', convoId, 'messages'), msgData)
-        .then(() => {
-             // Let socket also know for other features, but don't depend on it for messages
-             socket.emit('send_private_event', msgData, activeChat);
-             sendNotification(activeChat, 'MESSAGE', { uid: user.username, displayName: user.username });
-        })
-        .catch(err => {
-             console.error("Error sending message", err);
-             alert("Error al enviar el mensaje.");
-        });
+      // Use the server to send private messages so moderation, bots, and socket events work properly.
+      socket.emit('send_private', payload, activeChat, (res: any) => {
+          if (res && !res.success) {
+              alert(res.error || "Error al enviar el mensaje.");
+          } else {
+              sendNotification(activeChat, 'MESSAGE', { uid: user.username, displayName: user.username });
+          }
+      });
     }
     
     socket.emit("stop_typing", { username: user.username, chat: activeChat });
@@ -1223,24 +1233,33 @@ function MainApp() {
                  </div>
               ) : (
                 <>
-                  {activeChat !== 'global' && activeChat !== 'tutifrutti' && (
-                  <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-lg">
-                      <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center overflow-hidden shadow-sm">
-                             <User size={20} className="text-[#D4AF37]" />
+                  {activeChat !== 'global' && activeChat !== 'tutifrutti' && (() => {
+                      const targetUser = usersOnline.find(u => u.username === activeChat) || userCache[activeChat];
+                      const isOnline = !!usersOnline.find(u => u.username === activeChat);
+                      const avatarUrl = targetUser?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
+                      
+                      return (
+                      <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                          <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center overflow-hidden shadow-sm relative">
+                                 <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                 <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1A2639] ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                              </div>
+                              <div className="flex flex-col">
+                                 <span className="text-[#E8D9B0] font-bold text-lg leading-tight flex items-center gap-1.5">
+                                     {activeChat} <span className="text-[10px] bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full border border-pink-500/30 uppercase tracking-wider">Privado</span>
+                                 </span>
+                                 <span className="text-[#8B98B0] text-xs font-medium">
+                                    {isOnline ? <span className="text-green-400">En línea</span> : 'Desconectado'} • Solo tú y {activeChat} pueden ver este chat
+                                 </span>
+                              </div>
                           </div>
-                          <div className="flex flex-col">
-                             <span className="text-[#E8D9B0] font-bold text-lg leading-tight flex items-center gap-1.5">
-                                 {activeChat} <span className="text-[10px] bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full border border-pink-500/30 uppercase tracking-wider">Privado</span>
-                             </span>
-                             <span className="text-[#8B98B0] text-xs font-medium">Solo tú y {activeChat} pueden ver este chat</span>
-                          </div>
+                          <button onClick={() => setActiveChat('global')} className="text-sm font-bold text-[#D4AF37] hover:text-[#E8D9B0] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2">
+                              <Globe size={16} /> Volver al Mundo
+                          </button>
                       </div>
-                      <button onClick={() => setActiveChat('global')} className="text-sm font-bold text-[#D4AF37] hover:text-[#E8D9B0] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2">
-                          <Globe size={16} /> Volver al Mundo
-                      </button>
-                  </div>
-              )}
+                      );
+                  })()}
               {/* Chat Feed */}
               <div className="flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin">
                   {messages.filter(m => m && m.sender).filter(m => {
