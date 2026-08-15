@@ -150,7 +150,14 @@ function MainApp() {
      return () => clearInterval(interval);
   }, []);
   const [hallOfFame, setHallOfFame] = useState<any[]>([]);
-  const chatBg = localStorage.getItem('chatBg');
+  
+  let chatBg = null;
+  try {
+    chatBg = localStorage.getItem('chatBg');
+  } catch (e) {
+    console.warn("localStorage is blocked");
+  }
+
 
   // Recovery States
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);

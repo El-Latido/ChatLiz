@@ -136,7 +136,7 @@ async function startServer() {
 
   app.use((err: any, req: any, res: any, next: any) => {
     if (err instanceof SyntaxError) {
-      console.error("Petición con JSON inválido bloqueada para evitar crash.");
+      // console.error("Invalid JSON blocked");
       return res.status(400).json({ error: "Invalid JSON format" });
     }
     next();
