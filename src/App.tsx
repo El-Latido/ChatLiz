@@ -73,6 +73,22 @@ function checkVersion() {
 setInterval(checkVersion, 15000);
 
 
+export const notifyOwner = async (profileUid: string, actionType: string, visitorName: string) => {
+  try {
+    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    await addDoc(collection(db, "notifications"), {
+      recipientUid: profileUid,
+      senderName: visitorName,
+      type: actionType,
+      message: `Has recibido un ${actionType} de ${visitorName}`,
+      isRead: false,
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error al notificar al propietario:", error);
+  }
+};
+
 export const sendNotification = async (recipientUid: string, type: string, senderData: any) => {
   try {
     const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
@@ -406,12 +422,13 @@ function MainApp() {
         
         const qNotif = query(
             collection(db, "notifications"), 
-            where("recipientUid", "==", user.username)
+            where("recipientUid", "==", user.username),
+            where("isRead", "==", false)
         );
         unsubNotif = onSnapshot(qNotif, (snapshot) => {
             const msgs = snapshot.docs.map(doc => {
                 const data = doc.data();
-                let text = data.text || '';
+                let text = data.message || data.text || '';
                 if (!text) {
                     if (data.type === 'LIKE' || data.type === 'like') text = `${data.senderName} le ha dado Like a tu perfil.`;
                     else if (data.type === 'REQUEST' || data.type === 'friend_request') text = `${data.senderName} te ha enviado una solicitud de amistad.`;
@@ -1595,6 +1612,7 @@ function MainApp() {
     setActiveChat(selectedUserModal.username); 
     setSelectedUserModal(null); 
     setIsSidebarOpen(false);
+notifyOwner(selectedUserModal.username, 'CHAT', user.username);
 }}
                          className="flex-1 flex items-center justify-center gap-2 text-white bg-white/5 hover:bg-white/10 p-3 rounded-xl font-medium transition-colors border border-white/10"
                        >
@@ -1605,10 +1623,7 @@ function MainApp() {
                          onClick={() => {
                              socket.emit('like_user', selectedUserModal.username);
                              setSelectedUserModal(prev => prev ? { ...prev, profileLikes: (prev.profileLikes || 0) + 1 } : null);
-                             sendNotification(selectedUserModal.username, 'LIKE', {
-                                 uid: user.username,
-                                 displayName: user.username
-                             });
+                             notifyOwner(selectedUserModal.username, 'LIKE', user.username);
                          }}
                          className="flex-1 flex items-center justify-center gap-2 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 p-3 rounded-xl font-medium transition-colors border border-pink-500/20"
                        >
@@ -1630,11 +1645,7 @@ function MainApp() {
                                  } else {
                                      import('firebase/firestore').then(({ addDoc, collection }) => {
                                          addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', timestamp: Date.now(), createdAt: Date.now() }).then(docRef => {
-                                              sendNotification(selectedUserModal.username, 'friend_request', {
-                                                  uid: user.username,
-                                                  displayName: user.username,
-                                                  frData: { from: user.username, docId: docRef.id }
-                                              });
+                                              notifyOwner(selectedUserModal.username, 'REQUEST', user.username);
                                          });
                                      });
                                      setSelectedUserModal(null);
@@ -1649,12 +1660,15 @@ function MainApp() {
                          {selectedUserModal.role !== 'admin' && (
                              <button 
                                  onClick={() => {
-                                     socket.emit('toggle_ban', selectedUserModal.username, (res: any) => {
+                                     socket.emit('toggle_ban', selectedUserModal.username, async (res: any) => {
                                          if(res.success) {
                                              setUser(prev => ({
                                                  ...prev,
                                                  blocked_list: res.isBanned ? [...(prev.blocked_list || []), selectedUserModal.username] : (prev.blocked_list || []).filter(b => b !== selectedUserModal.username)
                                              }));
+                                             if (res.isBanned) {
+                                                 await notifyOwner(selectedUserModal.username, 'BAN', user.username);
+                                             }
                                              setSelectedUserModal(null);
                                          }
                                      });
