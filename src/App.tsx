@@ -167,6 +167,7 @@ function MainApp() {
   useEffect(() => { tutiFruttiStateRef.current = tutiFruttiState; }, [tutiFruttiState]);
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
   const [toasts, setToasts] = useState<any[]>([]);
+  const [chatList, setChatList] = useState<any[]>([]);
 
   useEffect(() => {
       if (toasts.length > 0) {
@@ -459,10 +460,18 @@ function MainApp() {
     
     // Ensure user is authenticated before setting up listeners
     let unsubNotif: any = null;
+    let unsubChats: any = null;
     const setupListeners = () => {
+        if (unsubChats) unsubChats();
         if (unsubUser) unsubUser();
         if (unsubscribe) unsubscribe();
         if (unsubNotif) unsubNotif();
+        
+        const qChats = query(collection(db, "userChats", user.username, "chats"), orderBy("updatedAt", "desc"));
+        unsubChats = onSnapshot(qChats, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setChatList(list);
+        });
         
         const qNotif = query(
             collection(db, "notifications"), 
@@ -564,6 +573,7 @@ function MainApp() {
       if (unsubscribe) unsubscribe();
       if (unsubUser) unsubUser();
       if (typeof unsubNotif === 'function') unsubNotif();
+      if (typeof unsubChats === 'function') unsubChats();
       authUnsubscribe();
     };
   }, [isLoggedIn, user.username]);
@@ -817,53 +827,7 @@ function MainApp() {
                                  });
                              }} className="text-xs text-[#D4AF37] hover:text-white">Marcar leídos</button>
                          </div>
-                         <div className="max-h-64 overflow-y-auto scrollbar-thin">
-                             {Array.from(new Set([...Object.keys(unreadPMs).filter(k => unreadPMs[k]), ...notifications.filter(n => !n.read && (n.type === 'MESSAGE' || n.type === 'CHAT')).map(n => n.senderUid)])).length === 0 ? (
-                                 <div className="p-4 text-center text-[#8B98B0] text-xs">No hay mensajes nuevos</div>
-                             ) : (
-                                 Array.from(new Set([...Object.keys(unreadPMs).filter(k => unreadPMs[k]), ...notifications.filter(n => !n.read && (n.type === 'MESSAGE' || n.type === 'CHAT')).map(n => n.senderUid)])).map(sender => {
-                                     const senderInfo = usersOnline.find(u => u.username === sender) || userCache[sender];
-                                     const senderPic = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sender}`;
-                                     return (
-                                     <div key={sender} className="p-3 border-b border-white/5 flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => {
-                                         setIsSidebarOpen(false);
-                                         setIsFriendsSidebarOpen(false);
-                                         setActiveChat(sender);
-                                         setShowInbox(false);
-                                         setUnreadPMs(prev => ({...prev, [sender]: false}));
-                                         import('firebase/firestore').then(({ doc, updateDoc }) => {
-                                             notifications.forEach(n => {
-                                                 if (!n.read && (n.type === 'MESSAGE' || n.type === 'CHAT') && n.senderUid === sender) {
-                                                     updateDoc(doc(db, 'notifications', n.id), { isRead: true });
-                                                 }
-                                             });
-                                         });
-                                         setUnreadPMs(prev => { const n = {...prev}; delete n[sender]; return n; });
-                                         import('firebase/firestore').then(({ doc, updateDoc }) => {
-                                             notifications.forEach(n => {
-                                                 if (!n.read && (n.type === 'MESSAGE' || n.type === 'CHAT') && n.senderUid === sender) {
-                                                     updateDoc(doc(db, 'notifications', n.id), { isRead: true });
-                                                 }
-                                             });
-                                         });
-                                     }}>
-                                         <div className="flex items-center gap-3">
-                                             <img src={senderPic} alt={sender} className="w-8 h-8 rounded-full bg-white/5 object-cover" />
-                                             <div className="flex flex-col">
-                                                 <span className="text-[#E8D9B0] font-medium text-sm">{sender}</span>
-                                                 <span className="text-cyan-400 text-xs">¡Te envió un mensaje!</span>
-                                             </div>
-                                         </div>
-                                         <MessageCircle size={16} className="text-[#D4AF37]" />
-                                     </div>
-                                 )})
-                             )}
-                         </div>
-                     </div>
-                 )}
-             </div>
-
-             <div className="relative">
+                         <div className="max-h-64 overflow-y-auto scrollbar-thin">                             {chatList.length === 0 ? (                                 <div className="p-4 text-center text-[#8B98B0] text-xs">No hay mensajes recientes</div>                             ) : (                                 chatList.map(chat => {                                     const sender = chat.withUser;                                     const senderInfo = usersOnline.find(u => u.username === sender) || userCache[sender];                                     const senderPic = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sender}`;                                     const isUnread = unreadPMs[sender] || notifications.some(n => !n.read && (n.type === "MESSAGE" || n.type === "CHAT") && n.senderUid === sender);                                     return (                                     <div key={sender} className={`p-3 border-b border-white/5 flex items-center justify-between transition-colors cursor-pointer ${isUnread ? "bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20" : "bg-white/5 hover:bg-white/10"}`} onClick={() => {                                         setIsSidebarOpen(false);                                         setIsFriendsSidebarOpen(false);                                         setActiveChat(sender);                                         setShowInbox(false);                                         setUnreadPMs(prev => ({...prev, [sender]: false}));                                         import("firebase/firestore").then(({ doc, updateDoc }) => {                                             notifications.forEach(n => {                                                 if (!n.read && (n.type === "MESSAGE" || n.type === "CHAT") && n.senderUid === sender) {                                                     updateDoc(doc(db, "notifications", n.id), { isRead: true });                                                 }                                             });                                         });                                     }}>                                         <div className="flex items-center gap-3 min-w-0">                                             <div className="relative">                                                <img src={senderPic} alt={sender} className="w-10 h-10 rounded-full bg-white/5 object-cover" />                                                {isUnread && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#121B2A]"></span>}                                             </div>                                             <div className="flex flex-col min-w-0">                                                 <span className={`font-medium text-sm truncate ${isUnread ? "text-white font-bold" : "text-[#E8D9B0]"}`}>{sender}</span>                                                 <span className="text-gray-400 text-xs truncate max-w-[150px]">{chat.lastMessage || "Conversación"}</span>                                             </div>                                         </div>                                         <MessageCircle size={16} className={isUnread ? "text-[#D4AF37]" : "text-gray-500"} />                                     </div>                                 )})                             )}                         </div>                     </div>                 )}             </div>             <div className="relative">
                  <button onClick={() => { setShowNotifications(!showNotifications); setShowInbox(false); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-white/5 transition-colors relative">
                     <Bell size={18} strokeWidth={1.5} />
                     {notifications.filter(n => !n.read && n.type !== 'MESSAGE' && n.type !== 'CHAT').length > 0 && (

@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgTuV7xHa3PAPSzacRsEkcnJ59Fukye1A",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "eighth-ability-8szp9.firebaseapp.com",
   projectId: "eighth-ability-8szp9",
   storageBucket: "eighth-ability-8szp9.appspot.com",
