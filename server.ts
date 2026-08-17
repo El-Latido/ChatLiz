@@ -1142,7 +1142,7 @@ socket.on("dj_go_live", (streamUrl) => {
         if (!currentUsername || activeUsers[currentUsername]?.role !== 'admin') return;
         const target = data.targetUser;
         if (fdb) {
-            const { updateDoc, doc } = require("firebase/firestore");
+            // updateDoc and doc are already imported from "firebase/firestore"
             try {
                 await updateDoc(doc(fdb, 'users', target), { role: 'dj', djSchedule: data.schedule });
             } catch(e) {
@@ -2064,7 +2064,7 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
     });
   });
 
-  if (process.env.NODE_ENV !== "production" && !require("fs").existsSync(require("path").join(process.cwd(), "dist", "index.html"))) {
+  if (process.env.NODE_ENV !== "production" && !fs.existsSync(path.join(process.cwd(), "dist", "index.html"))) {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
