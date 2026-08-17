@@ -2045,7 +2045,15 @@ Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
 
     // --- END CHESS LOGIC ---
 
-    socket.on("disconnect", () => {
+    socket.on("logout", () => {
+            if (currentUsername && activeUsers[currentUsername] && activeUsers[currentUsername].socketId === socket.id) {
+                delete activeUsers[currentUsername];
+                emitActiveUsers();
+                currentUsername = "";
+            }
+        });
+
+        socket.on("disconnect", () => {
       if (currentUsername) {
         // Find if user was in any active chess game
         for (const gId in chessGames) {

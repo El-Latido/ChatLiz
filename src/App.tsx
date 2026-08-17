@@ -311,6 +311,9 @@ function MainApp() {
   useEffect(() => {
     if (!isLoggedIn) return;
     
+    
+  useEffect(() => {
+    if (!isLoggedIn) return;
     let unsubMessages: any = null;
     
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
@@ -320,7 +323,6 @@ function MainApp() {
                 const data = doc.data();
                 return { ...data, id: data.id || doc.id };
             });
-            // Modo Silencio: Filter out Elizabeth's messages if playing
             const filteredMsgs = msgs.filter((m: any) => {
                 if (m.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
                     return false;
@@ -343,9 +345,12 @@ function MainApp() {
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         });
     }
-
     
-    socket.on('dj_request_status', (req: { id: string, status: string, title: string }) => {
+    return () => {
+            };
+  }, [isLoggedIn, activeChat, user.username]);
+
+  socket.on('dj_request_status', (req: { id: string, status: string, title: string }) => {
         setNotifications(prev => [
             {
                 id: Date.now().toString(),
@@ -359,6 +364,8 @@ function MainApp() {
 
     socket.on('receive_global', (msg: any) => {
       if (msg.sender === 'Elizabeth' || msg.isAi) {
+          setMessages(prev => { if (prev.some(m => m.id === msg.id)) return prev; return [...prev, msg]; });
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       }
     });
 
@@ -366,8 +373,9 @@ function MainApp() {
       playNotifySound();
       if (activeChat !== fromUser) {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
-      }
-      if (fromUser === 'Elizabeth' && msg.text) {
+      } else {
+        setMessages(prev => { if (prev.some(m => m.id === msg.id)) return prev; return [...prev, msg]; });
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       }
     });
 
@@ -548,15 +556,14 @@ function MainApp() {
 
     return () => {
       socket.off('receive_global');
-      if (unsubMessages) unsubMessages();
-      socket.off('receive_private');
+            socket.off('receive_private');
       socket.off('active_users');
       if (unsubscribe) unsubscribe();
       if (unsubUser) unsubUser();
       if (typeof unsubNotif === 'function') unsubNotif();
       authUnsubscribe();
     };
-  }, [isLoggedIn, activeChat, user.username]);
+  }, [isLoggedIn, user.username]);
 
   
   const closeAllModals = () => {
@@ -586,6 +593,9 @@ function MainApp() {
       socket.emit('send_global', payload);
     } else {
       // Use the server to send private messages so moderation, bots, and socket events work properly.
+      // Optimistic UI for private messages
+      setMessages(prev => [...prev, msgData]);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       socket.emit('send_private', payload, activeChat, (res: any) => {
           if (res && !res.success) {
               alert(res.error || "Error al enviar el mensaje.");
@@ -1717,9 +1727,10 @@ function MainApp() {
                          onClick={() => { 
     window.history.pushState({}, '', '/chat/' + encodeURIComponent(selectedUserModal.username));
     setActiveChat(selectedUserModal.username); 
-    setSelectedUserModal(null); 
-    setIsSidebarOpen(false);
-notifyOwner(selectedUserModal.username, 'CHAT', user.username);
+    setActiveChat(selectedUserModal.username);
+                             setSelectedUserModal(null);
+                             setIsSidebarOpen(false);
+                             notifyOwner(selectedUserModal.username, 'CHAT', user.username);
 }}
                          className="flex-1 flex items-center justify-center gap-2 text-white bg-white/5 hover:bg-white/10 p-3 rounded-xl font-medium transition-colors border border-white/10"
                        >
