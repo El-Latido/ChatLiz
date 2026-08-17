@@ -84,7 +84,7 @@ setInterval(checkVersion, 15000);
 export const notifyOwner = async (profileUid: string, actionType: string, visitorName: string, extraData?: any) => {
   console.log("Intentando enviar notificación a:", profileUid);
   try {
-    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    // using imports from top of file
     const docRef = await addDoc(collection(db, "notifications"), {
       recipientUid: profileUid,
       senderUid: visitorName,
@@ -103,7 +103,7 @@ export const notifyOwner = async (profileUid: string, actionType: string, visito
 
 export const sendNotification = async (recipientUid: string, type: string, senderData: any) => {
   try {
-    const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+    // using imports from top of file
     await addDoc(collection(db, "notifications"), {
       recipientUid: recipientUid,
       senderUid: senderData.uid,
@@ -119,6 +119,25 @@ export const sendNotification = async (recipientUid: string, type: string, sende
 };
 
 function MainApp() {
+
+  const playNotifySound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // A6
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.2);
+    } catch(e) { console.error("Sound error", e); }
+  };
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<UserObj & {password?: string, securityEmail?: string}>({ username: '', password: '', countryLanguage: 'es', securityEmail: '' });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -344,6 +363,7 @@ function MainApp() {
     });
 
     socket.on('receive_private', (msg: any, fromUser: string) => {
+      playNotifySound();
       if (activeChat !== fromUser) {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
       }
@@ -452,6 +472,7 @@ function MainApp() {
                 return { ...data, id: doc.id, text, read: data.isRead, type: data.type === 'LIKE' ? 'like' : (data.type === 'REQUEST' ? 'friend_request' : data.type) };
             });
             setNotifications(prev => {
+                if (msgs.filter(m => !m.read).length > prev.filter(p => !p.read).length) playNotifySound();
                 const localNotifs = prev.filter(p => !p.recipientUid); // Keep local socket notifications
                 return [...msgs.filter(m => !m.read), ...localNotifs];
             });
@@ -484,7 +505,8 @@ function MainApp() {
             snapshot.docChanges().forEach((change) => {
                 if (change.type === "modified" || change.type === "added") {
                     const updatedUser = change.doc.data() as UserObj;
-                    cacheUpdates[updatedUser.username] = updatedUser;
+                    const uName = updatedUser.username || change.doc.id;
+                    cacheUpdates[uName] = { ...updatedUser, username: uName };
                     hasOnlineUpdates = true;
                 }
             });
@@ -795,6 +817,14 @@ function MainApp() {
                                          setIsFriendsSidebarOpen(false);
                                          setActiveChat(sender);
                                          setShowInbox(false);
+                                         setUnreadPMs(prev => ({...prev, [sender]: false}));
+                                         import('firebase/firestore').then(({ doc, updateDoc }) => {
+                                             notifications.forEach(n => {
+                                                 if (!n.read && (n.type === 'MESSAGE' || n.type === 'CHAT') && n.senderUid === sender) {
+                                                     updateDoc(doc(db, 'notifications', n.id), { isRead: true });
+                                                 }
+                                             });
+                                         });
                                          setUnreadPMs(prev => { const n = {...prev}; delete n[sender]; return n; });
                                          import('firebase/firestore').then(({ doc, updateDoc }) => {
                                              notifications.forEach(n => {
