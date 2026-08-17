@@ -310,10 +310,6 @@ function MainApp() {
   
   useEffect(() => {
     if (!isLoggedIn) return;
-    
-    
-  useEffect(() => {
-    if (!isLoggedIn) return;
     let unsubMessages: any = null;
     
     if (activeChat === 'global' || activeChat === 'tutifrutti') {
@@ -346,9 +342,6 @@ function MainApp() {
         });
     }
     
-    return () => {
-            };
-  }, [isLoggedIn, activeChat, user.username]);
 
   socket.on('dj_request_status', (req: { id: string, status: string, title: string }) => {
         setNotifications(prev => [
