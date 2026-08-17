@@ -74,9 +74,10 @@ setInterval(checkVersion, 15000);
 
 
 export const notifyOwner = async (profileUid: string, actionType: string, visitorName: string) => {
+  console.log("Intentando enviar notificación a:", profileUid);
   try {
     const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-    await addDoc(collection(db, "notifications"), {
+    const docRef = await addDoc(collection(db, "notifications"), {
       recipientUid: profileUid,
       senderName: visitorName,
       type: actionType,
@@ -84,8 +85,9 @@ export const notifyOwner = async (profileUid: string, actionType: string, visito
       isRead: false,
       createdAt: serverTimestamp()
     });
+    console.log("Notificación creada con ID:", docRef.id);
   } catch (error) {
-    console.error("Error al notificar al propietario:", error);
+    console.error("Error al escribir en Firestore:", error);
   }
 };
 
@@ -426,6 +428,8 @@ function MainApp() {
             where("isRead", "==", false)
         );
         unsubNotif = onSnapshot(qNotif, (snapshot) => {
+            const rawData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log("Notificaciones recibidas:", rawData);
             const msgs = snapshot.docs.map(doc => {
                 const data = doc.data();
                 let text = data.message || data.text || '';
