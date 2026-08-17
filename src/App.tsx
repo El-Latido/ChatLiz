@@ -81,14 +81,16 @@ function checkVersion() {
 setInterval(checkVersion, 15000);
 
 
-export const notifyOwner = async (profileUid: string, actionType: string, visitorName: string) => {
+export const notifyOwner = async (profileUid: string, actionType: string, visitorName: string, extraData?: any) => {
   console.log("Intentando enviar notificación a:", profileUid);
   try {
     const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
     const docRef = await addDoc(collection(db, "notifications"), {
       recipientUid: profileUid,
+      senderUid: visitorName,
       senderName: visitorName,
       type: actionType,
+      frData: extraData?.frData || null,
       message: `Has recibido un ${actionType} de ${visitorName}`,
       isRead: false,
       createdAt: serverTimestamp()
@@ -432,8 +434,7 @@ function MainApp() {
         
         const qNotif = query(
             collection(db, "notifications"), 
-            where("recipientUid", "==", user.username),
-            where("isRead", "==", false)
+            where("recipientUid", "==", user.username)
         );
         unsubNotif = onSnapshot(qNotif, (snapshot) => {
             const rawData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -566,7 +567,7 @@ function MainApp() {
           if (res && !res.success) {
               alert(res.error || "Error al enviar el mensaje.");
           } else {
-              sendNotification(activeChat, 'MESSAGE', { uid: user.username, displayName: user.username });
+              notifyOwner(activeChat, 'MESSAGE', user.username);
           }
       });
     }
@@ -1657,7 +1658,7 @@ notifyOwner(selectedUserModal.username, 'CHAT', user.username);
                                  } else {
                                      import('firebase/firestore').then(({ addDoc, collection }) => {
                                          addDoc(collection(db, 'friendRequests'), { from: user.username, to: selectedUserModal.username, status: 'pending', timestamp: Date.now(), createdAt: Date.now() }).then(docRef => {
-                                              notifyOwner(selectedUserModal.username, 'REQUEST', user.username);
+                                              notifyOwner(selectedUserModal.username, 'REQUEST', user.username, { frData: { from: user.username, docId: docRef.id } });
                                          });
                                      });
                                      setSelectedUserModal(null);
