@@ -160,7 +160,11 @@ export function InlineRadio() {
              audioRef.current.load();
              const playPromise = audioRef.current.play();
              if (playPromise !== undefined) {
-                 playPromise.catch(e => {
+                 playPromise.catch((e: any) => {
+                     if (e.name === 'AbortError') {
+                         console.log('Reproducción de radio cancelada por nueva petición.');
+                         return;
+                     }
                      console.error("Radio play error:", e);
                      setIsPlaying(false);
                  });
@@ -210,7 +214,8 @@ export function InlineRadio() {
   useEffect(() => {
       if (isPlaying && announcementState === 'idle' && currentRequestedSong?.announcementUrl && announcementAudioRef.current) {
           setAnnouncementState('playing');
-          announcementAudioRef.current.play().catch(e => {
+          announcementAudioRef.current.play().catch((e: any) => {
+              if (e.name === 'AbortError') return;
               console.error("Auto-play blocked for announcement", e);
               setAnnouncementState('done');
           });

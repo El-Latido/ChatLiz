@@ -54,8 +54,13 @@ const DECORATIONS = [
 
 let currentVersion: string | null = null;
 
+let versionController: AbortController | null = null;
 function checkVersion() {
-    fetch('/version')
+    if (versionController) {
+        versionController.abort();
+    }
+    versionController = new AbortController();
+    fetch('/version', { signal: versionController.signal })
         .then(response => response.json())
         .then(data => {
             if (currentVersion === null) {
@@ -66,7 +71,10 @@ function checkVersion() {
                 window.location.reload();
             }
         })
-        .catch(err => console.error("Error verificando versión:", err));
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            console.error("Error verificando versión:", err);
+        });
 }
 
 // Verificar cada 15 segundos

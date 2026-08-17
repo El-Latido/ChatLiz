@@ -43,7 +43,10 @@ export const PremiumAudioPlayer: React.FC<PremiumAudioPlayerProps> = ({ src, cla
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(err => console.error("Playback error:", err));
+      audioRef.current.play().catch((err: any) => {
+        if (err.name === 'AbortError') return;
+        console.error("Playback error:", err);
+      });
     }
   };
 
