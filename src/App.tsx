@@ -182,6 +182,7 @@ function MainApp() {
   useEffect(() => { isGamesMenuOpenRef.current = isGamesMenuOpen; }, [isGamesMenuOpen]);
   const [chessBet, setChessBet] = useState(10);
   const [activeChessGame, setActiveChessGame] = useState<any>(null);
+  const [poolData, setPoolData] = useState<any>(null);
   const activeChessGameRef = useRef<any>(null);
   useEffect(() => { activeChessGameRef.current = activeChessGame; }, [activeChessGame]);
 
