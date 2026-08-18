@@ -1,101 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
-import Matter from 'matter-js';
-import { X, User } from 'lucide-react';
-import { Socket } from 'socket.io-client';
-import { UserObj } from '../types';
+const fs = require('fs');
 
-interface PoolGameModalProps {
-  gameId: string;
-  isHost: boolean;
-  opponentName: string;
-  bet: number;
-  socket: Socket;
-  user: UserObj;
-  onClose: () => void;
-}
+function updateModal() {
+    let code = fs.readFileSync('src/components/PoolGameModal.tsx', 'utf8');
 
-const TABLE_WIDTH = 400;
-const TABLE_HEIGHT = 800;
-const BALL_RADIUS = 10;
-const HOLE_RADIUS = 20;
-
-export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user, onClose }: PoolGameModalProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<Matter.Engine | null>(null);
-  const renderRef = useRef<Matter.Render | null>(null);
-  
-  const [power, setPower] = useState(0);
-  const [isCharging, setIsCharging] = useState(false);
-  const [turn, setTurn] = useState<string>(isHost ? user.username : opponentName);
-  const [status, setStatus] = useState<'playing' | 'game_over'>('playing');
-  
-  const [aimAngle, setAimAngle] = useState(0);
-  const [ballPositions, setBallPositions] = useState<{ id: number; x: number; y: number; color: string; label: string }[]>([]);
-
-  useEffect(() => {
-    // Only Host runs physics
-    if (!isHost) return;
-
-    const engine = Matter.Engine.create({ gravity: { x: 0, y: 0, scale: 0 } });
-    engineRef.current = engine;
-
-    // Create table boundaries (cushions)
-    const wallOptions = { isStatic: true, restitution: 0.9, render: { fillStyle: '#3E2723' } };
-    const walls = [
-      Matter.Bodies.rectangle(TABLE_WIDTH / 2, -10, TABLE_WIDTH, 20, wallOptions),
-      Matter.Bodies.rectangle(TABLE_WIDTH / 2, TABLE_HEIGHT + 10, TABLE_WIDTH, 20, wallOptions),
-      Matter.Bodies.rectangle(-10, TABLE_HEIGHT / 2, 20, TABLE_HEIGHT, wallOptions),
-      Matter.Bodies.rectangle(TABLE_WIDTH + 10, TABLE_HEIGHT / 2, 20, TABLE_HEIGHT, wallOptions)
-    ];
-    Matter.World.add(engine.world, walls);
-
-    // Initial rack of balls
-    const balls: Matter.Body[] = [];
-    const ballOptions = { restitution: 0.9, friction: 0.005, frictionAir: 0.015, density: 0.05 };
-
-    const cueBall = Matter.Bodies.circle(TABLE_WIDTH * 0.25, TABLE_HEIGHT / 2, BALL_RADIUS, { 
-        ...ballOptions, label: 'cue', render: { fillStyle: '#FFFFFF' } 
-    });
-    balls.push(cueBall);
-
-    let startX = TABLE_WIDTH * 0.7;
-    let startY = TABLE_HEIGHT / 2;
-    let cols = 5;
-    let ballId = 1;
-    for (let col = 0; col < cols; col++) {
-      for (let row = 0; row <= col; row++) {
-        let x = startX + col * (BALL_RADIUS * 2.1);
-        let y = startY - (col * BALL_RADIUS) + (row * BALL_RADIUS * 2.1);
-        let color = ballId === 8 ? '#000000' : (ballId % 2 === 0 ? '#1565C0' : '#D32F2F');
-        balls.push(Matter.Bodies.circle(x, y, BALL_RADIUS, {
-          ...ballOptions, label: ballId === 8 ? 'eight' : 'object', render: { fillStyle: color }
-        }));
-        ballId++;
-      }
-    }
-    Matter.World.add(engine.world, balls);
-
-    const runner = Matter.Runner.create();
-    Matter.Runner.run(runner, engine);
-
-    const syncInterval = setInterval(() => {
-        const positions = balls.filter(b => !b.isSensor).map(b => ({
-            id: b.id,
-            x: b.position.x,
-            y: b.position.y,
-            color: b.render.fillStyle || '#fff',
-            label: b.label
-        }));
-        setBallPositions(positions);
-        socket.emit('pool_sync', { gameId, positions });
-        
-        // Very basic Turn logic: if all balls are sleeping and we were moving, we change turn
-        // For simplicity, just checking if speed < 0.1
-        const isMoving = balls.some(b => b.speed > 0.1);
-        // Turn logic requires tracking if a shot was fired and now finished. We'll add that later.
-    }, 1000 / 30);
-
-    
+    // 1. Add advanced Aim Line calculation directly before the return statement.
+    const aimLogic = `
   // 8-Ball Advanced Aiming Logic
   let ghostBall = null;
   let deflectionLine = null;
@@ -153,130 +62,19 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
       }
   }
 
-  return () => {
-      clearInterval(syncInterval);
-      Matter.Runner.stop(runner);
-      Matter.Engine.clear(engine);
-    };
-  }, [gameId, isHost, socket]);
+  return (`;
 
-  useEffect(() => {
-      if (isHost) return;
-      const handleSync = (data: any) => {
-          if (data.gameId === gameId) setBallPositions(data.positions);
-      };
-      socket.on('pool_sync', handleSync);
-      return () => { socket.off('pool_sync', handleSync); };
-  }, [gameId, isHost, socket]);
+    code = code.replace(/return \(/, aimLogic);
 
-  useEffect(() => {
-      const handleShoot = (data: any) => {
-          if (isHost && data.gameId === gameId) {
-              const engine = engineRef.current;
-              if (engine) {
-                  const cue = engine.world.bodies.find(b => b.label === 'cue');
-                  if (cue) {
-                      Matter.Body.applyForce(cue, cue.position, data.force);
-                  }
-              }
-          }
-      };
-      socket.on('pool_shoot', handleShoot);
-      return () => { socket.off('pool_shoot', handleShoot); };
-  }, [gameId, isHost, socket]);
+    // 2. Replace the UI structure for the 8-Ball layout
+    const oldUIRegex = /<div className="p-4 flex flex-col items-center gap-4 flex-1 min-h-0 overflow-hidden">[\s\S]*?(?=<\/div>\s*<\/div>\s*<\/div>\s*\);\s*\})/m;
 
-  // Handle Power Bar
-  const handlePowerStart = () => { if (turn === user.username) { setIsCharging(true); setPower(0); } };
-  const handlePowerMove = (e: React.TouchEvent | React.MouseEvent) => {
-      if (!isCharging || turn !== user.username) return;
-      let clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-      const bar = document.getElementById('power-bar');
-      if (bar) {
-          const rect = bar.getBoundingClientRect();
-          setPower(Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)));
-      }
-  };
-  const handlePowerEnd = () => {
-      if (!isCharging || turn !== user.username) return;
-      setIsCharging(false);
-      shoot(power, aimAngle);
-      setPower(0);
-      // Switch turn locally for instant feedback
-      if (opponentName !== 'Práctica') setTurn(turn === user.username ? opponentName : user.username);
-  };
-
-  const shoot = (p: number, angle: number) => {
-      const forceMagnitude = Math.max(0.01, p * 1.8); // Adjust max power
-      const force = { x: Math.cos(angle) * forceMagnitude, y: Math.sin(angle) * forceMagnitude };
-      
-      if (isHost) {
-          const cue = engineRef.current?.world.bodies.find(b => b.label === 'cue');
-          if (cue) {
-              Matter.Body.applyForce(cue, cue.position, force);
-          }
-      } else {
-          socket.emit('pool_shoot', { gameId, force });
-      }
-      if (opponentName !== 'Práctica') socket.emit('pool_turn_change', { gameId, nextTurn: turn === user.username ? opponentName : user.username });
-  };
-
-  useEffect(() => {
-      const handleTurn = (data: any) => {
-          if (data.gameId === gameId) setTurn(data.nextTurn);
-      };
-      socket.on('pool_turn_change', handleTurn);
-      return () => { socket.off('pool_turn_change', handleTurn); }
-  }, [gameId, socket]);
-
-  // Aiming logic
-  const handleTableMove = (e: React.MouseEvent | React.TouchEvent) => {
-      if (turn !== user.username) return;
-      const table = document.getElementById('pool-table');
-      const cueBall = ballPositions.find(b => b.label === 'cue');
-      if (table && cueBall) {
-          const rect = table.getBoundingClientRect();
-          const scaleX = TABLE_WIDTH / rect.width;
-          const scaleY = TABLE_HEIGHT / rect.height;
-          
-          let clientX, clientY;
-          if ('touches' in e) {
-              clientX = e.touches[0].clientX;
-              clientY = e.touches[0].clientY;
-          } else {
-              clientX = (e as React.MouseEvent).clientX;
-              clientY = (e as React.MouseEvent).clientY;
-          }
-          
-          const x = (clientX - rect.left) * scaleX;
-          const y = (clientY - rect.top) * scaleY;
-          
-          const dx = cueBall.x - x; // Reverse so cue hits in direction of drag
-          const dy = cueBall.y - y;
-          setAimAngle(Math.atan2(dy, dx));
-      }
-  };
-
-  const cueBall = ballPositions.find(b => b.label === 'cue');
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-8 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0f111a] border border-[#2e7d32]/30 rounded-3xl w-full h-full md:max-h-[90vh] md:max-w-5xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(46,125,50,0.2)]">
-        {/* Header */}
-        <div className="p-4 border-b border-[#2e7d32]/20 flex items-center justify-between bg-gradient-to-r from-[#0a0f1c] to-[#121B2A]">
-          <h2 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
-            🎱 Billar
-          </h2>
-          <button onClick={onClose} className="p-2 text-red-400 hover:bg-red-500/20 rounded-full">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="p-2 md:p-4 flex flex-col gap-2 md:gap-4 flex-1 min-h-0 overflow-hidden bg-[#050B14]">
+    const newUI = `<div className="p-2 md:p-4 flex flex-col gap-2 md:gap-4 flex-1 min-h-0 overflow-hidden bg-[#050B14]">
             
             {/* Player HUD */}
             <div className="flex justify-between items-center px-4 py-2 bg-[#0A101D] rounded-2xl border border-white/5 shadow-lg">
                 {/* Me */}
-                <div className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all ${turn === user.username ? 'bg-blue-900/40 border border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'opacity-50'}`}>
+                <div className={\`flex items-center gap-3 px-4 py-2 rounded-xl transition-all \${turn === user.username ? 'bg-blue-900/40 border border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'opacity-50'}\`}>
                     <img src={user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+user.username} className="w-10 h-10 rounded-full border-2 border-blue-400" />
                     <div>
                         <div className="font-bold text-white text-sm">{user.username}</div>
@@ -287,7 +85,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                 <div className="text-2xl font-black text-white/20 italic">VS</div>
 
                 {/* Opponent */}
-                <div className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all ${turn === opponentName ? 'bg-red-900/40 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'opacity-50'}`}>
+                <div className={\`flex items-center gap-3 px-4 py-2 rounded-xl transition-all \${turn === opponentName ? 'bg-red-900/40 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'opacity-50'}\`}>
                     <div className="text-right">
                         <div className="font-bold text-white text-sm">{opponentName}</div>
                         <div className="text-red-400 text-xs flex items-center justify-end gap-1">Su turno <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div></div>
@@ -416,7 +214,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                                  background: 'linear-gradient(to right, #000 0%, #111 2%, #f1e0c5 5%, #c59763 20%, #4a2511 80%, #222 95%, #fff 100%)',
                                  boxShadow: '0px 20px 20px rgba(0,0,0,0.5), inset 0px 3px 3px rgba(255,255,255,0.3)',
                                  transformOrigin: '0% 50%',
-                                 transform: `rotate(${aimAngle + Math.PI}rad) translateX(${(BALL_RADIUS/TABLE_WIDTH)*100 + (power * 30) + 2}%)`,
+                                 transform: \`rotate(\${aimAngle + Math.PI}rad) translateX(\${(BALL_RADIUS/TABLE_WIDTH)*100 + (power * 30) + 2}%)\`,
                                  borderRadius: '5px'
                              }}
                         >
@@ -443,7 +241,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                     </div>
 
                     <div className="w-full bg-gradient-to-t from-red-600 via-orange-500 to-yellow-400 pointer-events-none transition-all duration-75 relative z-10" 
-                         style={{ height: `${power * 100}%` }}>
+                         style={{ height: \`\${power * 100}%\` }}>
                          <div className="absolute top-0 w-full h-2 bg-white shadow-[0_0_15px_white]"></div>
                     </div>
 
@@ -451,8 +249,12 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                         Tirar
                     </div>
                 </div>
-            </div></div>
-      </div>
-    </div>
-  );
+            </div>`;
+
+    code = code.replace(oldUIRegex, newUI);
+
+    fs.writeFileSync('src/components/PoolGameModal.tsx', code);
+    console.log("Updated to 8-Ball Pool style.");
 }
+
+updateModal();
