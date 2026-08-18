@@ -297,6 +297,25 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                 </div>
             </div>
 
+            
+            {/* HUD / Ball Tracker */}
+            <div className="flex justify-between px-4">
+                <div className="flex gap-1">
+                    {[1,2,3,4,5,6,7].map(i => {
+                        const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
+                        return <div key={i} className={`w-4 h-4 rounded-full border border-white/20 ${isPocketed ? 'opacity-20 bg-gray-600' : 'bg-blue-500'}`}></div>;
+                    })}
+                </div>
+                <div className="flex gap-1">
+                    {[9,10,11,12,13,14,15].map(i => {
+                        const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
+                        return <div key={i} className={`w-4 h-4 rounded-full border border-white/20 flex flex-col items-center justify-center ${isPocketed ? 'opacity-20 bg-gray-600' : 'bg-white'}`}>
+                            <div className="w-full h-[50%] bg-red-500"></div>
+                        </div>;
+                    })}
+                </div>
+            </div>
+            
             {/* Game Area */}
             <div className="flex flex-1 gap-2 md:gap-6 items-stretch justify-center h-full min-h-0 w-full overflow-hidden">
                 
@@ -307,7 +326,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                     style={{ 
                         height: '100%', aspectRatio: '1/2', maxHeight: '80vh',
                         borderColor: '#2D1B11', // Dark wood border
-                        backgroundColor: '#1E6838', // Professional green cloth
+                        backgroundColor: '#0A3B1C', // Deep Professional green cloth
                         backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.4) 100%), url("https://www.transparenttextures.com/patterns/felt.png")'
                     }}
                     onMouseMove={handleTableMove}
@@ -340,16 +359,17 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                         const isStripe = !isCue && i > 8; // Simplified logic just for visuals
                         
                         return (
-                            <div key={b.id} className="absolute rounded-full z-10 pointer-events-none flex items-center justify-center overflow-hidden" 
+                            <div key={b.id} className="absolute rounded-full z-10 pointer-events-none flex items-center justify-center overflow-hidden transition-all duration-[30ms] ease-linear" 
                                   style={{ 
                                       width: (BALL_RADIUS*2/TABLE_WIDTH)*100+'%', 
                                       height: (BALL_RADIUS*2/TABLE_HEIGHT)*100+'%',
                                       left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%',
                                       top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%',
                                       backgroundColor: isCue ? '#ffffff' : (isStripe ? '#ffffff' : color),
-                                      boxShadow: '4px 6px 8px rgba(0,0,0,0.4), inset -3px -3px 6px rgba(0,0,0,0.5), inset 1px 1px 4px rgba(255,255,255,0.8)'
+                                      boxShadow: '2px 4px 6px rgba(0,0,0,0.4), inset -2px -2px 4px rgba(0,0,0,0.5), inset 1px 1px 3px rgba(255,255,255,0.8)'
                                   }}>
                                   
+                                  <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ transform: `rotate(${b.angle}rad)` }}>
                                   {/* Stripe overlay */}
                                   {!isCue && isStripe && (
                                       <div className="absolute w-full h-[50%] top-[25%]" style={{ backgroundColor: color }}></div>
@@ -361,6 +381,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                                           <span className="text-[6px] md:text-[8px] font-black text-black leading-none" style={{transform: 'scale(0.8)'}}>{i}</span>
                                       </div>
                                   )}
+                                  </div>
 
                                   {/* Specular Highlight Overlay (Glass reflection) */}
                                   <div className="absolute w-[40%] h-[40%] top-[15%] left-[20%] rounded-full bg-gradient-to-br from-white/80 to-transparent z-20"></div>
@@ -414,7 +435,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                                  top: (cueBall.y / TABLE_HEIGHT) * 100 + '%',
                                  width: '80%', // Longer cue
                                  height: '10px',
-                                 background: 'linear-gradient(to right, #000 0%, #111 2%, #f1e0c5 5%, #c59763 20%, #4a2511 80%, #222 95%, #fff 100%)',
+                                 background: 'linear-gradient(to right, #000 0%, #111 2%, #d4b895 5%, #8b5a2b 40%, #3e2723 80%, #1a100c 95%, #fff 100%)',
                                  boxShadow: '0px 20px 20px rgba(0,0,0,0.5), inset 0px 3px 3px rgba(255,255,255,0.3)',
                                  transformOrigin: '0% 50%',
                                  transform: `rotate(${aimAngle + Math.PI}rad) translateX(${(BALL_RADIUS/TABLE_WIDTH)*100 + (power * 30) + 2}%)`,
