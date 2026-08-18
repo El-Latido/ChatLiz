@@ -55,6 +55,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
   };
 
 
+  
   function onPieceDrop(sourceSquare: string, targetSquare: string) {
     const myColor = 'w';
     if (status !== 'playing' || game.turn() !== myColor) return false;
@@ -73,30 +74,13 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
         setOptionSquares({});
         
         if (newGame.isGameOver()) {
-          socket.emit('chess_bot_game_over', { gameId, result: newGame.isCheckmate() ? 'user_won' : 'draw', winner: user.username });
+          const isDraw = newGame.isDraw() || newGame.isStalemate() || newGame.isThreefoldRepetition();
+          socket.emit('chess_bot_game_over', { gameId, result: isDraw ? 'draw' : 'user_won', winner: user.username });
+          setStatus(isDraw ? 'draw' : 'won');
         } else {
-            // Trigger bot move
-            setTimeout(() => {
-                const fen = newGame.fen();
-                fetch('https://stockfish.online/api/s/v2.php?fen=' + encodeURIComponent(fen) + '&depth=5')
-                  .then(res => res.json())
-                  .then(data => {
-                     if (data.success && data.bestmove) {
-                         const match = data.bestmove.match(/bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/);
-                         if (match) {
-                             const botMove = match[1];
-                             const botGame = new Chess(newGame.fen());
-                             botGame.move(botMove);
-                             setGame(botGame);
-                             
-                             if (botGame.isGameOver()) {
-                               socket.emit('chess_bot_game_over', { gameId, result: botGame.isCheckmate() ? 'bot_won' : 'draw', winner: 'Elizabeth_Bot' });
-                             }
-                         }
-                     }
-                  }).catch(e => console.error("Bot error:", e));
-            }, 500);
+          makeBotMove(newGame);
         }
+
         return true;
       }
     } catch (e) {
@@ -105,46 +89,48 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
     return false;
   }
 
+  function getOptionSquares(sq: string, currentGame: any) {
+    const moves = currentGame.moves({ square: sq as any, verbose: true }) as any[];
+    const newSquares: Record<string, any> = {};
+    const myColor = 'w';
+    moves.forEach((m: any) => {
+      const isCapture = currentGame.get(m.to) && currentGame.get(m.to).color !== myColor;
+      newSquares[m.to] = {
+        background: isCapture
+          ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
+          : 'radial-gradient(circle, rgba(0,255,0,.5) 25%, transparent 25%)',
+        borderRadius: '50%',
+        zIndex: 10,
+      };
+    });
+    newSquares[sq] = { background: 'rgba(255, 255, 0, 0.6)' };
+    return newSquares;
+  }
+
   function onSquareClick(square: string) {
-    console.log('Pieza tocada en:', square);
     const myColor = 'w';
     if (status !== 'playing' || game.turn() !== myColor) return;
 
-    function getOptionSquares(sq: string) {
-      const moves = game.moves({ square: sq as any, verbose: true }) as any[];
-      const newSquares: Record<string, any> = {};
-      moves.forEach((m) => {
-        newSquares[m.to] = {
-          background:
-            game.get(m.to as any) && game.get(m.to as any).color !== myColor
-              ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
-              : 'radial-gradient(circle, rgba(0,255,0,.5) 25%, transparent 25%)',
-          borderRadius: '50%',
-          zIndex: 10,
-        };
-      });
-      newSquares[sq] = { background: 'rgba(255, 255, 0, 0.6)' };
-      return newSquares;
-    }
-
+    // Si no hay nada seleccionado, intentamos seleccionar
     if (!moveFrom) {
       const piece = game.get(square as any);
       if (piece && piece.color === myColor) {
         setMoveFrom(square);
-        setOptionSquares(getOptionSquares(square));
+        setOptionSquares(getOptionSquares(square, game));
       }
       return;
     }
 
+    // Si ya hay algo seleccionado, intentamos mover
     try {
-      const move = game.move({
+      const newGame = new Chess(game.fen());
+      const move = newGame.move({
         from: moveFrom as any,
         to: square as any,
         promotion: 'q',
       });
       
       if (move) {
-        const newGame = new Chess(game.fen());
         setGame(newGame);
         setMoveFrom('');
         setOptionSquares({});
@@ -156,20 +142,19 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
         } else {
           makeBotMove(newGame);
         }
-      } else {
-         const piece = game.get(square as any);
-         if (piece && piece.color === myColor) {
-           setMoveFrom(square);
-           setOptionSquares(getOptionSquares(square));
-         } else {
-           setMoveFrom('');
-           setOptionSquares({});
-         }
+
       }
     } catch (e) {
-      console.error("Movimiento inválido:", e);
-      setMoveFrom('');
-      setOptionSquares({});
+      // Si falla (movimiento invalido), chequeamos si tocaste otra pieza tuya
+      const piece = game.get(square as any);
+      if (piece && piece.color === myColor) {
+        setMoveFrom(square);
+        setOptionSquares(getOptionSquares(square, game));
+      } else {
+        // Tocaste un lugar vacío invalido, deseleccionar
+        setMoveFrom('');
+        setOptionSquares({});
+      }
     }
   }
 
