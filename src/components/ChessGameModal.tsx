@@ -60,32 +60,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
 
   
   function onPieceDrop(sourceSquare: string, targetSquare: string) {
-    const myColor = isHost ? 'w' : 'b';
-    if (status !== 'playing' || game.turn() !== myColor) return false;
-
-    try {
-      const newGame = new Chess(game.fen());
-      const move = newGame.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q',
-      });
-      
-      if (move) {
-        setGame(newGame);
-        setMoveFrom('');
-        setOptionSquares({});
-        
-        socket.emit('chess_move', { gameId, move, fen: newGame.fen() });
-        if (newGame.isGameOver()) {
-          socket.emit('chess_game_over', { gameId, result: newGame.isCheckmate() ? 'checkmate' : 'draw', winner: user.username });
-        }
-
-        return true;
-      }
-    } catch (e) {
-      return false;
-    }
+    // Return false to prevent dragging to move, enforcing tap-to-move
     return false;
   }
 
@@ -108,11 +83,13 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
   }
 
   
+  
   function onPieceClick(piece: string, square: string) {
     onSquareClick(square);
   }
 
   function onSquareClick(square: string) {
+    console.log("Clicked square", square, "current selection:", moveFrom);
     const myColor = isHost ? 'w' : 'b';
     if (status !== 'playing' || game.turn() !== myColor) return;
 
@@ -255,6 +232,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
                     onPieceClick={onPieceClick}
+                    
                     arePiecesDraggable={false}
                     onPieceDrop={onPieceDrop}
                     boardOrientation={isHost ? 'white' : 'black'}

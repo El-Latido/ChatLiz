@@ -57,35 +57,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
 
   
   function onPieceDrop(sourceSquare: string, targetSquare: string) {
-    const myColor = 'w';
-    if (status !== 'playing' || game.turn() !== myColor) return false;
-
-    try {
-      const newGame = new Chess(game.fen());
-      const move = newGame.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q',
-      });
-      
-      if (move) {
-        setGame(newGame);
-        setMoveFrom('');
-        setOptionSquares({});
-        
-        if (newGame.isGameOver()) {
-          const isDraw = newGame.isDraw() || newGame.isStalemate() || newGame.isThreefoldRepetition();
-          socket.emit('chess_bot_game_over', { gameId, result: isDraw ? 'draw' : 'user_won', winner: user.username });
-          setStatus(isDraw ? 'draw' : 'won');
-        } else {
-          makeBotMove(newGame);
-        }
-
-        return true;
-      }
-    } catch (e) {
-      return false;
-    }
+    // Return false to prevent dragging to move, enforcing tap-to-move
     return false;
   }
 
@@ -108,11 +80,13 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
   }
 
   
+  
   function onPieceClick(piece: string, square: string) {
     onSquareClick(square);
   }
 
   function onSquareClick(square: string) {
+    console.log("Clicked square", square, "current selection:", moveFrom);
     const myColor = 'w';
     if (status !== 'playing' || game.turn() !== myColor) return;
 
@@ -257,6 +231,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
                     onPieceClick={onPieceClick}
+                    
                     arePiecesDraggable={false}
                     onPieceDrop={onPieceDrop}
                     boardOrientation={'white'}
