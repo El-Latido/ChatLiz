@@ -57,6 +57,35 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
     };
   }, [gameId, user.username]);
 
+
+  function onPieceDrop(sourceSquare: string, targetSquare: string) {
+    const myColor = isHost ? 'w' : 'b';
+    if (status !== 'playing' || game.turn() !== myColor) return false;
+
+    try {
+      const newGame = new Chess(game.fen());
+      const move = newGame.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: 'q',
+      });
+      
+      if (move) {
+        setGame(newGame);
+        setMoveFrom('');
+        setOptionSquares({});
+        socket.emit('chess_move', { gameId, move, fen: newGame.fen() });
+        if (newGame.isGameOver()) {
+          socket.emit('chess_game_over', { gameId, result: newGame.isCheckmate() ? 'checkmate' : 'draw', winner: user.username });
+        }
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
   function onSquareClick(square: string) {
     console.log('Pieza tocada en:', square);
     const myColor = isHost ? 'w' : 'b';
@@ -89,14 +118,14 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
     }
 
     try {
-      const move = game.move({
+      const newGame = new Chess(game.fen());
+      const move = newGame.move({
         from: moveFrom as any,
         to: square as any,
         promotion: 'q',
       });
       
       if (move) {
-        const newGame = new Chess(game.fen());
         setGame(newGame);
         setMoveFrom('');
         setOptionSquares({});
@@ -105,20 +134,16 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
         if (newGame.isGameOver()) {
           socket.emit('chess_game_over', { gameId, result: newGame.isCheckmate() ? 'checkmate' : 'draw', winner: user.username });
         }
-      } else {
-         const piece = game.get(square as any);
-         if (piece && piece.color === myColor) {
-           setMoveFrom(square);
-           setOptionSquares(getOptionSquares(square));
-         } else {
-           setMoveFrom('');
-           setOptionSquares({});
-         }
       }
     } catch (e) {
-      console.error("Movimiento inválido:", e);
-      setMoveFrom('');
-      setOptionSquares({});
+      const piece = game.get(square as any);
+      if (piece && piece.color === myColor) {
+        setMoveFrom(square);
+        setOptionSquares(getOptionSquares(square));
+      } else {
+        setMoveFrom('');
+        setOptionSquares({});
+      }
     }
   }
 
@@ -216,7 +241,8 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
-                    arePiecesDraggable={false}
+                    arePiecesDraggable={true}
+                    onPieceDrop={onPieceDrop}
                     boardOrientation={isHost ? 'white' : 'black'}
                     customDarkSquareStyle={{ backgroundColor: boardStyles.dark }}
                     customLightSquareStyle={{ backgroundColor: boardStyles.light }}

@@ -54,6 +54,57 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
       }, 600);
   };
 
+
+  function onPieceDrop(sourceSquare: string, targetSquare: string) {
+    const myColor = 'w';
+    if (status !== 'playing' || game.turn() !== myColor) return false;
+
+    try {
+      const newGame = new Chess(game.fen());
+      const move = newGame.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: 'q',
+      });
+      
+      if (move) {
+        setGame(newGame);
+        setMoveFrom('');
+        setOptionSquares({});
+        
+        if (newGame.isGameOver()) {
+          socket.emit('chess_bot_game_over', { gameId, result: newGame.isCheckmate() ? 'user_won' : 'draw', winner: user.username });
+        } else {
+            // Trigger bot move
+            setTimeout(() => {
+                const fen = newGame.fen();
+                fetch('https://stockfish.online/api/s/v2.php?fen=' + encodeURIComponent(fen) + '&depth=5')
+                  .then(res => res.json())
+                  .then(data => {
+                     if (data.success && data.bestmove) {
+                         const match = data.bestmove.match(/bestmove ([a-h][1-8][a-h][1-8][qrbn]?)/);
+                         if (match) {
+                             const botMove = match[1];
+                             const botGame = new Chess(newGame.fen());
+                             botGame.move(botMove);
+                             setGame(botGame);
+                             
+                             if (botGame.isGameOver()) {
+                               socket.emit('chess_bot_game_over', { gameId, result: botGame.isCheckmate() ? 'bot_won' : 'draw', winner: 'Elizabeth_Bot' });
+                             }
+                         }
+                     }
+                  }).catch(e => console.error("Bot error:", e));
+            }, 500);
+        }
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
   function onSquareClick(square: string) {
     console.log('Pieza tocada en:', square);
     const myColor = 'w';
@@ -215,7 +266,8 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
-                    arePiecesDraggable={false}
+                    arePiecesDraggable={true}
+                    onPieceDrop={onPieceDrop}
                     boardOrientation={'white'}
                     customDarkSquareStyle={{ backgroundColor: boardStyles.dark }}
                     customLightSquareStyle={{ backgroundColor: boardStyles.light }}
