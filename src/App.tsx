@@ -1437,8 +1437,32 @@ function MainApp() {
                                              <span className="text-[#1A2035] text-[14px] leading-snug flex-1">{m.text}</span>
                                              <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
                                          </div>
+                                         
+                                         {m.type === 'pool_invite' && m.inviteData && (
+                                             <button 
+                                                disabled={m.sender === user.username}
+                                                onClick={() => {
+                                                 if (m.sender === user.username) return; // Can't accept own invite
+                                                 if ((user.lizCoins || 0) < m.inviteData!.bet) {
+                                                     alert("No tienes suficientes Liz-Moneditas.");
+                                                     return;
+                                                 }
+                                                 socket.emit('accept_pool_invite', m.inviteData, (res: any) => {
+                                                     if (res.success) {
+                                                         setPoolData({ gameId: m.inviteData!.gameId, isHost: false, opponentName: m.sender, bet: m.inviteData!.bet });
+                                                     } else {
+                                                         alert(res.error || "Error al aceptar el reto.");
+                                                     }
+                                                 });
+                                             }} className={`w-full mt-2 py-1.5 ${m.sender === user.username ? 'bg-green-800/50 cursor-not-allowed opacity-70' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 shadow-md'} text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2`}>
+                                                 <Gamepad2 size={16} /> {m.sender === user.username ? 'Esperando rival...' : '[Jugar Billar]'}
+                                             </button>
+                                         )}
+
                                          {m.type === 'chess_invite' && m.inviteData && (
-                                             <button onClick={() => {
+                                             <button 
+                                                disabled={m.sender === user.username}
+                                                onClick={() => {
                                                  if (m.sender === user.username) return; // Can't accept own invite
                                                  if ((user.lizCoins || 0) < m.inviteData!.bet) {
                                                      alert("No tienes suficientes Liz-Moneditas.");
@@ -1451,8 +1475,8 @@ function MainApp() {
                                                          alert(res.error || "Error al aceptar el reto.");
                                                      }
                                                  });
-                                             }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-blue-500 hover:to-indigo-500 transition-colors flex items-center justify-center gap-2">
-                                                 <Gamepad2 size={16} /> [Jugar]
+                                             }} className={`w-full mt-2 py-1.5 ${m.sender === user.username ? 'bg-indigo-800/50 cursor-not-allowed opacity-70' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md'} text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2`}>
+                                                 <Gamepad2 size={16} /> {m.sender === user.username ? 'Esperando rival...' : '[Jugar Ajedrez]'}
                                              </button>
                                          )}
 
@@ -1865,6 +1889,9 @@ function MainApp() {
                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
                       });
                   
+                  
+                  } else if (gameId === 'poolsolo') {
+                      setPoolData({ gameId: `pool_solo_${Date.now()}`, isHost: true, opponentName: 'Práctica', bet: 0 });
                   } else if (gameId.startsWith('pool_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;

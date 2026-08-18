@@ -115,9 +115,16 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
                           <option value={20}>Apuesta: 20 LM</option>
                           <option value={50}>Apuesta: 50 LM</option>
                       </select>
-                      <button onClick={() => { onSelectGame(`pool_${chessBet}`); onClose(); }} className="w-full py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                          <Trophy size={20} /> PvP Global
-                      </button>
+                      
+                      <div className="flex gap-3">
+                          <button onClick={() => { onSelectGame('poolsolo'); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-green-500/50 text-green-400 hover:bg-green-500/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                              Práctica
+                          </button>
+                          <button onClick={() => { onSelectGame(`pool_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                              <Trophy size={20} /> PvP Global
+                          </button>
+                      </div>
+
                   </div>
               )}
               {currentGame.id === 'tutifrutti' && (

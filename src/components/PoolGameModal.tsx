@@ -144,7 +144,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
       shoot(power, aimAngle);
       setPower(0);
       // Switch turn locally for instant feedback
-      setTurn(turn === user.username ? opponentName : user.username);
+      if (opponentName !== 'Práctica') setTurn(turn === user.username ? opponentName : user.username);
   };
 
   const shoot = (p: number, angle: number) => {
@@ -159,7 +159,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
       } else {
           socket.emit('pool_shoot', { gameId, force });
       }
-      socket.emit('pool_turn_change', { gameId, nextTurn: turn === user.username ? opponentName : user.username });
+      if (opponentName !== 'Práctica') socket.emit('pool_turn_change', { gameId, nextTurn: turn === user.username ? opponentName : user.username });
   };
 
   useEffect(() => {
