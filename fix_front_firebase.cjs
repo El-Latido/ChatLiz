@@ -1,4 +1,7 @@
-import { initializeApp } from "firebase/app";
+const fs = require('fs');
+let code = fs.readFileSync('src/firebaseConfig.ts', 'utf8');
+
+const replacement = `import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
@@ -33,3 +36,6 @@ try {
 }
 
 export { app, db, auth, storage };
+`;
+
+fs.writeFileSync('src/firebaseConfig.ts', replacement);
