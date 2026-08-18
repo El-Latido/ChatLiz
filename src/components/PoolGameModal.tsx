@@ -14,8 +14,8 @@ interface PoolGameModalProps {
   onClose: () => void;
 }
 
-const TABLE_WIDTH = 800;
-const TABLE_HEIGHT = 400;
+const TABLE_WIDTH = 400;
+const TABLE_HEIGHT = 800;
 const BALL_RADIUS = 10;
 const HOLE_RADIUS = 20;
 
@@ -202,7 +202,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-8 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0f111a] border border-[#2e7d32]/30 rounded-3xl w-full max-w-5xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(46,125,50,0.2)]">
+      <div className="bg-[#0f111a] border border-[#2e7d32]/30 rounded-3xl w-full h-full md:max-h-[90vh] md:max-w-5xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(46,125,50,0.2)]">
         {/* Header */}
         <div className="p-4 border-b border-[#2e7d32]/20 flex items-center justify-between bg-gradient-to-r from-[#0a0f1c] to-[#121B2A]">
           <h2 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
@@ -213,66 +213,68 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
           </button>
         </div>
 
-        <div className="p-4 flex flex-col items-center gap-4">
+        <div className="p-4 flex flex-col items-center gap-4 flex-1 min-h-0 overflow-hidden">
             {/* Status */}
             <div className="text-[#E8D9B0] text-lg">
                 Turno de: <span className="font-bold text-green-400">{turn}</span>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-1 gap-4 items-stretch justify-center h-full min-h-0 w-full overflow-hidden">
                 {/* Table */}
                 <div 
                     id="pool-table"
-                    className="relative border-[10px] border-[#3E2723] rounded-lg shadow-2xl bg-[#0a4220] overflow-hidden" 
-                    style={{ width: '100%', maxWidth: TABLE_WIDTH, aspectRatio: '2/1' }}
+                    className="relative border-[10px] md:border-[15px] border-[#3E2723] rounded-[1.5rem] shadow-2xl bg-[#0a4220] overflow-hidden" 
+                    style={{ height: '100%', aspectRatio: '1/2', maxHeight: '80vh' }}
                     onMouseMove={handleTableMove}
                     onTouchMove={handleTableMove}
+                    onMouseDown={handleTableMove}
                 >
-                    {/* Render table relative to 800x400 internally via percentages */}
+                    {/* Render table relative to 400x800 internally via percentages */}
                     {/* Pockets */}
                     {[
-                        { x: 0, y: 0 }, { x: TABLE_WIDTH / 2, y: 0 }, { x: TABLE_WIDTH, y: 0 },
-                        { x: 0, y: TABLE_HEIGHT }, { x: TABLE_WIDTH / 2, y: TABLE_HEIGHT }, { x: TABLE_WIDTH, y: TABLE_HEIGHT }
+                        { x: 0, y: 0 }, { x: TABLE_WIDTH, y: 0 },
+                        { x: 0, y: TABLE_HEIGHT / 2 }, { x: TABLE_WIDTH, y: TABLE_HEIGHT / 2 },
+                        { x: 0, y: TABLE_HEIGHT }, { x: TABLE_WIDTH, y: TABLE_HEIGHT }
                     ].map((p, i) => (
-                        <div key={i} className="absolute bg-black rounded-full" 
-                             style={{ 
-                                 width: (HOLE_RADIUS*2/TABLE_WIDTH)*100+'%', 
-                                 height: (HOLE_RADIUS*2/TABLE_HEIGHT)*100+'%', 
-                                 left: ((p.x - HOLE_RADIUS)/TABLE_WIDTH)*100+'%', 
-                                 top: ((p.y - HOLE_RADIUS)/TABLE_HEIGHT)*100+'%' 
-                             }} />
+                        <div key={i} className="absolute bg-black rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] z-0" 
+                              style={{ 
+                                  width: (HOLE_RADIUS*2/TABLE_WIDTH)*100+'%', 
+                                  height: (HOLE_RADIUS*2/TABLE_HEIGHT)*100+'%',
+                                  left: ((p.x - HOLE_RADIUS)/TABLE_WIDTH)*100+'%',
+                                  top: ((p.y - HOLE_RADIUS)/TABLE_HEIGHT)*100+'%'
+                              }} />
                     ))}
                     
                     {/* Balls */}
                     {ballPositions.map(b => (
-                        <div key={b.id} className="absolute rounded-full shadow-sm" 
-                             style={{ 
-                                 width: (BALL_RADIUS*2/TABLE_WIDTH)*100+'%', 
-                                 height: (BALL_RADIUS*2/TABLE_HEIGHT)*100+'%', 
-                                 left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%', 
-                                 top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%', 
-                                 backgroundColor: b.color 
-                             }} />
+                        <div key={b.id} className="absolute rounded-full shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.4)] z-10" 
+                              style={{ 
+                                  width: (BALL_RADIUS*2/TABLE_WIDTH)*100+'%', 
+                                  height: (BALL_RADIUS*2/TABLE_HEIGHT)*100+'%',
+                                  left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%',
+                                  top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%',
+                                  backgroundColor: b.color
+                              }} />
                     ))}
 
                     {/* Aim Line */}
                     {turn === user.username && cueBall && (
-                        <div className="absolute origin-left pointer-events-none"
+                        <div className="absolute pointer-events-none z-20"
                              style={{
                                  left: (cueBall.x / TABLE_WIDTH) * 100 + '%',
                                  top: (cueBall.y / TABLE_HEIGHT) * 100 + '%',
-                                 width: '30%',
+                                 width: '15%', // Short line
                                  height: '2px',
                                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
-                                 borderTop: '2px dashed white',
-                                 transform: `translateY(-50%) rotate(${aimAngle}rad)`
+                                 transformOrigin: '0% 50%',
+                                 transform: `rotate(${aimAngle}rad)`
                              }}
                         />
                     )}
                 </div>
 
                 {/* Power Bar */}
-                <div className="w-12 bg-[#121B2A] border-2 border-green-500/30 rounded-full relative flex flex-col justify-end overflow-hidden cursor-pointer touch-none"
+                <div className="w-12 md:w-16 h-full max-h-[80vh] bg-[#0a0f1c] border-[3px] border-green-500/30 rounded-xl relative flex flex-col justify-end overflow-hidden cursor-pointer touch-none shadow-xl shrink-0"
                      id="power-bar"
                      onMouseDown={handlePowerStart}
                      onMouseMove={handlePowerMove}
@@ -282,8 +284,10 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                      onTouchMove={handlePowerMove}
                      onTouchEnd={handlePowerEnd}
                 >
-                    <div className="w-full bg-gradient-to-t from-green-500 to-emerald-300 pointer-events-none transition-all duration-75"
-                         style={{ height: `${power * 100}%` }} />
+                    <div className="w-full bg-gradient-to-t from-green-600 via-emerald-400 to-yellow-300 pointer-events-none transition-all duration-75 relative" 
+                         style={{ height: `${power * 100}%` }}>
+                         <div className="absolute top-0 w-full h-1 bg-white/80 shadow-[0_0_8px_white]"></div>
+                    </div>
                 </div>
             </div>
         </div>
