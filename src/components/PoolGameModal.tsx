@@ -148,7 +148,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
   };
 
   const shoot = (p: number, angle: number) => {
-      const forceMagnitude = Math.max(0.01, p * 1.2); // Adjust max power
+      const forceMagnitude = Math.max(0.01, p * 1.8); // Adjust max power
       const force = { x: Math.cos(angle) * forceMagnitude, y: Math.sin(angle) * forceMagnitude };
       
       if (isHost) {
@@ -246,16 +246,38 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                     ))}
                     
                     {/* Balls */}
-                    {ballPositions.map(b => (
-                        <div key={b.id} className="absolute rounded-full shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.4),0_2px_4px_rgba(0,0,0,0.4)] z-10" 
-                              style={{ 
-                                  width: (BALL_RADIUS*2/TABLE_WIDTH)*100+'%', 
-                                  height: (BALL_RADIUS*2/TABLE_HEIGHT)*100+'%',
-                                  left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%',
-                                  top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%',
-                                  backgroundColor: b.color
-                              }} />
-                    ))}
+                    {ballPositions.map(b => {
+                        const isCue = b.label === 'cue';
+                        const color = isCue ? '#ffffff' : b.color;
+                        return (
+                            <div key={b.id} className="absolute rounded-full z-10 pointer-events-none" 
+                                  style={{ 
+                                      width: (BALL_RADIUS*2/TABLE_WIDTH)*100+'%', 
+                                      height: (BALL_RADIUS*2/TABLE_HEIGHT)*100+'%',
+                                      left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%',
+                                      top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%',
+                                      background: `radial-gradient(circle at 35% 35%, ${isCue ? '#ffffff' : 'rgba(255,255,255,0.7)'} 0%, ${color} 30%, #111 110%)`,
+                                      boxShadow: '3px 5px 6px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(0,0,0,0.4)'
+                                  }} />
+                        );
+                    })}
+
+                    {/* Cue Stick */}
+                    {turn === user.username && cueBall && (
+                        <div className="absolute z-20 pointer-events-none"
+                             style={{
+                                 left: (cueBall.x / TABLE_WIDTH) * 100 + '%',
+                                 top: (cueBall.y / TABLE_HEIGHT) * 100 + '%',
+                                 width: '60%',
+                                 height: '8px',
+                                 background: 'linear-gradient(to right, #1a0b00 0%, #3e1f00 5%, #8b4513 20%, #d2b48c 80%, #f4f4f4 95%, #444 100%)',
+                                 boxShadow: '0px 15px 15px rgba(0,0,0,0.6), inset 0px 2px 2px rgba(255,255,255,0.2)',
+                                 transformOrigin: '0% 50%',
+                                 transform: `rotate(${aimAngle + Math.PI}rad) translateX(${(BALL_RADIUS/TABLE_WIDTH)*100 + (power * 15) + 2}%)`,
+                                 borderRadius: '4px'
+                             }}
+                        />
+                    )}
 
                     {/* Aim Line */}
                     {turn === user.username && cueBall && (
