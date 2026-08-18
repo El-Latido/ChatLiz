@@ -95,14 +95,9 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
                           <option value={30}>Apuesta: 30 LM</option>
                           <option value={40}>Apuesta: 40 LM</option>
                       </select>
-                      <div className="flex gap-3">
-                          <button onClick={() => { onSelectGame(`chessbot_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                              🤖 vs Bot
-                          </button>
-                          <button onClick={() => { onSelectGame(`chess_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                              <Swords size={20} /> PvP Global
-                          </button>
-                      </div>
+                      <button onClick={() => { onSelectGame(`chess_${chessBet}`); onClose(); }} className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                          <Swords size={20} /> Crear Reto Global
+                      </button>
                   </div>
               )}
               
@@ -116,14 +111,9 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
                           <option value={50}>Apuesta: 50 LM</option>
                       </select>
                       
-                      <div className="flex gap-3">
-                          <button onClick={() => { onSelectGame('poolsolo'); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-green-500/50 text-green-400 hover:bg-green-500/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                              Práctica
-                          </button>
-                          <button onClick={() => { onSelectGame(`pool_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
-                              <Trophy size={20} /> PvP Global
-                          </button>
-                      </div>
+                      <button onClick={() => { onSelectGame(`pool_${chessBet}`); onClose(); }} className="w-full py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                          <Trophy size={20} /> Crear Reto Global
+                      </button>
 
                   </div>
               )}
