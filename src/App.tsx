@@ -1876,22 +1876,33 @@ function MainApp() {
               onSelectGame={(gameId) => {
                   if (gameId === 'tutifrutti') {
                       setActiveChat('tutifrutti');
-                  } else if (gameId.startsWith('chess_')) {
-                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                  
+                   } else if (gameId.startsWith('chess_')) {
+                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
-                      if ((user.lizCoins || 0) < bet) {
-                          alert("No tienes suficientes Liz-Moneditas.");
-                          return;
-                      }
-                      socket.emit('send_global', { 
-                          text: bet > 0 ? `¡Reto de Ajedrez por ${bet * 2} LM!` : `¡Reto de Ajedrez Amistoso!`,
-                          type: 'chess_invite',
-                          inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
-                      });
+                       if ((user.lizCoins || 0) < bet) {
+                           alert("No tienes suficientes Liz-Moneditas.");
+                           return;
+                       }
+                       const msgData = {
+                           id: Date.now().toString(),
+                           text: bet > 0 ? `¡Reto de Ajedrez por ${bet * 2} LM!` : `¡Reto de Ajedrez Amistoso!`,
+                           type: 'chess_invite',
+                           sender: user.username,
+                           senderId: user.username,
+                           avatar: user.avatar,
+                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
+                       };
+                       socket.emit('send_global', msgData);
+                       setActiveChat('global');
+                       setMessages(prev => [...prev, msgData]);
+                       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
                   
                   
                   } else if (gameId === 'poolsolo') {
                       setPoolData({ gameId: `pool_solo_${Date.now()}`, isHost: true, opponentName: 'Práctica', bet: 0 });
+                  
                   } else if (gameId.startsWith('pool_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1899,11 +1910,20 @@ function MainApp() {
                           alert("No tienes suficientes Liz-Moneditas.");
                           return;
                       }
-                      socket.emit('send_global', { 
+                      const msgData = {
+                          id: Date.now().toString(),
                           text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
                           type: 'pool_invite',
+                          sender: user.username,
+                          senderId: user.username,
+                          avatar: user.avatar,
                           inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
-                      });
+                      };
+                      socket.emit('send_global', msgData);
+                      setActiveChat('global');
+                      setMessages(prev => [...prev, msgData]);
+                      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
                   } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1950,6 +1970,7 @@ function MainApp() {
                onSelectGame={(gameId) => {
                    if (gameId === 'tutifrutti') {
                        setActiveChat('tutifrutti');
+                   
                    } else if (gameId.startsWith('chess_')) {
                        const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1957,12 +1978,22 @@ function MainApp() {
                            alert("No tienes suficientes Liz-Moneditas.");
                            return;
                        }
-                       socket.emit('send_global', { 
+                       const msgData = {
+                           id: Date.now().toString(),
                            text: bet > 0 ? `¡Reto de Ajedrez por ${bet * 2} LM!` : `¡Reto de Ajedrez Amistoso!`,
                            type: 'chess_invite',
+                           sender: user.username,
+                           senderId: user.username,
+                           avatar: user.avatar,
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
-                       });
+                       };
+                       socket.emit('send_global', msgData);
+                       setActiveChat('global');
+                       setMessages(prev => [...prev, msgData]);
+                       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
                    
+                  
                   } else if (gameId.startsWith('pool_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1970,11 +2001,20 @@ function MainApp() {
                           alert("No tienes suficientes Liz-Moneditas.");
                           return;
                       }
-                      socket.emit('send_global', { 
+                      const msgData = {
+                          id: Date.now().toString(),
                           text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
                           type: 'pool_invite',
+                          sender: user.username,
+                          senderId: user.username,
+                          avatar: user.avatar,
                           inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
-                      });
+                      };
+                      socket.emit('send_global', msgData);
+                      setActiveChat('global');
+                      setMessages(prev => [...prev, msgData]);
+                      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
                   } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
