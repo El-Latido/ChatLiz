@@ -107,6 +107,11 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
     return newSquares;
   }
 
+  
+  function onPieceClick(piece: string, square: string) {
+    onSquareClick(square);
+  }
+
   function onSquareClick(square: string) {
     const myColor = 'w';
     if (status !== 'playing' || game.turn() !== myColor) return;
@@ -251,6 +256,7 @@ export function ChessBotModal({ onClose, user, gameId, opponent, bet }: ChessBot
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
+                    onPieceClick={onPieceClick}
                     arePiecesDraggable={false}
                     onPieceDrop={onPieceDrop}
                     boardOrientation={'white'}
