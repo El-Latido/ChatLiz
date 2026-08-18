@@ -17,7 +17,8 @@ import {  GamesMenuModal } from './components/GamesMenuModal';
 import {  EmojiGifPicker } from './components/EmojiGifPicker';
 
 import {  StoreModal } from './components/StoreModal';
-import {  ChessGameModal } from './components/ChessGameModal';
+import { ChessGameModal } from './components/ChessGameModal';
+import { PoolGameModal } from './components/PoolGameModal';
 import {  ChessBotModal } from './components/ChessBotModal';
 import {  PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import {  PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
@@ -1620,6 +1621,19 @@ function MainApp() {
               isHost={activeChessGame.isHost}
           />
       )}
+      
+      {poolData && (
+          <PoolGameModal
+              gameId={poolData.gameId}
+              isHost={poolData.isHost}
+              opponentName={poolData.opponentName}
+              bet={poolData.bet}
+              socket={socket}
+              user={user}
+              onClose={() => { setPoolData(null); setActiveChat('global'); }}
+          />
+      )}
+
       {activeChessGame && !activeChessGame.isBot && (
           <ChessGameModal
               onClose={() => setActiveChessGame(null)}
