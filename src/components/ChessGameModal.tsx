@@ -96,14 +96,14 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
     moves.forEach((m: any) => {
       const isCapture = currentGame.get(m.to) && currentGame.get(m.to).color !== myColor;
       newSquares[m.to] = {
-        background: isCapture
+        backgroundImage: isCapture
           ? 'radial-gradient(circle, rgba(255,0,0,.5) 85%, transparent 85%)'
           : 'radial-gradient(circle, rgba(0,255,0,.5) 25%, transparent 25%)',
         borderRadius: '50%',
         zIndex: 10,
       };
     });
-    newSquares[sq] = { background: 'rgba(255, 255, 0, 0.6)' };
+    newSquares[sq] = { backgroundColor: 'rgba(255, 255, 0, 0.6)' };
     return newSquares;
   }
 
@@ -249,7 +249,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
                 <ChessboardAny 
                     position={game.fen()} 
                     onSquareClick={onSquareClick}
-                    arePiecesDraggable={true}
+                    arePiecesDraggable={false}
                     onPieceDrop={onPieceDrop}
                     boardOrientation={isHost ? 'white' : 'black'}
                     customDarkSquareStyle={{ backgroundColor: boardStyles.dark }}
