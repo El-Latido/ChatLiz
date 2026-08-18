@@ -413,6 +413,11 @@ function MainApp() {
       }
     });
 
+    
+    socket.on('pool_invite_accepted', (data) => {
+      setPoolData({ gameId: data.gameId, isHost: true, opponentName: data.opponent, bet: data.bet });
+      setActiveChat('pool');
+    });
     socket.on('chess_invite_accepted', (data: { gameId: string, opponent: string, bet: number }) => {
         // Find the user object in usersOnline ref or just pass username
         setUsersOnline(prev => {
@@ -1859,6 +1864,19 @@ function MainApp() {
                           type: 'chess_invite',
                           inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'chess' }
                       });
+                  
+                  } else if (gameId.startsWith('pool_')) {
+                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
+                      if ((user.lizCoins || 0) < bet) {
+                          alert("No tienes suficientes Liz-Moneditas.");
+                          return;
+                      }
+                      socket.emit('send_global', { 
+                          text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
+                          type: 'pool_invite',
+                          inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
+                      });
                   } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1917,7 +1935,20 @@ function MainApp() {
                            type: 'chess_invite',
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
                        });
-                   } else if (gameId.startsWith('chessbot_')) {
+                   
+                  } else if (gameId.startsWith('pool_')) {
+                      const parsedBet = parseInt(gameId.split('_')[1], 10);
+                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
+                      if ((user.lizCoins || 0) < bet) {
+                          alert("No tienes suficientes Liz-Moneditas.");
+                          return;
+                      }
+                      socket.emit('send_global', { 
+                          text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
+                          type: 'pool_invite',
+                          inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
+                      });
+                  } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
                       if ((user.lizCoins || 0) < bet) {
