@@ -14,8 +14,8 @@ interface PoolGameModalProps {
   onClose: () => void;
 }
 
-const TABLE_WIDTH = 400;
-const TABLE_HEIGHT = 800;
+const TABLE_WIDTH = 800;
+const TABLE_HEIGHT = 400;
 const BALL_RADIUS = 10;
 const HOLE_RADIUS = 20;
 
@@ -261,7 +261,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
 
   return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-8 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0f111a] border border-[#2e7d32]/30 rounded-3xl w-full h-full md:max-h-[90vh] md:max-w-5xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(46,125,50,0.2)]">
+      <div className="bg-[#0A101D] border border-white/10 rounded-3xl w-full h-full md:max-h-[90vh] md:max-w-7xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(46,125,50,0.2)]">
         {/* Header */}
         <div className="p-4 border-b border-[#2e7d32]/20 flex items-center justify-between bg-gradient-to-r from-[#0a0f1c] to-[#121B2A]">
           <h2 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
@@ -317,16 +317,16 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
             </div>
             
             {/* Game Area */}
-            <div className="flex flex-1 gap-2 md:gap-6 items-stretch justify-center h-full min-h-0 w-full overflow-hidden">
+            <div className="flex flex-col md:flex-row flex-1 gap-4 items-center justify-center w-full min-h-0 overflow-hidden">
                 
                 {/* Table */}
                 <div 
                     id="pool-table"
-                    className="relative border-[12px] md:border-[20px] rounded-[2rem] shadow-2xl overflow-hidden" 
+                    className="relative border-[16px] md:border-[24px] rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden shrink-0" 
                     style={{ 
-                        height: '100%', aspectRatio: '1/2', maxHeight: '80vh',
-                        borderColor: '#2D1B11', // Dark wood border
-                        backgroundColor: '#0A3B1C', // Deep Professional green cloth
+                        width: '100%', maxWidth: '1000px', aspectRatio: '2/1', maxHeight: '100%',
+                        borderColor: '#4A2511', // Wood border
+                        backgroundColor: '#1B5B31', // 8 Ball Pool Green cloth
                         backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.4) 100%), url("https://www.transparenttextures.com/patterns/felt.png")'
                     }}
                     onMouseMove={handleTableMove}
@@ -334,14 +334,18 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                     onMouseDown={handleTableMove}
                 >
                     {/* Inner rubber rails */}
-                    <div className="absolute inset-0 border-[6px] border-[#154a27] rounded-[1.2rem] opacity-80 pointer-events-none z-0"></div>
+                    <div className="absolute inset-0 border-[8px] border-[#0F381D] rounded-[1.5rem] opacity-90 pointer-events-none z-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]"></div>
+                    
+                    {/* Head string line */}
+                    <div className="absolute top-0 bottom-0 w-px bg-white/20 pointer-events-none z-0" style={{ left: '25%' }}></div>
+                    <div className="absolute w-2 h-2 rounded-full bg-white/20 pointer-events-none z-0" style={{ left: '25%', top: '50%', transform: 'translate(-50%, -50%)' }}></div>
+                    
 
                     {/* Render table relative to 400x800 internally via percentages */}
                     {/* Pockets */}
                     {[
-                        { x: 0, y: 0 }, { x: TABLE_WIDTH, y: 0 },
-                        { x: 0, y: TABLE_HEIGHT / 2 }, { x: TABLE_WIDTH, y: TABLE_HEIGHT / 2 },
-                        { x: 0, y: TABLE_HEIGHT }, { x: TABLE_WIDTH, y: TABLE_HEIGHT }
+                        { x: 0, y: 0 }, { x: TABLE_WIDTH / 2, y: 0 }, { x: TABLE_WIDTH, y: 0 },
+                        { x: 0, y: TABLE_HEIGHT }, { x: TABLE_WIDTH / 2, y: TABLE_HEIGHT }, { x: TABLE_WIDTH, y: TABLE_HEIGHT }
                     ].map((p, i) => (
                         <div key={i} className="absolute bg-[#0a0a0a] rounded-full shadow-[inset_0_5px_10px_rgba(0,0,0,0.9),0_1px_2px_rgba(255,255,255,0.1)] z-0" 
                               style={{ 
@@ -356,7 +360,8 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                     {ballPositions.map((b, i) => {
                         const isCue = b.label === 'cue';
                         const color = isCue ? '#ffffff' : b.color;
-                        const isStripe = !isCue && i > 8; // Simplified logic just for visuals
+                        const num = isCue ? 0 : parseInt(b.label.split('_')[1]);
+                        const isStripe = num > 8;
                         
                         return (
                             <div key={b.id} className="absolute rounded-full z-10 pointer-events-none flex items-center justify-center overflow-hidden transition-all duration-[30ms] ease-linear" 
@@ -378,7 +383,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                                   {/* Number circle */}
                                   {!isCue && (
                                       <div className="w-[50%] h-[50%] bg-white rounded-full flex items-center justify-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] z-10">
-                                          <span className="text-[6px] md:text-[8px] font-black text-black leading-none" style={{transform: 'scale(0.8)'}}>{i}</span>
+                                          <span className="text-[6px] md:text-[8px] font-black text-black leading-none" style={{transform: 'scale(0.8)'}}>{num}</span>
                                       </div>
                                   )}
                                   </div>
@@ -449,7 +454,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                 </div>
 
                 {/* Power Bar (8-Ball Style) */}
-                <div className="w-14 md:w-20 h-full max-h-[80vh] bg-[#111] border-[4px] border-[#222] rounded-2xl relative flex flex-col justify-end overflow-hidden cursor-pointer touch-none shadow-[0_0_30px_rgba(0,0,0,0.8)] shrink-0"
+                <div className="w-12 md:w-16 h-[60vh] md:h-full max-h-[400px] bg-[#111] border-[4px] border-[#222] rounded-2xl relative flex flex-col justify-end overflow-hidden cursor-pointer touch-none shadow-[0_0_30px_rgba(0,0,0,0.8)] shrink-0"
                      id="power-bar"
                      onMouseDown={handlePowerStart}
                      onMouseMove={handlePowerMove}
