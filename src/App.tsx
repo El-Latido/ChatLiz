@@ -1,3 +1,4 @@
+import { DebugConsole } from "./components/DebugConsole";
 import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react';
 import {  
   Send, User, MessageCircle, Settings, Bot, 
@@ -770,6 +771,7 @@ function MainApp() {
 
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-gradient-to-br from-[#0B1220] via-[#121B2A] to-[#0A101C] text-gray-200 flex flex-col font-sans">
+      <DebugConsole />
       
       {/* Top Navigation Bar (Floating/Overlay style) */}
       <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full">
