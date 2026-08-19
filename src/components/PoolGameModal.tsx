@@ -327,17 +327,28 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
         <div className="flex-1 w-full flex flex-row items-center justify-center gap-4 p-4 pb-8 overflow-hidden z-10">
             
             {/* TABLE WRAPPER */}
-            <div className="relative shrink-0 flex items-center justify-center shadow-[0_30px_60px_rgba(0,0,0,1)] rounded-[2rem]" style={{ height: '95%', aspectRatio: '1/2' }}>
+            <div className="relative shrink-0 shadow-[0_30px_60px_rgba(0,0,0,1)] rounded-xl" style={{ height: '95%', aspectRatio: '1/2', backgroundColor: '#000' }}>
                 
-                {/* NATIVE BACKGROUND IMAGE (Layer 0) 
-                    Spans slightly larger than the playable hitbox to show the wood borders perfectly.
+                {/* 
+                  NATIVE BACKGROUND IMAGE (Layer 0)
+                  Using an explicit img tag pointing to the public asset is the most bulletproof way 
+                  to ensure the image loads across all browsers and devices without CSS background clipping.
                 */}
-                <div className="absolute inset-[-12%] bg-cover bg-center rounded-[3rem] z-0 pointer-events-none border-[3px] border-[#2A1508]"
-                     style={{ backgroundImage: `url(${tableBg})` }}>
-                </div>
+                <img src={tableBg} 
+                    alt="Pool Table" 
+                    className="absolute max-w-none z-0 pointer-events-none" 
+                    style={{ 
+                        width: '124%', 
+                        height: '124%', 
+                        top: '-12%', 
+                        left: '-12%',
+                        objectFit: 'fill',
+                        borderRadius: '2.5rem'
+                    }} 
+                />
                 
                 {/* INNER SHADOW OVER THE GREEN CLOTH */}
-                <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_0_40px_rgba(0,0,0,0.8)] pointer-events-none z-10"></div>
+                <div className="absolute inset-0 rounded-xl shadow-[inset_0_0_40px_rgba(0,0,0,0.8)] pointer-events-none z-10"></div>
 
                 {/* PLAYABLE HITBOX (Exactly the green cloth dimensions) */}
                 <div 
