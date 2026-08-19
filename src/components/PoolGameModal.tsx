@@ -260,15 +260,14 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0f18]">
       
       {/* 
         IMAGE-AS-REFERENCE CONTAINER 
-        Adjust max-width or aspect ratio to match your uploaded image precisely.
       */}
       <div 
-        className="relative w-full h-full md:h-[90vh] md:w-auto md:aspect-[9/16] bg-cover bg-center bg-no-repeat overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] md:rounded-[3rem]"
-        style={{ backgroundImage: 'url("/pool-bg.jpg")' }} // The user must upload pool-bg.jpg to the public/ folder
+        className="relative w-full h-full md:max-w-[500px] md:h-[90vh] bg-cover bg-center overflow-hidden md:rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+        style={{ backgroundImage: 'url("/pool-bg.jpg")' }}
       >
         
         {/* CLOSE BUTTON */}
@@ -276,60 +275,56 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
             <X size={24} />
         </button>
 
-        {/* --- HUD OVERLAYS (Hitboxes for crossing out pocketed balls) --- */}
-        
-        {/* Player 1 Balls Status Overlay */}
-        <div className="absolute top-[10.5%] left-[10%] w-[32%] h-[2.5%] flex items-center justify-between z-20">
-            {[1,2,3,4,5,6,7].map(i => {
-                const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
-                return (
-                    <div key={i} className="h-full aspect-square flex items-center justify-center">
-                        {isPocketed && (
-                            // Black cross or dark overlay for pocketed balls
-                            <div className="w-[120%] h-[120%] bg-black/70 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                <X size={12} className="text-red-500 opacity-80" />
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
+        {/* --- HUD OVERLAYS --- */}
+        <div className="absolute top-[8%] w-full flex justify-between px-6 z-20">
+            
+            {/* Player 1 Balls Status Overlay */}
+            <div className="w-[35%] h-8 flex items-center justify-between">
+                {[1,2,3,4,5,6,7].map(i => {
+                    const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
+                    return (
+                        <div key={i} className="h-full aspect-square flex items-center justify-center">
+                            {isPocketed && (
+                                <div className="w-full h-full bg-black/70 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                    <X size={12} className="text-red-500 opacity-80" />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
 
-        {/* Player 2 Balls Status Overlay */}
-        <div className="absolute top-[10.5%] right-[10%] w-[32%] h-[2.5%] flex items-center justify-between flex-row-reverse z-20">
-            {[9,10,11,12,13,14,15].map(i => {
-                const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
-                return (
-                    <div key={i} className="h-full aspect-square flex items-center justify-center">
-                        {isPocketed && (
-                            <div className="w-[120%] h-[120%] bg-black/70 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                <X size={12} className="text-red-500 opacity-80" />
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+            {/* Player 2 Balls Status Overlay */}
+            <div className="w-[35%] h-8 flex items-center justify-between flex-row-reverse">
+                {[9,10,11,12,13,14,15].map(i => {
+                    const isPocketed = !ballPositions.some(b => b.label === `ball_${i}`);
+                    return (
+                        <div key={i} className="h-full aspect-square flex items-center justify-center">
+                            {isPocketed && (
+                                <div className="w-full h-full bg-black/70 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                    <X size={12} className="text-red-500 opacity-80" />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
-
 
         {/* --- TABLE HITBOX --- */}
-        {/* Adjust top, left, width, and height to perfectly align with the green cloth in your image */}
         <div 
             id="pool-table"
             className="absolute z-10"
             style={{
-                top: '18.5%',      // Adjust this to match the top edge of the green cloth
-                left: '11%',       // Adjust this to match the left edge of the green cloth
-                width: '78%',      // Adjust this to span from left edge to right edge
-                aspectRatio: '1/2' // Standard pool table ratio
+                top: '20%',      // Positioned over the green cloth of the generated image
+                left: '10%',       
+                width: '80%',      
+                aspectRatio: '1/2' 
             }}
             onMouseMove={handleTableMove}
             onTouchMove={handleTableMove}
             onMouseDown={handleTableMove}
         >
-            {/* We NO LONGER draw the table styling, borders, or pockets. 
-                Everything is on the background image. We ONLY draw dynamic elements. */}
-
             {/* BALLS */}
             {ballPositions.map((b, i) => {
                 const isCue = b.label === 'cue';
@@ -345,17 +340,13 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                                 left: ((b.x - BALL_RADIUS)/TABLE_WIDTH)*100+'%',
                                 top: ((b.y - BALL_RADIUS)/TABLE_HEIGHT)*100+'%',
                                 backgroundColor: isCue ? '#ffffff' : (isStripe ? '#ffffff' : color),
-                                // Simplified shadow since the image has its own lighting, just enough to pop
                                 boxShadow: '2px 4px 6px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.6)'
                             }}>
                             
-                            {/* Rotation wrapper */}
                             <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ transform: `rotate(${b.angle}rad)` }}>
-                                {/* Stripe overlay */}
                                 {!isCue && isStripe && (
                                     <div className="absolute w-full h-[45%] top-[27.5%]" style={{ backgroundColor: color }}></div>
                                 )}
-                                {/* Number circle */}
                                 {!isCue && (
                                     <div className="w-[45%] h-[45%] bg-white rounded-full flex items-center justify-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] z-10">
                                         <span className="text-[7px] md:text-[9px] font-black text-black leading-none">{num}</span>
@@ -380,7 +371,6 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                         stroke="rgba(255, 255, 255, 0.85)" 
                         strokeWidth="2" 
                     />
-                    {/* Ghost Ball */}
                     <circle 
                         cx={(ghostBall.x / TABLE_WIDTH) * 100 + '%'} 
                         cy={(ghostBall.y / TABLE_HEIGHT) * 100 + '%'} 
@@ -389,7 +379,6 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                         stroke="rgba(255, 255, 255, 0.9)" 
                         strokeWidth="1.5" 
                     />
-                    {/* Deflection */}
                     {deflectionLine && (
                         <line 
                             x1={(deflectionLine.x1 / TABLE_WIDTH) * 100 + '%'} 
@@ -418,21 +407,18 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
                             borderRadius: '7px'
                         }}
                 >
-                    {/* Blue tip */}
                     <div className="absolute left-0 top-0 bottom-0 w-[2%] bg-blue-500 rounded-l-[7px] border-r border-white/50"></div>
                 </div>
             )}
         </div>
 
         {/* --- POWER BAR HITBOX --- */}
-        {/* Adjust to match the power bar slider in your image */}
         <div className="absolute z-20 cursor-pointer touch-none"
              style={{
-                 top: '35%',
-                 right: '3%',
+                 top: '30%',
+                 right: '2%',
                  width: '8%',
-                 height: '30%',
-                 // backgroundColor: 'rgba(255,0,0,0.2)' // Uncomment to debug hitbox positioning
+                 height: '40%',
              }}
              id="power-bar"
              onMouseDown={handlePowerStart}
@@ -443,8 +429,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
              onTouchMove={handlePowerMove}
              onTouchEnd={handlePowerEnd}
         >
-            {/* The Draggable Thumb (Matches exactly where power is) */}
-            <div className="absolute left-1/2 -translate-x-1/2 w-[120%] h-6 bg-gradient-to-b from-gray-200 to-gray-400 rounded shadow-lg border border-white z-10 pointer-events-none flex items-center justify-center"
+            <div className="absolute left-1/2 -translate-x-1/2 w-[140%] h-6 bg-gradient-to-b from-gray-200 to-gray-400 rounded-full shadow-lg border border-white z-10 pointer-events-none flex items-center justify-center"
                     style={{ 
                         top: `${Math.max(0, Math.min(100, (1 - power) * 100))}%`,
                         transform: 'translateY(-50%)',
