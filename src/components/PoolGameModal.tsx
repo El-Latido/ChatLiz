@@ -31,7 +31,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
   const [status, setStatus] = useState<'playing' | 'game_over'>('playing');
   
   const [aimAngle, setAimAngle] = useState(0);
-  const [ballPositions, setBallPositions] = useState<{ id: number; x: number; y: number; color: string; label: string }[]>([]);
+  const [ballPositions, setBallPositions] = useState<{ id: number; x: number; y: number; color: string; label: string; angle?: number }[]>([]);
 
   useEffect(() => {
     // Only Host runs physics
@@ -85,7 +85,8 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
             x: b.position.x,
             y: b.position.y,
             color: b.render.fillStyle || '#fff',
-            label: b.label
+            label: b.label,
+            angle: b.angle
         }));
         setBallPositions(positions);
         socket.emit('pool_sync', { gameId, positions });
@@ -278,7 +279,7 @@ export function PoolGameModal({ gameId, isHost, opponentName, bet, socket, user,
             <div className="flex justify-between items-start w-full">
                 {/* P1 */}
                 <div className={`flex items-start gap-3 transition-opacity ${turn === user.username ? 'opacity-100' : 'opacity-50'}`}>
-                    <img src={user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+user.username} className="w-12 h-12 rounded-xl object-cover border-2 border-blue-500 bg-gray-800" />
+                    <img src={user.profilePic || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+user.username} className="w-12 h-12 rounded-xl object-cover border-2 border-blue-500 bg-gray-800" />
                     <div className="flex flex-col">
                         <span className="font-bold text-sm leading-tight">Player 1</span>
                         <span className="text-gray-400 text-xs mb-1">(You)</span>

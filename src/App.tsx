@@ -1911,7 +1911,7 @@ function MainApp() {
                            type: 'chess_invite',
                            sender: user.username,
                            senderId: user.username,
-                           avatar: user.avatar,
+                           avatar: user.profilePic,
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
                        };
                        socket.emit('send_global', msgData);
@@ -1937,7 +1937,7 @@ function MainApp() {
                           type: 'pool_invite',
                           sender: user.username,
                           senderId: user.username,
-                          avatar: user.avatar,
+                          avatar: user.profilePic,
                           inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
                       };
                       socket.emit('send_global', msgData);
@@ -2005,7 +2005,7 @@ function MainApp() {
                            type: 'chess_invite',
                            sender: user.username,
                            senderId: user.username,
-                           avatar: user.avatar,
+                           avatar: user.profilePic,
                            inviteData: { gameId: `chess_${Date.now()}_${user.username}`, bet: bet, host: user.username, gameType: 'chess' }
                        };
                        socket.emit('send_global', msgData);
@@ -2028,7 +2028,7 @@ function MainApp() {
                           type: 'pool_invite',
                           sender: user.username,
                           senderId: user.username,
-                          avatar: user.avatar,
+                          avatar: user.profilePic,
                           inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
                       };
                       socket.emit('send_global', msgData);
