@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+const fs = require('fs');
+
+const newGamesMenu = `import React, { useState } from 'react';
 import { X, Swords } from 'lucide-react';
 import { UserObj } from '../types';
 
@@ -50,10 +52,10 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
                 </select>
                 
                 <div className="flex gap-3">
-                    <button onClick={() => { onSelectGame(`chessbot_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                    <button onClick={() => { onSelectGame(\`chessbot_\${chessBet}\`); onClose(); }} className="flex-1 py-3 rounded-xl bg-[#121B2A] border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/20 font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
                         🤖 vs Bot
                     </button>
-                    <button onClick={() => { onSelectGame(`chess_${chessBet}`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
+                    <button onClick={() => { onSelectGame(\`chess_\${chessBet}\`); onClose(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold transition-transform hover:scale-105 shadow-md flex items-center justify-center gap-2">
                         <Swords size={20} /> PvP Global
                     </button>
                 </div>
@@ -64,3 +66,6 @@ export function GamesMenuModal({ onClose, onSelectGame, user }: GamesMenuModalPr
     </div>
   );
 }
+`;
+fs.writeFileSync('src/components/GamesMenuModal.tsx', newGamesMenu);
+console.log("Patched GamesMenuModal.tsx");

@@ -19,7 +19,6 @@ import {  EmojiGifPicker } from './components/EmojiGifPicker';
 
 import {  StoreModal } from './components/StoreModal';
 import { ChessGameModal } from './components/ChessGameModal';
-import { PoolGameModal } from './components/PoolGameModal';
 import {  ChessBotModal } from './components/ChessBotModal';
 import {  PremiumAudioPlayer } from './components/PremiumAudioPlayer';
 import {  PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
@@ -164,9 +163,6 @@ function MainApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
-  const [tutiFruttiState, setTutiFruttiState] = useState<any>({ isActive: false, players: [], currentLetter: '', roundEndTime: 0, scores: {}, answers: {}, maxPlayers: 5 });
-  const tutiFruttiStateRef = useRef<any>({ isActive: false });
-  useEffect(() => { tutiFruttiStateRef.current = tutiFruttiState; }, [tutiFruttiState]);
   const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
   const [toasts, setToasts] = useState<any[]>([]);
   const [chatList, setChatList] = useState<any[]>([]);
@@ -184,26 +180,13 @@ function MainApp() {
   useEffect(() => { isGamesMenuOpenRef.current = isGamesMenuOpen; }, [isGamesMenuOpen]);
   const [chessBet, setChessBet] = useState(10);
   const [activeChessGame, setActiveChessGame] = useState<any>(null);
-  const [poolData, setPoolData] = useState<any>(null);
   const activeChessGameRef = useRef<any>(null);
   useEffect(() => { activeChessGameRef.current = activeChessGame; }, [activeChessGame]);
 
   const tfAnswersRef = useRef(tfAnswers);
   useEffect(() => { tfAnswersRef.current = tfAnswers; }, [tfAnswers]);
   
-  useEffect(() => {
-    if (tutiFruttiState.isActive && tutiFruttiState.answers && Object.keys(tutiFruttiState.answers).length === 0) {
-       setTfAnswers({ name: '', color: '', animal: '', fruit: '', thing: '' });
-    }
-  }, [tutiFruttiState.isActive, tutiFruttiState.answers]);
 
-  useEffect(() => {
-    if (tutiFruttiState.currentRound === tutiFruttiState.totalRounds && !tutiFruttiState.isActive && tutiFruttiState.roundResults) {
-       socket.emit('get_hall_of_fame', (data: any[]) => {
-         setHallOfFame(data);
-       });
-    }
-  }, [tutiFruttiState.currentRound, tutiFruttiState.totalRounds, tutiFruttiState.isActive, tutiFruttiState.roundResults]);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -325,7 +308,7 @@ function MainApp() {
     if (!isLoggedIn) return;
     let unsubMessages: any = null;
     
-    if (activeChat === 'global' || activeChat === 'tutifrutti') {
+    if (activeChat === 'global') {
         const q = query(collection(db, 'global_chat'), orderBy('timestamp', 'asc'), limitToLast(30));
         unsubMessages = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => {
@@ -333,7 +316,7 @@ function MainApp() {
                 return { ...data, id: data.id || doc.id };
             });
             const filteredMsgs = msgs.filter((m: any) => {
-                if (m.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current || tutiFruttiStateRef.current?.isActive)) {
+                if (m.sender === 'Elizabeth' && (isGamesMenuOpenRef.current || activeChessGameRef.current)) {
                     return false;
                 }
                 return true;
@@ -390,13 +373,7 @@ function MainApp() {
       }
     });
 
-    socket.on('tutifrutti_state', (state: any) => {
-      setTutiFruttiState(state);
-    });
 
-    socket.on('request_tutifrutti_answers', () => {
-      socket.emit('submit_tutifrutti', tfAnswersRef.current);
-    });
 
     socket.emit('get_hall_of_fame', (data: any[]) => {
       setHallOfFame(data);
@@ -420,11 +397,6 @@ function MainApp() {
       }
     });
 
-    
-    socket.on('pool_invite_accepted', (data) => {
-      setPoolData({ gameId: data.gameId, isHost: true, opponentName: data.opponent, bet: data.bet });
-      setActiveChat('pool');
-    });
     socket.on('chess_invite_accepted', (data: { gameId: string, opponent: string, bet: number }) => {
         // Find the user object in usersOnline ref or just pass username
         setUsersOnline(prev => {
@@ -612,7 +584,7 @@ function MainApp() {
     if (audioUrl) payload.audio = audioUrl;
 
     const msgData = { ...payload, sender: user.username, senderId: user.username, timestamp: Date.now(), createdAt: Date.now() };
-    if (activeChat === 'global' || activeChat === 'tutifrutti') {
+    if (activeChat === 'global') {
       setMessages(prev => [...prev, msgData]);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       socket.emit('send_global', payload);
@@ -962,14 +934,6 @@ function MainApp() {
               </div>
                  {/* Actions / Utilities */}
                  <div className="px-4 mt-2 grid grid-cols-1 gap-2">
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'global' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat('global'); }}>
-                        <Globe size={16} strokeWidth={1.5} />
-                        Mundo
-                     </button>
-                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'tutifrutti' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat('tutifrutti'); }}>
-                        <Bot size={16} strokeWidth={1.5} />
-                        Tuti Frutti
-                     </button>
                      <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
                         <Users size={16} strokeWidth={1.5} />
                         Amigos
@@ -1057,304 +1021,8 @@ function MainApp() {
               <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
                   <div className="hidden"></div>
 
-              {activeChat === 'tutifrutti' ? (
-                 <div className="flex-1 flex flex-col items-center justify-start p-6 overflow-y-auto bg-[#FFF5F8] relative">
-                    {/* Header Kawaii */}
-                    <div className="absolute top-0 left-0 right-0 w-full bg-gradient-to-r from-pink-300 to-purple-300 p-4 flex justify-between items-center shadow-md z-20 rounded-b-3xl border-b-4 border-white">
-                       <h2 className="text-white font-extrabold text-2xl drop-shadow-sm flex items-center gap-2">
-                           🍓 Tuti Frutti Kawaii 🍉
-                       </h2>
-                       <button onClick={() => { socket.emit('leave_tutifrutti'); setActiveChat('global'); }} className="bg-white text-pink-500 font-bold hover:bg-pink-50 px-5 py-2 rounded-full transition-colors shadow-sm">
-                           Abandonar Partida
-                       </button>
-                    </div>
-
-                    <div className="mt-24 w-full max-w-4xl flex flex-col md:flex-row gap-6">
-                        {/* Main Game Area */}
-                        <div className="flex-1 bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-pink-100 flex flex-col">
-                            {!tutiFruttiState.isActive ? (
-                                <div className="text-center flex-1 flex flex-col items-center justify-center">
-                                    {tutiFruttiState.isCalculating ? (
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="w-16 h-16 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-                                            <h3 className="text-2xl font-bold text-pink-500">Calculando resultados...</h3>
-                                        </div>
-                                    ) : tutiFruttiState.roundResults ? (
-                                        <div className="w-full flex-1 flex flex-col mb-6 bg-purple-50 p-6 rounded-[24px] border border-purple-100 overflow-y-auto">
-                                            <h3 className="text-2xl font-bold text-purple-600 mb-4">Resultados de la Ronda</h3>
-                                            <div className="space-y-4 text-left">
-                                                {Object.entries(tutiFruttiState.roundResults).map(([p, cats]: any) => (
-                                                    <div key={p} className="bg-white p-4 rounded-xl shadow-sm border border-pink-100">
-                                                        <h4 className="font-bold text-lg text-pink-500 mb-2">{p} <span className="text-sm text-gray-400 font-normal">({Number(Object.values(cats).reduce((acc: any, val: any) => acc + val.points, 0))} pts)</span></h4>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                                                            {Object.entries(cats).map(([cat, info]: any) => (
-                                                                <div key={cat} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                                                    <span className="font-semibold text-gray-600 capitalize">{cat === 'name' ? 'Nombre' : cat === 'color' ? 'Color' : cat === 'animal' ? 'Animal' : cat === 'fruit' ? 'Fruta' : 'Cosa'}:</span>
-                                                                    <div className="text-right">
-                                                                        <span className={`font-bold ${info.points > 0 ? 'text-green-500' : 'text-red-500'}`}>{info.word || '-'}</span>
-                                                                        <span className="text-xs text-gray-400 block">{info.points} pts - {info.reason}</span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="text-6xl mb-4 animate-bounce">🎨</div>
-                                            <h3 className="text-3xl font-bold text-pink-500 mb-2">¡Sala de Espera!</h3>
-                                            <p className="text-gray-500 mb-8 text-lg">Únete a la partida y demuestra tu rapidez mental.</p>
-                                        </>
-                                    )}
-                                    
-                                    {!(tutiFruttiState.players || []).includes(user.username) ? (
-                                        <div className="flex flex-col items-center gap-4 mt-auto">
-                                            <button 
-                                                onClick={() => socket.emit('join_tutifrutti')} 
-                                                disabled={(tutiFruttiState.players || []).length >= tutiFruttiState.maxPlayers}
-                                                className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
-                                            >
-                                                {(tutiFruttiState.players || []).length >= tutiFruttiState.maxPlayers ? 'Sala Llena' : 'Unirme al Juego ✨'}
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-4 mt-auto">
-                                            <p className="text-pink-500 font-bold text-xl">
-                                                Esperando jugadores... ({(tutiFruttiState.players || []).length}/{tutiFruttiState.maxPlayers})
-                                            </p>
-                                            
-                                            <div className="flex items-center gap-2 mb-2 text-pink-500 font-bold">
-                                                <label>Jugadores requeridos:</label>
-                                                <select 
-                                                    value={tutiFruttiState.maxPlayers} 
-                                                    onChange={(e) => socket.emit("set_max_players", parseInt(e.target.value))}
-                                                    className="bg-white border-2 border-pink-200 rounded-lg p-1 outline-none"
-                                                >
-                                                    <option value={2}>2</option>
-                                                    <option value={3}>3</option>
-                                                    <option value={4}>4</option>
-                                                    <option value={5}>5</option>
-                                                </select>
-                                            </div>
-
-                                            <button 
-                                                onClick={() => socket.emit('start_tutifrutti_round')} 
-                                                disabled={(tutiFruttiState.players || []).length < tutiFruttiState.maxPlayers || tutiFruttiState.isCalculating}
-                                                className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-10 py-4 rounded-full text-xl font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
-                                            >
-                                                {tutiFruttiState.currentRound > 0 && tutiFruttiState.currentRound < tutiFruttiState.totalRounds ? 'Siguiente Ronda' : '¡Comenzar Ronda! 🚀'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col flex-1">
-                                    <div className="flex justify-between items-center mb-6 bg-pink-50 p-4 rounded-2xl border-2 border-pink-100">
-                                        <div className="text-center">
-                                            <p className="text-pink-400 font-bold text-sm uppercase tracking-wider mb-1">Letra Actual</p>
-                                            <p className="text-5xl font-black text-purple-600 drop-shadow-sm">{tutiFruttiState.currentLetter}</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-pink-400 font-bold text-sm uppercase tracking-wider mb-1">Tiempo</p>
-                                            <p className={`text-4xl font-black ${tutiFruttiState.roundEndTime - now < 10000 ? 'text-red-500 animate-pulse' : 'text-pink-500'}`}>
-                                                {Math.max(0, Math.floor((tutiFruttiState.roundEndTime - now) / 1000))}s
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-4 flex-1">
-                                        {['name', 'color', 'animal', 'fruit', 'thing'].map((cat) => (
-                                            <div key={cat} className="flex flex-col">
-                                                <label className="text-purple-500 font-bold text-sm mb-1 ml-2 capitalize">
-                                                    {cat === 'name' ? 'Nombre' : cat === 'color' ? 'Color' : cat === 'animal' ? 'Animal' : cat === 'fruit' ? 'Fruta' : 'Cosa'}
-                                                </label>
-                                                <input 
-                                                    disabled={!(tutiFruttiState.players || []).includes(user.username)}
-                                                    value={(tfAnswers as any)[cat]}
-                                                    onChange={e => setTfAnswers({...tfAnswers, [cat]: e.target.value})}
-                                                    className="bg-white border-2 border-pink-200 p-3 rounded-2xl outline-none text-gray-700 focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all font-medium text-lg placeholder-pink-200"
-                                                    placeholder={`Escribe un(a) ${cat}...`}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                    
-                                    <button 
-                                        disabled={!(tutiFruttiState.players || []).includes(user.username)}
-                                        onClick={() => {
-                                            socket.emit('stop_tutifrutti');
-                                        }}
-                                        className="mt-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-4 rounded-2xl font-black text-2xl shadow-xl transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                                    >
-                                        ¡TUTI FRUTTI! 🛑
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Sidebar (Scoreboard & Players) */}
-                        <div className="w-full md:w-72 flex flex-col gap-6">
-                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-purple-100 flex-1">
-                                <h3 className="text-xl font-bold text-purple-600 mb-4 flex items-center gap-2">
-                                    🏆 Tabla de Puntos
-                                </h3>
-                                <div className="space-y-3">
-                                    {Object.entries(tutiFruttiState.scores || {}).sort((a: any, b: any) => b[1] - a[1]).map(([p, score]: any, i) => (
-                                        <div key={p} className="flex justify-between items-center p-3 bg-purple-50 rounded-2xl border border-purple-100">
-                                            <span className="font-bold text-purple-700 flex items-center gap-2">
-                                                {i === 0 ? '👑' : '⭐'} {p}
-                                            </span>
-                                            <span className="font-black text-pink-500 bg-white px-3 py-1 rounded-full shadow-sm">{score}</span>
-                                        </div>
-                                    ))}
-                                    {Object.keys(tutiFruttiState.scores || {}).length === 0 && (
-                                        <p className="text-pink-300 text-center italic text-sm mt-4">Aún no hay puntos.</p>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-blue-100">
-                                <h3 className="text-lg font-bold text-blue-500 mb-3 flex items-center gap-2">
-                                    🎮 Jugadores ({tutiFruttiState.players?.length || 0})
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {Array.isArray(tutiFruttiState.players) && tutiFruttiState.players.map((p: string) => (
-                                        <span key={p} className="bg-blue-50 text-blue-600 font-semibold px-3 py-1.5 rounded-full text-sm border border-blue-100">
-                                            {p}
-                                        </span>
-                                    ))}
-                                    {(!tutiFruttiState.players || (tutiFruttiState.players || []).length === 0) && (
-                                        <span className="text-blue-300 text-sm italic">Esperando jugadores...</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-amber-100">
-                                <h3 className="text-lg font-bold text-amber-500 mb-3 flex items-center gap-2">
-                                    🌟 Salón de la Fama
-                                </h3>
-                                <div className="space-y-2">
-                                    {hallOfFame.slice(0, 3).map((entry: any, i) => (
-                                        <div key={i} className="flex justify-between items-center bg-amber-50 p-2 rounded-xl border border-amber-100">
-                                            <span className="font-bold text-amber-600 text-sm">{i === 0 ? '🏆' : i === 1 ? '🥈' : '🥉'} {entry.username}</span>
-                                            <span className="font-black text-amber-500 text-sm">{entry.score} pts</span>
-                                        </div>
-                                    ))}
-                                    {hallOfFame.length === 0 && (
-                                        <p className="text-amber-300 text-center italic text-sm">Aún no hay campeones.</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgba(236,72,153,0.15)] border-4 border-blue-100 flex flex-col flex-1 min-h-[300px]">
-                                <h3 className="text-lg font-bold text-blue-500 mb-3 flex items-center gap-2">
-                                    💬 Chat del Juego
-                                </h3>
-                                <div className="flex-1 overflow-y-auto mb-3 space-y-2 pr-2 scrollbar-thin">
-                                    {messages.slice(-15).filter((m: any) => {
-                                        if (user.blocked_list?.includes(m.sender)) return false;
-                                        const senderInfo = usersOnline.find(u => u.username === m.sender);
-                                        if (senderInfo?.blocked_list?.includes(user.username)) return false;
-                                        return true;
-                                    }).map((m: any, idx) => {
-                                        const senderInfo = usersOnline.find(u => u.username === m.sender) || userCache[m.sender];
-                                        const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
-                                        let date = new Date();
-                                        if (m.timestamp || m.createdAt) {
-                                            const t = m.timestamp || m.createdAt;
-                                            if (typeof t === 'number') date = new Date(t);
-                                            else if (t.seconds) date = new Date(t.seconds * 1000);
-                                            else if (typeof t.toDate === 'function') date = t.toDate();
-                                            else date = new Date(t);
-                                        }
-                                        const timeStr = isNaN(date.getTime()) ? '10:00' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                        return (
-                                        <div key={idx} className="flex gap-2 w-full mt-1.5">
-                                            <div className="relative shrink-0 mt-1">
-                                                <img src={avatarUrl} className="w-7 h-7 rounded-full border border-blue-200 object-cover bg-white" alt={m.sender} />
-                                            </div>
-                                            <div className="bg-blue-50/50 rounded-[18px] rounded-tl-sm px-3 py-2 max-w-[85%] shadow-sm flex flex-col relative flex-1 min-w-[150px]">
-                                                <span className="font-bold text-blue-600 text-[12px] mb-1">{m.sender}</span>
-                                                <div className="flex flex-wrap items-end justify-between gap-2">
-                                                    <span className="text-gray-700 text-[13px] leading-snug flex-1">{m.text}</span>
-                                                    <span className="text-gray-400 text-[10px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
-                                                </div>
-                                                
-                                         {m.type === 'song_confirmation' && m.songData && (
-                                             <button onClick={() => {
-                                                 socket.emit('confirm_song_request', m.songData);
-                                                 // Hide the button locally or something, but let's just leave it for now or we could add a handled flag
-                                             }} className="w-full mt-2 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-bold shadow-md hover:from-green-400 hover:to-emerald-500 transition-colors flex items-center justify-center gap-2">
-                                                 <Music size={16} /> [Sí, enviar canción]
-                                             </button>
-                                         )}
-
-                                         {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/5 max-w-full shadow-md h-20 object-cover" alt="adjunto"/></div>}
-                                                {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
-                                            </div>
-                                        </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                {(selectedImage || audioUrl || selectedGif) && (
-                                    <div className="flex gap-2 mb-2 items-end">
-                                        {selectedImage && <div className="relative"><img src={selectedImage} className="h-12 w-12 rounded-lg object-cover" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>}
-                                        {selectedGif && <div className="relative"><img src={selectedGif} className="h-12 rounded-lg object-cover" /><button onClick={() => setSelectedGif(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X size={12} /></button></div>}
-                                        {audioUrl && (
-                                            <div className="relative inline-block animate-in fade-in slide-in-from-bottom-2">
-                                                <PremiumAudioPlayer src={audioUrl} />
-                                                <button onClick={() => setAudioUrl(null)} className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md z-10"><X size={12} /></button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                <div className="flex gap-2 relative mt-auto items-center overflow-hidden">
-                                    <div className="flex-1 flex items-center bg-white border-2 border-blue-200 rounded-full px-3 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all overflow-hidden h-[46px]">
-                                        {isRecording ? (
-                                            <div className="flex-1 w-full h-full"><PremiumAudioVisualizer stream={recordingStream} /></div>
-                                        ) : (
-                                            <>
-                                                <input 
-                                                    value={inputValue}
-                                                    onChange={e => setInputValue(e.target.value)}
-                                                    onKeyDown={e => {
-                                                        if (e.key === 'Enter' && inputValue.trim()) handleSendMessage();
-                                                    }}
-                                                    className="flex-1 min-w-0 py-2 outline-none text-gray-700 text-sm placeholder-blue-300 bg-transparent h-full"
-                                                    placeholder="Escribe un mensaje..."
-                                                />
-                                                <div className="flex items-center gap-1 text-blue-400 shrink-0">
-                                                    <button onClick={() => { closeAllModals(); setIsSongRequestOpen(true); }} className="hover:text-pink-500 p-1 transition-colors"><Music size={18} strokeWidth={2} /></button>
-                                                    <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="hover:text-pink-500 p-1 transition-colors"><Smile size={18} strokeWidth={2} /></button>
-                                                    <button onClick={() => fileInputRef.current?.click()} className="hover:text-pink-500 p-1 transition-colors"><Paperclip size={18} strokeWidth={2} /></button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={toggleRecording}
-                                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isRecording ? 'text-white bg-red-500 animate-pulse' : 'text-blue-500 bg-blue-100 hover:bg-blue-200'}`}>
-                                            {isRecording ? <StopCircle size={18} strokeWidth={2} /> : <Mic size={18} strokeWidth={2} />}
-                                        </button>
-                                        <button 
-                                            onClick={handleSendMessage}
-                                            disabled={!inputValue.trim() && !selectedImage && !audioUrl && !selectedGif}
-                                            className="bg-gradient-to-r from-blue-400 to-pink-400 hover:from-blue-500 hover:to-pink-500 disabled:opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-md shrink-0 transform hover:scale-105 active:scale-95"
-                                        >
-                                            <Send size={16} strokeWidth={2.5} className="ml-1" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                 </div>
-              ) : (
                 <>
-                  {activeChat !== 'global' && activeChat !== 'tutifrutti' && (() => {
+                  {activeChat !== 'global' && (() => {
                       const targetUser = usersOnline.find(u => u.username === activeChat) || userCache[activeChat];
                       const isOnline = !!usersOnline.find(u => u.username === activeChat);
                       const avatarUrl = targetUser?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
@@ -1446,26 +1114,6 @@ function MainApp() {
                                              <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2 pt-1">{timeStr}</span>
                                          </div>
                                          
-                                         {m.type === 'pool_invite' && m.inviteData && (
-                                             <button 
-                                                disabled={m.sender === user.username}
-                                                onClick={() => {
-                                                 if (m.sender === user.username) return; // Can't accept own invite
-                                                 if ((user.lizCoins || 0) < m.inviteData!.bet) {
-                                                     alert("No tienes suficientes Liz-Moneditas.");
-                                                     return;
-                                                 }
-                                                 socket.emit('accept_pool_invite', m.inviteData, (res: any) => {
-                                                     if (res.success) {
-                                                         setPoolData({ gameId: m.inviteData!.gameId, isHost: false, opponentName: m.sender, bet: m.inviteData!.bet });
-                                                     } else {
-                                                         alert(res.error || "Error al aceptar el reto.");
-                                                     }
-                                                 });
-                                             }} className={`w-full mt-2 py-1.5 ${m.sender === user.username ? 'bg-green-800/50 cursor-not-allowed opacity-70' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 shadow-md'} text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2`}>
-                                                 <Gamepad2 size={16} /> {m.sender === user.username ? 'Esperando rival...' : '[Jugar Billar]'}
-                                             </button>
-                                         )}
 
                                          {m.type === 'chess_invite' && m.inviteData && (
                                              <button 
@@ -1608,7 +1256,6 @@ function MainApp() {
                   </div>
               </div>
               </>
-              )}
               </div>
           </main>
       </div>
@@ -1624,17 +1271,6 @@ function MainApp() {
           />
       )}
       
-      {poolData && (
-          <PoolGameModal
-              gameId={poolData.gameId}
-              isHost={poolData.isHost}
-              opponentName={poolData.opponentName}
-              bet={poolData.bet}
-              socket={socket}
-              user={user}
-              onClose={() => { setPoolData(null); setActiveChat('global'); }}
-          />
-      )}
 
       {activeChessGame && !activeChessGame.isBot && (
           <ChessGameModal
@@ -1921,8 +1557,6 @@ function MainApp() {
 
                   
                   
-                  } else if (gameId === 'poolsolo') {
-                      setPoolData({ gameId: `pool_solo_${Date.now()}`, isHost: true, opponentName: 'Práctica', bet: 0 });
                   
                   } else if (gameId.startsWith('pool_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
@@ -2015,27 +1649,6 @@ function MainApp() {
 
                    
                   
-                  } else if (gameId.startsWith('pool_')) {
-                      const parsedBet = parseInt(gameId.split('_')[1], 10);
-                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
-                      if ((user.lizCoins || 0) < bet) {
-                          alert("No tienes suficientes Liz-Moneditas.");
-                          return;
-                      }
-                      const msgData = {
-                          id: Date.now().toString(),
-                          text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
-                          type: 'pool_invite',
-                          sender: user.username,
-                          senderId: user.username,
-                          avatar: user.profilePic,
-                          inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
-                      };
-                      socket.emit('send_global', msgData);
-                      setActiveChat('global');
-                      setMessages(prev => [...prev, msgData]);
-                      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
                   } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
