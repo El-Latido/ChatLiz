@@ -165,7 +165,6 @@ function MainApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFriendsSidebarOpen, setIsFriendsSidebarOpen] = useState(false);
   const [unreadPMs, setUnreadPMs] = useState<Record<string, boolean>>({});
-  const [tfAnswers, setTfAnswers] = useState({ name: '', color: '', animal: '', fruit: '', thing: '' });
   const [toasts, setToasts] = useState<any[]>([]);
   const [chatList, setChatList] = useState<any[]>([]);
 
@@ -184,10 +183,6 @@ function MainApp() {
   const [activeChessGame, setActiveChessGame] = useState<any>(null);
   const activeChessGameRef = useRef<any>(null);
   useEffect(() => { activeChessGameRef.current = activeChessGame; }, [activeChessGame]);
-
-  const tfAnswersRef = useRef(tfAnswers);
-  useEffect(() => { tfAnswersRef.current = tfAnswers; }, [tfAnswers]);
-  
 
   const [now, setNow] = useState(Date.now());
 
@@ -1562,10 +1557,7 @@ function MainApp() {
               onClose={() => setIsGamesMenuOpen(false)}
               user={user}
               onSelectGame={(gameId) => {
-                  if (gameId === 'tutifrutti') {
-                      setActiveChat('tutifrutti');
-                  
-                   } else if (gameId.startsWith('chess_')) {
+                  if (gameId.startsWith('chess_')) {
                        const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
                        if ((user.lizCoins || 0) < bet) {
@@ -1589,27 +1581,6 @@ function MainApp() {
                   
                   
                   
-                  } else if (gameId.startsWith('pool_')) {
-                      const parsedBet = parseInt(gameId.split('_')[1], 10);
-                      const bet = isNaN(parsedBet) ? 10 : parsedBet;
-                      if ((user.lizCoins || 0) < bet) {
-                          alert("No tienes suficientes Liz-Moneditas.");
-                          return;
-                      }
-                      const msgData = {
-                          id: Date.now().toString(),
-                          text: bet > 0 ? `¡Reto de Billar por ${bet * 2} LM!` : `¡Reto de Billar Amistoso!`,
-                          type: 'pool_invite',
-                          sender: user.username,
-                          senderId: user.username,
-                          avatar: user.profilePic,
-                          inviteData: { gameId: `pool_${Date.now()}_${user.username}`, bet, host: user.username, gameType: 'pool' }
-                      };
-                      socket.emit('send_global', msgData);
-                      setActiveChat('global');
-                      setMessages(prev => [...prev, msgData]);
-                      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
                   } else if (gameId.startsWith('chessbot_')) {
                       const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
@@ -1654,10 +1625,7 @@ function MainApp() {
                decorations={DECORATIONS}
                initialCategory={storeCategory}
                onSelectGame={(gameId) => {
-                   if (gameId === 'tutifrutti') {
-                       setActiveChat('tutifrutti');
-                   
-                   } else if (gameId.startsWith('chess_')) {
+                   if (gameId.startsWith('chess_')) {
                        const parsedBet = parseInt(gameId.split('_')[1], 10);
                       const bet = isNaN(parsedBet) ? 10 : parsedBet;
                        if ((user.lizCoins || 0) < bet) {
