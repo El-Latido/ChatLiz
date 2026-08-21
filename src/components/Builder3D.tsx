@@ -8,10 +8,13 @@ interface Builder3DProps {
 }
 
 const ADMIN_UID = "AQUI_PONDRE_MI_UID";
+const ALLOW_DEV_ACCESS = true; // Interruptor flexible para modo desarrollador/pruebas
 
 export function Builder3D({ user }: Builder3DProps) {
-  // Validate if the current user is the admin
-  if (user.uid !== ADMIN_UID) {
+  // Validate si tiene acceso (desarrollo o admin)
+  const hasAccess = ALLOW_DEV_ACCESS || (user && user.uid === ADMIN_UID);
+
+  if (!hasAccess) {
     return (
       <div className="flex items-center justify-center w-screen h-screen bg-[#0a0f1c]">
         <div className="bg-[#121B2A] border border-red-500/50 rounded-2xl p-8 shadow-[0_0_20px_rgba(239,68,68,0.2)] text-center">
