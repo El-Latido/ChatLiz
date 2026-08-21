@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import {  
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart
+  Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart, Home
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
@@ -26,6 +26,7 @@ import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
 import { SocialFeed } from './components/social/SocialFeed';
+import { Builder3D } from './components/Builder3D';
 
 
 
@@ -767,6 +768,15 @@ function MainApp() {
                  <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
                  <span className="text-xs text-amber-200">LM</span>
              </div>
+             
+             <button onClick={() => { closeAllModals(); setActiveChat('builder'); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
+                 <Home size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                 <span className="font-bold text-[#E8D9B0] text-sm">Creador 3D</span>
+             </button>
+             <button onClick={() => { closeAllModals(); setActiveChat('builder'); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
+                 <Home size={20} strokeWidth={1.5} />
+             </button>
+             
              <button onClick={() => { closeAllModals(); setIsGamesMenuOpen(true); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
                  <Gamepad2 size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
                  <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
@@ -1026,7 +1036,9 @@ function MainApp() {
               <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
                   <div className="hidden"></div>
 
-                  {activeChat === 'lizgram' ? (
+                  {activeChat === 'builder' ? (
+                     <Builder3D user={user} />
+                  ) : activeChat === 'lizgram' ? (
                      <SocialFeed user={user} />
                   ) : (
                 <>
