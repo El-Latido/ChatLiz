@@ -7,12 +7,9 @@ interface Builder3DProps {
   user: UserObj;
 }
 
-const ADMIN_UID = "AQUI_PONDRE_MI_UID";
-const ALLOW_DEV_ACCESS = true; // Interruptor flexible para modo desarrollador/pruebas
-
 export function Builder3D({ user }: Builder3DProps) {
-  // Validate si tiene acceso (desarrollo o admin)
-  const hasAccess = ALLOW_DEV_ACCESS || (user && user.uid === ADMIN_UID);
+  // Validar si tiene acceso (solo usuario AXISS)
+  const hasAccess = user && user.username?.toUpperCase() === 'AXISS';
 
   if (!hasAccess) {
     return (
