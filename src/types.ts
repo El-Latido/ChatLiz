@@ -64,3 +64,34 @@ export interface MessageObj {
     host: string;
   };
 }
+
+export interface PostObj {
+  id: string;
+  userId: string;
+  username: string;
+  userAvatar?: string;
+  text: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  likes: string[]; // Array of usernames or uids
+  createdAt: number;
+}
+
+export interface CommentObj {
+  id: string;
+  postId: string;
+  username: string;
+  userAvatar?: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface StoryObj {
+  id: string;
+  userId: string;
+  username: string;
+  userAvatar?: string;
+  mediaUrl: string;
+  mediaType: 'image' | 'video';
+  createdAt: number;
+}

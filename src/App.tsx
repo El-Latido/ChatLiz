@@ -25,6 +25,7 @@ import {  PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
+import { SocialFeed } from './components/social/SocialFeed';
 
 
 
@@ -933,7 +934,11 @@ function MainApp() {
                  </div>
               </div>
                  {/* Actions / Utilities */}
-                 <div className="px-4 mt-2 grid grid-cols-1 gap-2">
+                 <div className="px-4 mt-2 grid grid-cols-2 gap-2">
+                     <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'lizgram' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setActiveChat('lizgram'); }}>
+                        <ImageIcon size={16} strokeWidth={1.5} />
+                        LizGram
+                     </button>
                      <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
                         <Users size={16} strokeWidth={1.5} />
                         Amigos
@@ -1021,6 +1026,9 @@ function MainApp() {
               <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
                   <div className="hidden"></div>
 
+                  {activeChat === 'lizgram' ? (
+                     <SocialFeed user={user} />
+                  ) : (
                 <>
                   {activeChat !== 'global' && (() => {
                       const targetUser = usersOnline.find(u => u.username === activeChat) || userCache[activeChat];
@@ -1256,6 +1264,7 @@ function MainApp() {
                   </div>
               </div>
               </>
+                  )}
               </div>
           </main>
       </div>
