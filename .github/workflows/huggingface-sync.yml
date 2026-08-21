@@ -21,7 +21,7 @@ jobs:
           git config --global user.name "GitHub Actions Sync"
           
           # IMPORTANTE: Reemplaza TU_USUARIO_HF y TU_SPACE con tu nombre de usuario y nombre del space en Hugging Face
-          HF_REPO="https://user:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz"
+          HF_REPO="https://oauth2:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz"
           
           git remote add huggingface $HF_REPO
           git push -f huggingface main
