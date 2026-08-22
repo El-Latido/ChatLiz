@@ -16,26 +16,11 @@ jobs:
       - name: Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-                        run: |
+        run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions Sync"
           
-          HF_REPO="https://user:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz"
+          HF_REPO="https://oauth2:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz"
           
-          echo "Creando rama limpia para Hugging Face..."
-          git checkout --orphan hf-deploy
-          
-          # Asegurarse de que no haya imágenes cacheadas
-          rm -f src/assets/images/*.jpg src/assets/*.jpg dist/*.jpg public/*.jpg || true
-          
-          git add -A
-          git commit -m "Deploy to Hugging Face Space (Clean History)"
-          
-          echo "Empujando a Hugging Face..."
-          git push -f $HF_REPO hf-deploy:main || {
-            echo "Error: Falló el push a Hugging Face."
-            echo "Verifica que tu HF_TOKEN tenga permisos de WRITE."
-            echo "Verifica que el Space AxissHelizabeth/ChatLiz exista."
-            exit 1
-          }
-          echo "¡Push exitoso a Hugging Face!"
+          git remote add huggingface $HF_REPO
+          git push -f huggingface main
