@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Outlines, useGLTF, TransformControls } from '@react-three/drei';
 import { UserObj } from '../types';
