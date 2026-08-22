@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Canvas, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Grid, Outlines, useGLTF, TransformControls } from '@react-three/drei';
+import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei';
+import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
-import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw } from 'lucide-react';
+import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints } from 'lucide-react';
 import * as THREE from 'three';
 
 interface Builder3DProps {
@@ -22,9 +23,12 @@ export interface PlacedItem {
 
 const CATEGORIES = [
   { id: 'Plantillas', icon: <Home size={20} />, items: ['Casa Moderna', 'Cabaña'] },
+  { id: 'Pisos', icon: <GridIcon size={20} />, items: ['Madera', 'Piedra', 'Cerámica', 'Adoquines'] },
   { id: 'Paredes', icon: <Cuboid size={20} />, items: ['Muro Básico', 'Muro Ladrillo'] },
-  { id: 'Texturas', icon: <ImageIcon size={20} />, items: ['Piso Madera', 'Piso Piedra'] },
+  { id: 'Puertas', icon: <DoorOpen size={20} />, items: ['Puerta Madera', 'Puerta Vidrio'] },
+  { id: 'Ventanas', icon: <ImageIcon size={20} />, items: ['Ventana Simple', 'Ventana Doble'] },
   { id: 'Techos', icon: <Box size={20} />, items: ['Plano', 'Inclinado'] },
+  { id: 'Escaleras', icon: <ArrowUp size={20} />, items: ['Escalera Recta', 'Ascensor Estructura'] },
   { id: 'Vegetación', icon: <Trees size={20} />, items: ['Árbol', 'Arbusto'] },
   { id: 'Piscinas', icon: <Waves size={20} />, items: ['Piscina Rectangular', 'Jacuzzi'] },
   { id: 'Mobiliario', icon: <Armchair size={20} />, items: ['Silla', 'Mesa', 'Sofá'] },
@@ -32,9 +36,18 @@ const CATEGORIES = [
   { id: 'Electrónica', icon: <Monitor size={20} />, items: ['TV', 'Consola', 'PC'] },
 ];
 
-type ToolMode = 'CONSTRUIR' | 'MOVER' | 'ROTAR' | 'BORRAR' | 'TERRENO' | 'CAMARA';
+type ToolMode = 'CONSTRUIR' | 'MOVER' | 'ROTAR' | 'BORRAR' | 'TERRENO' | 'CAMARA' | 'EXPLORAR';
 
-// Texturas Procesales (Evitan problemas de CORS y se generan en memoria)
+// Controles de Teclado
+const keyboardMap = [
+    { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
+    { name: 'backward', keys: ['ArrowDown', 'KeyS'] },
+    { name: 'left', keys: ['ArrowLeft', 'KeyA'] },
+    { name: 'right', keys: ['ArrowRight', 'KeyD'] },
+    { name: 'jump', keys: ['Space'] },
+];
+
+// Texturas Procesales
 const createDataTexture = (type: string) => {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -83,6 +96,25 @@ const createDataTexture = (type: string) => {
         for(let i=0; i<500; i++){
             ctx.fillRect(Math.random()*256, Math.random()*256, 2, 8);
         }
+    } else if (type === 'adoquines') {
+        ctx.fillStyle = '#555555';
+        ctx.fillRect(0,0,256,256);
+        ctx.fillStyle = '#444444';
+        for(let i=0; i<8; i++){
+            for(let j=0; j<8; j++){
+                ctx.fillRect(i*32 + 2, j*32 + 2, 28, 28);
+            }
+        }
+    } else if (type === 'ceramica') {
+        ctx.fillStyle = '#eeeeee';
+        ctx.fillRect(0,0,256,256);
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 2;
+        for(let i=0; i<4; i++){
+            for(let j=0; j<4; j++){
+                ctx.strokeRect(i*64, j*64, 64, 64);
+            }
+        }
     }
     
     return canvas.toDataURL();
@@ -93,7 +125,9 @@ const textures = {
     madera: createDataTexture('madera'),
     piedra: createDataTexture('piedra'),
     agua: createDataTexture('agua'),
-    pasto: createDataTexture('pasto')
+    pasto: createDataTexture('pasto'),
+    adoquines: createDataTexture('adoquines'),
+    ceramica: createDataTexture('ceramica')
 };
 
 function GLTFModel({ url, scale = 1 }: { url: string, scale?: number | [number, number, number] }) {
@@ -101,15 +135,100 @@ function GLTFModel({ url, scale = 1 }: { url: string, scale?: number | [number, 
     return <primitive object={scene.clone()} scale={scale} />;
 }
 
+// ================= PERSONAJE JUGABLE =================
+function Player({ toolMode }: { toolMode: ToolMode }) {
+    const bodyRef = useRef<any>(null);
+    const [, get] = useKeyboardControls();
+    const { camera } = useThree();
+    
+    const speed = 5;
+    const direction = useMemo(() => new THREE.Vector3(), []);
+    const frontVector = useMemo(() => new THREE.Vector3(), []);
+    const sideVector = useMemo(() => new THREE.Vector3(), []);
+
+    useEffect(() => {
+        if (toolMode === 'EXPLORAR') {
+            camera.position.set(0, 2, 5);
+            camera.rotation.set(0, 0, 0);
+        }
+    }, [toolMode, camera]);
+
+    useFrame(() => {
+        if (toolMode !== 'EXPLORAR' || !bodyRef.current) return;
+
+        const { forward, backward, left, right, jump } = get();
+        const velocity = bodyRef.current.linvel();
+        const pos = bodyRef.current.translation();
+
+        // 1. Vincular Cámara al Jugador (First Person)
+        camera.position.copy(pos);
+        camera.position.y += 0.8; // Altura de los ojos
+
+        // 2. Calcular Dirección de Movimiento
+        frontVector.set(0, 0, Number(backward) - Number(forward));
+        sideVector.set(Number(left) - Number(right), 0, 0);
+        direction.subVectors(frontVector, sideVector).normalize().multiplyScalar(speed).applyEuler(camera.rotation);
+
+        // 3. Aplicar Velocidad Lineal
+        bodyRef.current.setLinvel({ x: direction.x, y: velocity.y, z: direction.z });
+
+        // 4. Salto
+        if (jump && Math.abs(velocity.y) < 0.1) {
+            bodyRef.current.setLinvel({ x: velocity.x, y: 5, z: velocity.z });
+        }
+    });
+
+    if (toolMode !== 'EXPLORAR') return null;
+
+    return (
+        <>
+            <PointerLockControls />
+            <RigidBody ref={bodyRef} colliders="capsule" mass={1} type="dynamic" position={[0, 5, 0]} enabledRotations={[false, false, false]}>
+                <capsuleGeometry args={[0.3, 0.8]} />
+                <meshStandardMaterial color="hotpink" visible={false} />
+            </RigidBody>
+        </>
+    );
+}
+
+// ================= OBJETOS COLOCADOS =================
 function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: any) {
     const meshRef = useRef<THREE.Group>(null);
+    const bodyRef = useRef<any>(null);
+    const isExplore = toolMode === 'EXPLORAR';
     
-    // Texturas
+    // Estado de Puertas
+    const [isOpen, setIsOpen] = useState(false);
+    const currentRotY = useRef(item.rotation[1]);
+    
+    useFrame(() => {
+        if (isExplore && item.category === 'Puertas' && bodyRef.current) {
+            const targetY = isOpen ? item.rotation[1] + Math.PI / 2 : item.rotation[1];
+            currentRotY.current = THREE.MathUtils.lerp(currentRotY.current, targetY, 0.1);
+            
+            const euler = new THREE.Euler(item.rotation[0], currentRotY.current, item.rotation[2]);
+            const quat = new THREE.Quaternion().setFromEuler(euler);
+            bodyRef.current.setNextKinematicRotation(quat);
+        }
+    });
+
+    const handleInteract = (e: any) => {
+        if (isExplore && item.category === 'Puertas') {
+            e.stopPropagation();
+            setIsOpen(!isOpen);
+        } else if (!isExplore) {
+            e.stopPropagation(); 
+            onSelect(item.id);
+        }
+    };
+
     const texMap = useMemo(() => {
         let url = null;
         if (item.subType.includes('Ladrillo')) url = textures.ladrillo;
         else if (item.subType.includes('Madera')) url = textures.madera;
         else if (item.subType.includes('Piedra')) url = textures.piedra;
+        else if (item.subType.includes('Cerámica')) url = textures.ceramica;
+        else if (item.subType.includes('Adoquines')) url = textures.adoquines;
         else if (item.category === 'Piscinas') url = textures.agua;
         
         if (url) {
@@ -123,11 +242,47 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
             return tex;
         }
         return null;
-    }, [item.subType, item.scale]);
+    }, [item.subType, item.scale, item.category]);
 
-    // Generar Geometría (Decoración y Muebles the Sims Style)
+    // Generar Geometría Específica
     let geometryNode = <boxGeometry args={[1, 1, 1]} />;
-    if (item.category === 'Vegetación') {
+    
+    if (item.category === 'Puertas') {
+        geometryNode = (
+            <group position={[0.5, 1, 0]}> {/* Pivote en el borde */}
+                <mesh position={[-0.5, 0, 0]}>
+                    <boxGeometry args={[1, 2, 0.1]} />
+                    <meshStandardMaterial color={item.subType.includes('Vidrio') ? '#a8d8e6' : '#5c3a21'} transparent={item.subType.includes('Vidrio')} opacity={item.subType.includes('Vidrio') ? 0.6 : 1} />
+                </mesh>
+                <mesh position={[-0.9, 0, 0.1]}>
+                    <sphereGeometry args={[0.05]} />
+                    <meshStandardMaterial color="#d4af37" />
+                </mesh>
+            </group>
+        );
+    } else if (item.category === 'Ventanas') {
+        geometryNode = (
+            <group position={[0, 1, 0]}>
+                <mesh position={[0,0,0]}><boxGeometry args={[1, 1, 0.15]}/><meshStandardMaterial color="#eeeeee"/></mesh>
+                <mesh position={[0,0,0]}><boxGeometry args={[0.8, 0.8, 0.17]}/><meshStandardMaterial color="#87CEEB" transparent opacity={0.4}/></mesh>
+            </group>
+        );
+    } else if (item.category === 'Escaleras') {
+        geometryNode = (
+            <group position={[0, 0, 0]}>
+               {[...Array(6)].map((_, i) => (
+                   <mesh key={i} position={[0, i * 0.25 + 0.125, i * -0.25 - 0.125]}>
+                       <boxGeometry args={[1, 0.25, 0.25]} />
+                       <meshStandardMaterial color={item.color} />
+                   </mesh>
+               ))}
+               {/* Rampa Invisible para Físicas Suaves */}
+               <mesh position={[0, 0.75, -0.75]} rotation={[Math.PI / 4, 0, 0]} visible={false}>
+                   <boxGeometry args={[1, 2.1, 0.1]} />
+               </mesh>
+            </group>
+        );
+    } else if (item.category === 'Vegetación') {
         geometryNode = item.subType === 'Árbol' ? (
            <React.Suspense fallback={<dodecahedronGeometry args={[0.8, 1]} />}>
                <GLTFModel url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF/Fox.gltf" scale={0.02} />
@@ -171,70 +326,52 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
                 </group>
             );
         }
-    } else if (item.category === 'Electrodomésticos') {
-        if (item.subType === 'Lavarropas') {
-             geometryNode = (
-                <group position={[0, 0.5, 0]}>
-                    <mesh position={[0, 0, 0]}><boxGeometry args={[0.8, 1, 0.8]}/><meshStandardMaterial color={item.color}/></mesh>
-                    <mesh position={[0, 0, 0.41]}><cylinderGeometry args={[0.3, 0.3, 0.05, 16]} rotation={[Math.PI/2, 0, 0]}/><meshStandardMaterial color="#222222"/></mesh>
+    }
+
+    const meshContent = (
+        <group 
+            ref={!isExplore ? meshRef : null}
+            position={!isExplore ? item.position : [0,0,0]} 
+            rotation={!isExplore ? item.rotation : [0,0,0]} 
+            scale={item.scale} 
+            onClick={handleInteract}
+        >
+            {item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' && item.category !== 'Puertas' && item.category !== 'Ventanas' && item.category !== 'Escaleras' ? (
+                <mesh castShadow receiveShadow>
+                    {geometryNode}
+                    <meshStandardMaterial 
+                        color={item.color} 
+                        map={texMap} 
+                        transparent={item.category === 'Piscinas'} 
+                        opacity={item.category === 'Piscinas' ? 0.8 : 1}
+                        roughness={item.category === 'Piscinas' ? 0.1 : 0.8}
+                    />
+                </mesh>
+            ) : (
+                <group castShadow receiveShadow>
+                    {geometryNode}
                 </group>
-             );
-        } else if (item.subType === 'Heladera') {
-            geometryNode = (
-                <group position={[0, 1, 0]}>
-                    <mesh position={[0, 0, 0]}><boxGeometry args={[0.9, 2, 0.9]}/><meshStandardMaterial color={item.color}/></mesh>
-                    <mesh position={[0, 0.2, 0.46]}><boxGeometry args={[0.9, 0.02, 0.02]}/><meshStandardMaterial color="#888888"/></mesh>
-                </group>
-             );
-        }
-    } else if (item.category === 'Electrónica') {
-        if (item.subType === 'TV') {
-             geometryNode = (
-                <group position={[0, 0.5, 0]}>
-                    <mesh position={[0, 0, 0]}><boxGeometry args={[2, 1.2, 0.1]}/><meshStandardMaterial color="#111111"/></mesh>
-                    <mesh position={[0, -0.6, 0]}><boxGeometry args={[0.4, 0.1, 0.3]}/><meshStandardMaterial color="#333333"/></mesh>
-                </group>
-             );
-        } else if (item.subType === 'Consola' || item.subType === 'PC') {
-             geometryNode = (
-                <group position={[0, 0.2, 0]}>
-                    <mesh position={[0, 0, 0]}><boxGeometry args={[0.3, 0.4, 0.8]}/><meshStandardMaterial color={item.subType === 'PC' ? '#1a1a1a' : '#ffffff'}/></mesh>
-                </group>
-             );
-        }
+            )}
+            
+            {isSelected && !isExplore && toolMode !== 'MOVER' && toolMode !== 'ROTAR' && <Outlines thickness={0.05} color="#D4AF37" />}
+        </group>
+    );
+
+    if (isExplore) {
+        let colliders: any = 'cuboid';
+        if (item.category === 'Escaleras' || item.category === 'Vegetación') colliders = 'hull';
+        const rbType = item.category === 'Puertas' ? 'kinematicPositionBased' : 'fixed';
+
+        return (
+            <RigidBody ref={bodyRef} type={rbType} colliders={colliders} position={item.position} rotation={item.rotation}>
+                {meshContent}
+            </RigidBody>
+        );
     }
 
     return (
         <>
-            <group 
-                ref={meshRef}
-                position={item.position} 
-                rotation={item.rotation} 
-                scale={item.scale} 
-                onClick={(e) => { e.stopPropagation(); onSelect(item.id); }}
-            >
-                {/* Geometría con Material General */}
-                {item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' ? (
-                    <mesh castShadow receiveShadow>
-                        {geometryNode}
-                        <meshStandardMaterial 
-                            color={item.color} 
-                            map={texMap} 
-                            transparent={item.category === 'Piscinas'} 
-                            opacity={item.category === 'Piscinas' ? 0.8 : 1}
-                            roughness={item.category === 'Piscinas' ? 0.1 : 0.8}
-                        />
-                    </mesh>
-                ) : (
-                    // Si son objetos compuestos (Muebles), ya tienen sus materiales en la función geometryNode
-                    <group castShadow receiveShadow>
-                        {geometryNode}
-                    </group>
-                )}
-                
-                {isSelected && toolMode !== 'MOVER' && toolMode !== 'ROTAR' && <Outlines thickness={0.05} color="#D4AF37" />}
-            </group>
-
+            {meshContent}
             {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR') && (
                 <TransformControls 
                     object={meshRef} 
@@ -252,6 +389,7 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
     );
 }
 
+// ================= TERRENO =================
 function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditStart }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const isDragging = useRef(false);
@@ -282,7 +420,7 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditSta
     const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
         if (toolMode === 'TERRENO') {
             e.stopPropagation();
-            onTerrainEditStart(); // Guardar historial antes de modificar
+            onTerrainEditStart(); 
             isDragging.current = true;
             (e.target as any).setPointerCapture(e.pointerId);
             modifyTerrain(e);
@@ -342,7 +480,7 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditSta
         }
     };
 
-    return (
+    const terrainMesh = (
         <mesh 
             name="basePlane"
             ref={meshRef}
@@ -359,12 +497,22 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditSta
             <meshStandardMaterial color="#cccccc" map={grassTex} roughness={0.9} />
         </mesh>
     );
+
+    if (toolMode === 'EXPLORAR') {
+        return (
+            <RigidBody type="fixed" colliders="trimesh">
+                {terrainMesh}
+            </RigidBody>
+        );
+    }
+
+    return terrainMesh;
 }
 
+// ================= EDITOR PRINCIPAL =================
 export function Builder3D({ user, onClose }: Builder3DProps) {
   const hasAccess = user && user.username === 'Axiss';
 
-  // --- ESTADO Y PERSISTENCIA ---
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>(() => {
     const saved = localStorage.getItem('builder3d_items');
     return saved ? JSON.parse(saved) : [];
@@ -375,7 +523,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     return saved ? JSON.parse(saved) : [];
   });
   
-  // --- HISTORIAL (UNDO/REDO) ---
   const [pastStates, setPastStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
   const [futureStates, setFutureStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
 
@@ -406,7 +553,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       });
   };
 
-  // Teclas Rápidas para Historial
   useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
           if (e.ctrlKey && e.key === 'z') {
@@ -445,69 +591,83 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     );
   }
 
-  // --- LÓGICAS DE CONSTRUCCIÓN ---
+  // --- LÓGICA DE CONSTRUCCIÓN Y SNAP ---
   const handlePlaneClick = (e: ThreeEvent<MouseEvent>) => {
     if (toolMode !== 'CONSTRUIR') return;
     e.stopPropagation();
     
-    saveToHistory(); // Guardar estado actual antes de modificar
+    saveToHistory();
     const { point } = e;
+    const snapEnabled = true; // Snap Activo por defecto
+    const step = 0.5; // Grid de 0.5 metros
+    
+    const x = snapEnabled ? Math.round(point.x / step) * step : point.x;
+    const z = snapEnabled ? Math.round(point.z / step) * step : point.z;
+    const y = point.y;
     
     // SISTEMA DE PREFABS (Casas)
     if (activeCategory === 'Plantillas') {
         const batch: PlacedItem[] = [];
         if (selectedSubType === 'Casa Moderna') {
-            batch.push({ id: Math.random().toString(), category: 'Texturas', subType: 'Piso Madera', position: [point.x, point.y + 0.05, point.z], rotation: [0,0,0], scale: [6, 0.1, 6], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [point.x, point.y + 1.5, point.z - 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [point.x, point.y + 1.5, point.z + 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [point.x - 3, point.y + 1.5, point.z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [point.x + 3, point.y + 1.5, point.z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Plano', position: [point.x, point.y + 3.1, point.z], rotation: [0,0,0], scale: [6.2, 0.2, 6.2], color: '#555555' });
+            batch.push({ id: Math.random().toString(), category: 'Pisos', subType: 'Madera', position: [x, y + 0.05, z], rotation: [0,0,0], scale: [6, 0.1, 6], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x, y + 1.5, z - 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x, y + 1.5, z + 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x - 3, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x + 3, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Plano', position: [x, y + 3.1, z], rotation: [0,0,0], scale: [6.2, 0.2, 6.2], color: '#555555' });
         } else if (selectedSubType === 'Cabaña') {
-            batch.push({ id: Math.random().toString(), category: 'Texturas', subType: 'Piso Madera', position: [point.x, point.y + 0.05, point.z], rotation: [0,0,0], scale: [5, 0.1, 5], color: '#8b5a2b' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [point.x, point.y + 1.5, point.z - 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [point.x, point.y + 1.5, point.z + 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [point.x - 2.5, point.y + 1.5, point.z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [point.x + 2.5, point.y + 1.5, point.z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Inclinado', position: [point.x, point.y + 3.1, point.z], rotation: [0,0,0], scale: [5.5, 2, 5.5], color: '#443322' });
+            batch.push({ id: Math.random().toString(), category: 'Pisos', subType: 'Madera', position: [x, y + 0.05, z], rotation: [0,0,0], scale: [5, 0.1, 5], color: '#8b5a2b' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x, y + 1.5, z - 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x, y + 1.5, z + 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x - 2.5, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x + 2.5, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
+            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Inclinado', position: [x, y + 3.1, z], rotation: [0,0,0], scale: [5.5, 2, 5.5], color: '#443322' });
         }
         setPlacedItems(prev => [...prev, ...batch]);
         return;
     }
 
-    // Piezas individuales y Muebles
     const newItem: PlacedItem = {
       id: Math.random().toString(36).substring(7),
       category: activeCategory,
       subType: selectedSubType,
-      position: [point.x, point.y, point.z],
+      position: [x, y, z],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
       color: '#ffffff'
     };
     
     if (activeCategory === 'Paredes') {
-       newItem.scale = [2, 3, 0.2];
-       newItem.position[1] = point.y + 1.5; 
+       newItem.scale = [3, 3, 0.2];
+       newItem.position[1] = y + 1.5; 
        newItem.color = selectedSubType.includes('Ladrillo') ? '#ffffff' : '#cccccc';
-    } else if (activeCategory === 'Texturas') {
-       newItem.scale = [2, 0.05, 2];
-       newItem.position[1] = point.y + 0.025;
+    } else if (activeCategory === 'Pisos') {
+       newItem.scale = [3, 0.1, 3];
+       newItem.position[1] = y + 0.05;
+    } else if (activeCategory === 'Puertas') {
+       newItem.scale = [1, 1, 1];
+       newItem.position[1] = y;
+    } else if (activeCategory === 'Ventanas') {
+       newItem.scale = [1, 1, 1];
+       newItem.position[1] = y + 1;
     } else if (activeCategory === 'Techos') {
-       newItem.scale = [2.2, 0.2, 2.2];
-       if (selectedSubType === 'Inclinado') newItem.scale = [2.5, 1.5, 2.5];
-       newItem.position[1] = point.y + 3.1;
+       newItem.scale = [3.2, 0.2, 3.2];
+       if (selectedSubType === 'Inclinado') newItem.scale = [3.5, 1.5, 3.5];
+       newItem.position[1] = y + 3.1;
        newItem.color = '#555555';
+    } else if (activeCategory === 'Escaleras') {
+       newItem.scale = [1, 1, 1];
+       newItem.position[1] = y;
     } else if (activeCategory === 'Vegetación') {
        newItem.scale = selectedSubType === 'Árbol' ? [1.5, 1.5, 1.5] : [0.8, 0.8, 0.8];
-       newItem.position[1] = point.y + (selectedSubType === 'Árbol' ? 0 : 0.4);
+       newItem.position[1] = y + (selectedSubType === 'Árbol' ? 0 : 0.4);
        newItem.color = '#4ade80';
     } else if (activeCategory === 'Piscinas') {
        newItem.scale = [3, 0.2, 2];
-       newItem.position[1] = point.y - 0.1;
+       newItem.position[1] = y - 0.1;
        newItem.color = '#38bdf8';
     } else if (activeCategory === 'Mobiliario' || activeCategory === 'Electrodomésticos' || activeCategory === 'Electrónica') {
-       newItem.position[1] = point.y;
+       newItem.position[1] = y;
        newItem.color = activeCategory === 'Mobiliario' ? '#8b5a2b' : '#ffffff';
     }
 
@@ -537,173 +697,187 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   };
 
   return (
-    <div className="w-full h-full overflow-hidden bg-[#05080e] fixed inset-0 z-[9999] flex font-sans">
-      {/* UI Sidebar Menú */}
-      <div className="w-80 bg-[#121B2A] border-r border-white/10 flex flex-col h-full z-10 shadow-2xl relative">
-        <div className="p-4 border-b border-white/10">
-          <button onClick={onClose} className="flex items-center gap-2 text-gray-400 hover:text-white mb-3 text-sm font-medium transition-colors">
-            <ArrowLeft size={16} /> Volver al Chat
-          </button>
-          <div className="flex items-center justify-between">
-            <h2 className="text-[#D4AF37] font-bold text-xl flex items-center gap-2">
-              <Layers size={22} /> Creador 3D
-            </h2>
-            <div className="flex items-center gap-1">
-                <button onClick={undo} disabled={pastStates.length === 0} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded disabled:opacity-30 disabled:hover:bg-transparent" title="Deshacer (Ctrl+Z)"><Undo2 size={18}/></button>
-                <button onClick={redo} disabled={futureStates.length === 0} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded disabled:opacity-30 disabled:hover:bg-transparent" title="Rehacer (Ctrl+Y)"><Redo2 size={18}/></button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          <div className="space-y-3">
-            <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Herramientas Principales</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'CONSTRUIR' ? 'bg-[#D4AF37] text-black font-bold shadow-md' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => { setToolMode('CONSTRUIR'); setSelectedItemId(null); }}
-              >
-                <Cuboid size={16} /> Construir
+    <KeyboardControls map={keyboardMap}>
+        <div className="w-full h-full overflow-hidden bg-[#05080e] fixed inset-0 z-[9999] flex font-sans">
+          {/* UI Sidebar Menú */}
+          <div className="w-80 bg-[#121B2A] border-r border-white/10 flex flex-col h-full z-10 shadow-2xl relative">
+            <div className="p-4 border-b border-white/10">
+              <button onClick={onClose} className="flex items-center gap-2 text-gray-400 hover:text-white mb-3 text-sm font-medium transition-colors">
+                <ArrowLeft size={16} /> Volver al Chat
               </button>
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'MOVER' ? 'bg-blue-500 text-white font-bold shadow-md shadow-blue-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => setToolMode('MOVER')}
-              >
-                <Move size={16} /> Mover
-              </button>
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'ROTAR' ? 'bg-indigo-500 text-white font-bold shadow-md shadow-indigo-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => setToolMode('ROTAR')}
-              >
-                <RotateCw size={16} /> Rotar
-              </button>
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'TERRENO' ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-600/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => { setToolMode('TERRENO'); setSelectedItemId(null); }}
-              >
-                <Mountain size={16} /> Terreno
-              </button>
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'BORRAR' ? 'bg-red-500 text-white font-bold shadow-md shadow-red-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => { setToolMode('BORRAR'); setSelectedItemId(null); }}
-              >
-                <Eraser size={16} /> Borrar
-              </button>
-              <button 
-                className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'CAMARA' ? 'bg-purple-500 text-white font-bold shadow-md shadow-purple-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
-                onClick={() => { setToolMode('CAMARA'); setSelectedItemId(null); }}
-              >
-                <MousePointer2 size={16} /> Cámara
-              </button>
+              <div className="flex items-center justify-between">
+                <h2 className="text-[#D4AF37] font-bold text-xl flex items-center gap-2">
+                  <Layers size={22} /> Creador 3D
+                </h2>
+                <div className="flex items-center gap-1">
+                    <button onClick={undo} disabled={pastStates.length === 0} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded disabled:opacity-30 disabled:hover:bg-transparent" title="Deshacer (Ctrl+Z)"><Undo2 size={18}/></button>
+                    <button onClick={redo} disabled={futureStates.length === 0} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded disabled:opacity-30 disabled:hover:bg-transparent" title="Rehacer (Ctrl+Y)"><Redo2 size={18}/></button>
+                </div>
+              </div>
             </div>
             
-            {/* Tooltips Dinámicos */}
-            {toolMode === 'TERRENO' && (
-                <div className="text-xs text-amber-500/80 mt-2 bg-amber-500/10 p-2 rounded border border-amber-500/20">
-                    Arrastra sobre el suelo para crear colinas. <br/> (Shift + Arrastrar para hundir).
-                </div>
-            )}
-            {(toolMode === 'MOVER' || toolMode === 'ROTAR') && (
-                <div className="text-xs text-blue-400 mt-2 bg-blue-500/10 p-2 rounded border border-blue-500/20">
-                    Selecciona un objeto y utiliza los ejes del Gizmo para ajustarlo.
-                </div>
-            )}
-          </div>
-
-          <div className={`space-y-4 ${toolMode !== 'CONSTRUIR' ? 'opacity-30 pointer-events-none' : ''}`}>
-            <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Catálogo (Sims Mode)</label>
-            <div className="grid grid-cols-1 gap-2">
-              {CATEGORIES.map(cat => (
-                <div key={cat.id} className="space-y-2">
-                  <button
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                      activeCategory === cat.id 
-                        ? 'bg-white/10 text-[#D4AF37] border border-[#D4AF37]/30' 
-                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
-                    }`}
-                    onClick={() => { setActiveCategory(cat.id); setSelectedSubType(cat.items[0]); }}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              <div className="space-y-3">
+                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Herramientas Principales</label>
+                
+                {/* EXPLORAR - Botón Principal Destacado */}
+                <button 
+                    className={`w-full flex items-center justify-center gap-2 py-3 text-sm rounded-lg transition-all ${toolMode === 'EXPLORAR' ? 'bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/30' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'}`}
+                    onClick={() => { setToolMode('EXPLORAR'); setSelectedItemId(null); }}
                   >
-                    {cat.icon}
-                    <span className="font-medium text-sm">{cat.id}</span>
+                    <Footprints size={18} /> Explorar / Jugar (WASD + Espacio)
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'CONSTRUIR' ? 'bg-[#D4AF37] text-black font-bold shadow-md' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => { setToolMode('CONSTRUIR'); setSelectedItemId(null); }}
+                  >
+                    <Cuboid size={16} /> Construir
                   </button>
-                  {activeCategory === cat.id && (
-                    <div className="pl-5 pr-2 space-y-1 mt-1 border-l-2 border-[#D4AF37]/20 ml-4">
-                      {cat.items.map(item => (
-                        <button
-                          key={item}
-                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
-                            selectedSubType === item
-                              ? 'bg-[#D4AF37]/20 text-[#E8D9B0] font-medium'
-                              : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                          }`}
-                          onClick={() => setSelectedSubType(item)}
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'MOVER' ? 'bg-blue-500 text-white font-bold shadow-md shadow-blue-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => setToolMode('MOVER')}
+                  >
+                    <Move size={16} /> Mover
+                  </button>
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'ROTAR' ? 'bg-indigo-500 text-white font-bold shadow-md shadow-indigo-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => setToolMode('ROTAR')}
+                  >
+                    <RotateCw size={16} /> Rotar
+                  </button>
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'TERRENO' ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-600/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => { setToolMode('TERRENO'); setSelectedItemId(null); }}
+                  >
+                    <Mountain size={16} /> Terreno
+                  </button>
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'BORRAR' ? 'bg-red-500 text-white font-bold shadow-md shadow-red-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => { setToolMode('BORRAR'); setSelectedItemId(null); }}
+                  >
+                    <Eraser size={16} /> Borrar
+                  </button>
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'CAMARA' ? 'bg-purple-500 text-white font-bold shadow-md shadow-purple-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => { setToolMode('CAMARA'); setSelectedItemId(null); }}
+                  >
+                    <MousePointer2 size={16} /> Cámara
+                  </button>
                 </div>
-              ))}
+              </div>
+
+              <div className={`space-y-4 ${toolMode === 'EXPLORAR' ? 'opacity-30 pointer-events-none' : ''}`}>
+                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Catálogo (Sims Mode)</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {CATEGORIES.map(cat => (
+                    <div key={cat.id} className="space-y-2">
+                      <button
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                          activeCategory === cat.id 
+                            ? 'bg-white/10 text-[#D4AF37] border border-[#D4AF37]/30' 
+                            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+                        }`}
+                        onClick={() => { setActiveCategory(cat.id); setSelectedSubType(cat.items[0]); setToolMode('CONSTRUIR'); }}
+                      >
+                        {cat.icon}
+                        <span className="font-medium text-sm">{cat.id}</span>
+                      </button>
+                      {activeCategory === cat.id && (
+                        <div className="pl-5 pr-2 space-y-1 mt-1 border-l-2 border-[#D4AF37]/20 ml-4">
+                          {cat.items.map(item => (
+                            <button
+                              key={item}
+                              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
+                                selectedSubType === item
+                                  ? 'bg-[#D4AF37]/20 text-[#E8D9B0] font-medium'
+                                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                              }`}
+                              onClick={() => { setSelectedSubType(item); setToolMode('CONSTRUIR'); }}
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-5 border-t border-white/10 bg-black/20">
+               <button onClick={handleClear} className="w-full py-2.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 transition-all border border-red-500/30">
+                 Destruir Todo
+               </button>
             </div>
           </div>
-        </div>
-        
-        <div className="p-5 border-t border-white/10 bg-black/20">
-           <button onClick={handleClear} className="w-full py-2.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 transition-all border border-red-500/30">
-             Destruir Todo
-           </button>
-        </div>
-      </div>
 
-      {/* R3F Lienzo */}
-      <div className="flex-1 relative cursor-crosshair">
-        <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
-          <color attach="background" args={['#87CEEB']} />
-          <ambientLight intensity={0.6} />
-          <directionalLight 
-            position={[20, 30, 10]} intensity={1.2} castShadow 
-            shadow-mapSize={[2048, 2048]} 
-            shadow-camera-left={-30} shadow-camera-right={30}
-            shadow-camera-top={30} shadow-camera-bottom={-30}
-          />
-          <hemisphereLight groundColor="#2d2d2d" color="#ffffff" intensity={0.4} />
+          {/* R3F Lienzo */}
+          <div className="flex-1 relative cursor-crosshair">
+            <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
+              <color attach="background" args={['#87CEEB']} />
+              
+              <Physics gravity={[0, -9.81, 0]}>
+                  <ambientLight intensity={0.6} />
+                  <directionalLight 
+                    position={[20, 30, 10]} intensity={1.2} castShadow 
+                    shadow-mapSize={[2048, 2048]} 
+                    shadow-camera-left={-30} shadow-camera-right={30}
+                    shadow-camera-top={30} shadow-camera-bottom={-30}
+                  />
+                  <hemisphereLight groundColor="#2d2d2d" color="#ffffff" intensity={0.4} />
 
-          {placedItems.map(item => (
-             <PlacedObject 
-                key={item.id} 
-                item={item} 
-                isSelected={selectedItemId === item.id}
-                onSelect={handleObjectSelect}
-                onTransformEnd={handleTransformEnd}
-                toolMode={toolMode}
-             />
-          ))}
+                  <Player toolMode={toolMode} />
 
-          <Terrain 
-             toolMode={toolMode} 
-             heights={terrainHeights} 
-             setHeights={setTerrainHeights} 
-             onPlaneClick={handlePlaneClick}
-             onTerrainEditStart={saveToHistory}
-          />
-          
-          <Grid infiniteGrid fadeDistance={80} sectionColor="#000000" cellColor="#ffffff" sectionSize={5} cellSize={1} position={[0, 0.01, 0]} />
+                  {placedItems.map(item => (
+                     <PlacedObject 
+                        key={item.id} 
+                        item={item} 
+                        isSelected={selectedItemId === item.id}
+                        onSelect={handleObjectSelect}
+                        onTransformEnd={handleTransformEnd}
+                        toolMode={toolMode}
+                     />
+                  ))}
 
-          <OrbitControls 
-             makeDefault 
-             maxPolarAngle={Math.PI / 2 - 0.05} 
-             minDistance={2} maxDistance={100}
-             enabled={toolMode === 'CAMARA' || toolMode === 'CONSTRUIR' || toolMode === 'BORRAR' || toolMode === 'TERRENO'} 
-          />
-        </Canvas>
-        
-        {toolMode === 'CONSTRUIR' && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-2.5 rounded-full text-white text-sm font-medium border border-white/20 pointer-events-none shadow-lg">
-            Colocando: <span className="text-[#D4AF37] font-bold">{selectedSubType}</span>
+                  <Terrain 
+                     toolMode={toolMode} 
+                     heights={terrainHeights} 
+                     setHeights={setTerrainHeights} 
+                     onPlaneClick={handlePlaneClick}
+                     onTerrainEditStart={saveToHistory}
+                  />
+              </Physics>
+              
+              <Grid infiniteGrid fadeDistance={80} sectionColor="#000000" cellColor="#ffffff" sectionSize={5} cellSize={0.5} position={[0, 0.01, 0]} />
+
+              <OrbitControls 
+                 makeDefault 
+                 maxPolarAngle={Math.PI / 2 - 0.05} 
+                 minDistance={2} maxDistance={100}
+                 enabled={toolMode !== 'EXPLORAR'} 
+              />
+            </Canvas>
+            
+            {toolMode === 'EXPLORAR' && (
+                <div className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none mix-blend-difference" />
+            )}
+
+            {toolMode === 'EXPLORAR' && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-2.5 rounded-full text-white text-sm font-medium border border-white/20 pointer-events-none shadow-lg">
+                  Presiona <kbd className="bg-white/20 px-2 py-0.5 rounded mx-1">Esc</kbd> para liberar el mouse
+                </div>
+            )}
+
+            {toolMode === 'CONSTRUIR' && (
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-2.5 rounded-full text-white text-sm font-medium border border-white/20 pointer-events-none shadow-lg">
+                Colocando: <span className="text-[#D4AF37] font-bold">{selectedSubType}</span> (Snap Activo)
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+    </KeyboardControls>
   );
 }
