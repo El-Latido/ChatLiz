@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+const fs = require('fs');
+
+const content = `import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, ThreeEvent, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Outlines, useTexture, useGLTF } from '@react-three/drei';
 import { UserObj } from '../types';
@@ -92,13 +94,6 @@ const textures = {
     pasto: createDataTexture('pasto')
 };
 
-
-
-function GLTFModel({ url, scale = 1 }: { url: string, scale?: number | [number, number, number] }) {
-    const { scene } = useGLTF(url);
-    return <primitive object={scene.clone()} scale={scale} />;
-}
-
 function PlacedObject({ 
     item, 
     isSelected, 
@@ -146,13 +141,18 @@ function PlacedObject({
         >
             {item.category === 'Vegetación' ? (
                 item.subType === 'Árbol' ? (
-                   <React.Suspense fallback={<dodecahedronGeometry args={[0.8, 1]} />}>
-                       <GLTFModel url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF/Fox.gltf" scale={0.02} />
-                   </React.Suspense>
+                   <group position={[0, -0.5, 0]}>
+                       <mesh position={[0, 0.5, 0]}>
+                           <cylinderGeometry args={[0.2, 0.3, 1, 8]} />
+                           <meshStandardMaterial color="#5c4033" />
+                       </mesh>
+                       <mesh position={[0, 1.5, 0]}>
+                           <dodecahedronGeometry args={[1, 1]} />
+                           <meshStandardMaterial color="#2d5a27" />
+                       </mesh>
+                   </group>
                 ) : (
-                    <React.Suspense fallback={<dodecahedronGeometry args={[0.8, 1]} />}>
-                       <GLTFModel url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF/Duck.gltf" scale={0.5} />
-                   </React.Suspense>
+                    <dodecahedronGeometry args={[0.8, 1]} />
                 )
             ) : item.category === 'Techos' && item.subType === 'Inclinado' ? (
                 <coneGeometry args={[1, 1, 4]} />
@@ -173,7 +173,7 @@ function PlacedObject({
     );
 }
 
-function Terrain({ toolMode, heights, setHeights, onPlaneClick }: any) {
+function Terrain({ toolMode, heights, setHeights, onPlaneClick, setPlacedItems, activeCategory, selectedSubType }: any) {
     const meshRef = useRef<THREE.Mesh>(null);
     const isDragging = useRef(false);
     
@@ -206,7 +206,6 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick }: any) {
         if (toolMode === 'TERRENO') {
             e.stopPropagation();
             isDragging.current = true;
-            (e.target as any).setPointerCapture(e.pointerId);
             modifyTerrain(e);
         }
     };
@@ -222,7 +221,6 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick }: any) {
         if (toolMode === 'TERRENO' && isDragging.current) {
             e.stopPropagation();
             isDragging.current = false;
-            (e.target as any).releasePointerCapture(e.pointerId);
             // Guardar en state para que persista
             if (meshRef.current) {
                 const geo = meshRef.current.geometry;
@@ -269,8 +267,8 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick }: any) {
 
     return (
         <mesh 
-            name="basePlane"
             ref={meshRef}
+            name="basePlane"
             rotation={[-Math.PI / 2, 0, 0]} 
             position={[0, 0, 0]} 
             receiveShadow
@@ -338,7 +336,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const handleGlobalPointerMove = (e: ThreeEvent<PointerEvent>) => {
       if (toolMode === 'MOVER' && draggingId.current) {
           // Calculamos la intersección con un plano imaginario a la altura del objeto
-          const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), dragPlaneY.current);
+          const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -dragPlaneY.current);
           const raycaster = e.ray;
           const intersectPoint = new THREE.Vector3();
           
