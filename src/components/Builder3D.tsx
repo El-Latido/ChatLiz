@@ -3,7 +3,7 @@ import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
-import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2 } from 'lucide-react';
+import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2, Upload } from 'lucide-react';
 import * as THREE from 'three';
 import localforage from 'localforage';
 
@@ -553,6 +553,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
       setToastMessage(msg);
@@ -613,8 +614,50 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
           showToast(`¡${newAssetName} descargado con éxito!`);
       } catch (err: any) {
           setDownloadError(err.message || 'Error al descargar. Verifica que el enlace sea directo y permita CORS.');
+          showToast('Error CORS: El servidor externo bloqueó la descarga directa. Usa un enlace compatible o prueba otra fuente.');
       } finally {
           setIsDownloading(false);
+      }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      setIsDownloading(true);
+      setDownloadError('');
+      
+      try {
+          const isModel = !!file.name.toLowerCase().match(/\.(glb|gltf)$/i);
+          const type = isModel ? 'model' : 'texture';
+          const id = Math.random().toString(36).substring(7);
+          
+          await localforage.setItem(`asset_${id}`, file);
+          
+          let category = newAssetCategory;
+          if (isModel && category !== 'Mobiliario' && category !== 'Plantillas' && category !== 'Puertas' && category !== 'Techos' && category !== 'Escaleras' && category !== 'Piscinas' && category !== 'Ventanas') {
+              category = 'Mobiliario';
+          } else if (!isModel && category !== 'Pisos' && category !== 'Paredes') {
+              category = 'Pisos';
+          }
+          
+          const assetName = newAssetName || file.name.replace(/\.[^/.]+$/, "");
+
+          const newAsset: CustomAsset = { id, name: assetName, category, type };
+          const newMetadata = [...customAssets, newAsset].map(({blobUrl, ...rest}) => rest);
+          await localforage.setItem('custom_assets_metadata', newMetadata);
+          
+          setCustomAssets(prev => [...prev, { ...newAsset, blobUrl: URL.createObjectURL(file) }]);
+          setIsAssetModalOpen(false);
+          setNewAssetUrl('');
+          setNewAssetName('');
+          showToast(`¡${assetName} cargado con éxito desde el dispositivo!`);
+      } catch (err: any) {
+          setDownloadError(err.message || 'Error al procesar el archivo local.');
+          showToast('Error al procesar el archivo local.');
+      } finally {
+          setIsDownloading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
       }
   };
 
@@ -1120,6 +1163,28 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                             {isDownloading ? 'Descargando...' : 'Descargar y Guardar (Memoria)'}
                         </button>
                         
+                        <div className="relative flex items-center py-2">
+                            <div className="flex-grow border-t border-white/10"></div>
+                            <span className="flex-shrink-0 mx-4 text-gray-500 text-xs uppercase font-bold">O alternativamente</span>
+                            <div className="flex-grow border-t border-white/10"></div>
+                        </div>
+
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isDownloading}
+                            className="w-full bg-transparent hover:bg-white/5 border border-white/20 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <Upload size={16} />
+                            {isDownloading ? 'Procesando...' : 'Cargar archivo local (.glb, .png, .jpg)'}
+                        </button>
+                        <input 
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept=".glb,.gltf,.jpg,.jpeg,.png,image/png,image/jpeg"
+                            className="hidden"
+                        />
+
                         <p className="text-[10px] text-gray-500 text-center leading-tight">
                             Se guardará en IndexedDB para no usar el almacenamiento de archivos visible de tu teléfono.
                         </p>
