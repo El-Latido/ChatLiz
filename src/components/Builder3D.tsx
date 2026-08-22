@@ -552,6 +552,12 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const [newAssetCategory, setNewAssetCategory] = useState(CATEGORIES[0].id);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+      setToastMessage(msg);
+      setTimeout(() => setToastMessage(null), 4000);
+  };
 
   useEffect(() => {
       localforage.getItem<CustomAsset[]>('custom_assets_metadata').then(async (metadata) => {
@@ -604,6 +610,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
           setIsAssetModalOpen(false);
           setNewAssetUrl('');
           setNewAssetName('');
+          showToast(`¡${newAssetName} descargado con éxito!`);
       } catch (err: any) {
           setDownloadError(err.message || 'Error al descargar. Verifica que el enlace sea directo y permita CORS.');
       } finally {
@@ -923,7 +930,11 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                                   ? 'bg-[#D4AF37]/20 text-[#E8D9B0] border-[#D4AF37]/50'
                                   : 'bg-black/20 text-gray-400 border-white/5 hover:text-gray-200 hover:bg-white/5'
                               }`}
-                              onClick={() => { setSelectedSubType(item); setToolMode('CONSTRUIR'); }}
+                              onClick={() => { 
+                                setSelectedSubType(item); 
+                                setToolMode('CONSTRUIR'); 
+                                showToast(`¡${item} añadido al lienzo / inventario!`);
+                              }}
                             >
                               {item}
                             </button>
@@ -938,7 +949,11 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                                   ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50'
                                   : 'bg-emerald-500/5 text-emerald-400/80 border-emerald-500/20 border-dashed hover:bg-emerald-500/10'
                               }`}
-                              onClick={() => { setSelectedSubType(`Custom: ${asset.name}`); setToolMode('CONSTRUIR'); }}
+                              onClick={() => { 
+                                setSelectedSubType(`Custom: ${asset.name}`); 
+                                setToolMode('CONSTRUIR'); 
+                                showToast(`¡${asset.name} añadido al lienzo / inventario!`);
+                              }}
                             >
                               <span className="truncate w-full block">{asset.name}</span>
                               <button
@@ -1110,6 +1125,14 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                         </p>
                     </div>
                 </div>
+            </div>
+        )}
+        
+        {/* Toast Notification */}
+        {toastMessage && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[11000] bg-emerald-500/90 text-white px-6 py-3 rounded-full shadow-2xl backdrop-blur-sm border border-emerald-400/30 flex items-center gap-2 animate-[slideDown_0.3s_ease-out]">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                <span className="font-medium text-sm">{toastMessage}</span>
             </div>
         )}
     </KeyboardControls>
