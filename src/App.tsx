@@ -1045,9 +1045,7 @@ function MainApp() {
               <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
                   <div className="hidden"></div>
 
-                  {activeChat === 'builder' ? (
-                     <Builder3D user={user} />
-                  ) : activeChat === 'lizgram' ? (
+                  {activeChat === 'lizgram' ? (
                      <SocialFeed user={user} />
                   ) : (
                 <>
@@ -1681,11 +1679,16 @@ function MainApp() {
       {user?.username?.toUpperCase() === 'AXISS' && (
           <button
             onClick={() => { closeAllModals(); setActiveChat('builder'); }}
-            className="fixed bottom-6 left-6 z-[9999] bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-[0_0_30px_rgba(147,51,234,0.8)] transition-all flex items-center justify-center group"
+            className="fixed bottom-6 left-6 z-[9000] bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-[0_0_30px_rgba(147,51,234,0.8)] transition-all flex items-center justify-center group"
             title="Abrir Creador 3D"
           >
             <Box size={28} className="group-hover:scale-110 transition-transform" />
           </button>
+      )}
+
+      {/* Render Builder3D overlay on top of everything */}
+      {activeChat === 'builder' && (
+         <Builder3D user={user} onClose={() => setActiveChat('global')} />
       )}
     </div>
   );

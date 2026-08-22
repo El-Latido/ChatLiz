@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Canvas, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { UserObj } from '../types';
-import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves } from 'lucide-react';
+import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft } from 'lucide-react';
 
 interface Builder3DProps {
   user: UserObj;
+  onClose?: () => void;
 }
 
 export interface PlacedItem {
@@ -26,7 +27,7 @@ const CATEGORIES = [
   { id: 'Piscinas', icon: <Waves size={20} />, items: ['Piscina Rectangular', 'Jacuzzi'] },
 ];
 
-export function Builder3D({ user }: Builder3DProps) {
+export function Builder3D({ user, onClose }: Builder3DProps) {
   // Validar si tiene acceso (solo usuario AXISS estrictamente)
   const hasAccess = user && user.username === 'Axiss';
 
@@ -45,10 +46,16 @@ export function Builder3D({ user }: Builder3DProps) {
 
   if (!hasAccess) {
     return (
-      <div className="flex items-center justify-center w-full h-full bg-[#0a0f1c] fixed inset-0 z-[400]">
+      <div className="flex items-center justify-center w-full h-full bg-[#0a0f1c] fixed inset-0 z-[9999]">
         <div className="bg-[#121B2A] border border-red-500/50 rounded-2xl p-8 shadow-[0_0_20px_rgba(239,68,68,0.2)] text-center">
           <h1 className="text-2xl font-bold text-red-500 mb-2">Acceso Denegado</h1>
-          <p className="text-gray-300">Esta sala es exclusiva para el administrador Axiss.</p>
+          <p className="text-gray-300 mb-6">Esta sala es exclusiva para el administrador Axiss.</p>
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-medium border border-red-500/30"
+          >
+            Volver
+          </button>
         </div>
       </div>
     );
@@ -102,10 +109,17 @@ export function Builder3D({ user }: Builder3DProps) {
   };
 
   return (
-    <div className="w-full h-full overflow-hidden bg-[#05080e] fixed inset-0 z-[300] flex font-sans">
+    <div className="w-full h-full overflow-hidden bg-[#05080e] fixed inset-0 z-[9999] flex font-sans">
       {/* UI Sidebar Menú */}
       <div className="w-72 bg-[#121B2A] border-r border-white/10 flex flex-col h-full z-10 shadow-2xl relative">
         <div className="p-5 border-b border-white/10">
+          <button 
+            onClick={onClose}
+            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4 text-sm font-medium transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Volver al Chat
+          </button>
           <h2 className="text-[#D4AF37] font-bold text-xl flex items-center gap-2">
             <Layers size={22} />
             Constructor 3D
