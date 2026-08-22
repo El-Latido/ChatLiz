@@ -3,8 +3,9 @@ import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
-import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints } from 'lucide-react';
+import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X } from 'lucide-react';
 import * as THREE from 'three';
+import localforage from 'localforage';
 
 interface Builder3DProps {
   user: UserObj;
@@ -19,6 +20,14 @@ export interface PlacedItem {
   rotation: [number, number, number];
   scale: [number, number, number];
   color: string;
+}
+
+export interface CustomAsset {
+  id: string;
+  name: string;
+  category: string;
+  type: 'model' | 'texture';
+  blobUrl?: string;
 }
 
 const CATEGORIES = [
@@ -192,10 +201,15 @@ function Player({ toolMode }: { toolMode: ToolMode }) {
 }
 
 // ================= OBJETOS COLOCADOS =================
-function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: any) {
+function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, customAssets }: any) {
     const meshRef = useRef<THREE.Group>(null);
     const bodyRef = useRef<any>(null);
     const isExplore = toolMode === 'EXPLORAR';
+    
+    // Check custom asset
+    const isCustom = item.subType.startsWith('Custom: ');
+    const customName = item.subType.replace('Custom: ', '');
+    const customAsset = isCustom ? customAssets?.find((a: any) => a.name === customName) : null;
     
     // Estado de Puertas
     const [isOpen, setIsOpen] = useState(false);
@@ -224,7 +238,9 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
 
     const texMap = useMemo(() => {
         let url = null;
-        if (item.subType.includes('Ladrillo')) url = textures.ladrillo;
+        if (customAsset && customAsset.type === 'texture' && customAsset.blobUrl) {
+            url = customAsset.blobUrl;
+        } else if (item.subType.includes('Ladrillo')) url = textures.ladrillo;
         else if (item.subType.includes('Madera')) url = textures.madera;
         else if (item.subType.includes('Piedra')) url = textures.piedra;
         else if (item.subType.includes('Cerámica')) url = textures.ceramica;
@@ -247,7 +263,13 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
     // Generar Geometría Específica
     let geometryNode = <boxGeometry args={[1, 1, 1]} />;
     
-    if (item.category === 'Puertas') {
+    if (customAsset && customAsset.type === 'model' && customAsset.blobUrl) {
+        geometryNode = (
+            <React.Suspense fallback={<boxGeometry args={[1, 1, 1]} />}>
+                <GLTFModel url={customAsset.blobUrl + '#fake.glb'} scale={1} />
+            </React.Suspense>
+        );
+    } else if (item.category === 'Puertas') {
         geometryNode = (
             <group position={[0.5, 1, 0]}> {/* Pivote en el borde */}
                 <mesh position={[-0.5, 0, 0]}>
@@ -336,7 +358,7 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode }: 
             scale={item.scale} 
             onClick={handleInteract}
         >
-            {item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' && item.category !== 'Puertas' && item.category !== 'Ventanas' && item.category !== 'Escaleras' ? (
+            {(item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' && item.category !== 'Puertas' && item.category !== 'Ventanas' && item.category !== 'Escaleras' && !(customAsset && customAsset.type === 'model')) ? (
                 <mesh castShadow receiveShadow>
                     {geometryNode}
                     <meshStandardMaterial 
@@ -523,6 +545,65 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     return saved ? JSON.parse(saved) : [];
   });
   
+  const [customAssets, setCustomAssets] = useState<CustomAsset[]>([]);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [newAssetUrl, setNewAssetUrl] = useState('');
+  const [newAssetName, setNewAssetName] = useState('');
+  const [newAssetCategory, setNewAssetCategory] = useState(CATEGORIES[0].id);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
+
+  useEffect(() => {
+      localforage.getItem<CustomAsset[]>('custom_assets_metadata').then(async (metadata) => {
+          if (metadata) {
+              const loadedAssets = await Promise.all(metadata.map(async (m) => {
+                  const blob = await localforage.getItem<Blob>(`asset_${m.id}`);
+                  if (blob) {
+                      return { ...m, blobUrl: URL.createObjectURL(blob) };
+                  }
+                  return m;
+              }));
+              setCustomAssets(loadedAssets.filter(a => a.blobUrl));
+          }
+      });
+  }, []);
+
+  const handleDownloadAsset = async () => {
+      if (!newAssetUrl || !newAssetName) return;
+      setIsDownloading(true);
+      setDownloadError('');
+      try {
+          const type = newAssetUrl.toLowerCase().match(/\.(glb|gltf)$/i) ? 'model' : 'texture';
+          const res = await fetch(newAssetUrl);
+          if (!res.ok) throw new Error('Error de red al descargar (¿Problema de CORS?)');
+          const blob = await res.blob();
+          
+          const id = Math.random().toString(36).substring(7);
+          await localforage.setItem(`asset_${id}`, blob);
+          
+          const newAsset: CustomAsset = { id, name: newAssetName, category: newAssetCategory, type };
+          const newMetadata = [...customAssets, newAsset].map(({blobUrl, ...rest}) => rest);
+          await localforage.setItem('custom_assets_metadata', newMetadata);
+          
+          setCustomAssets(prev => [...prev, { ...newAsset, blobUrl: URL.createObjectURL(blob) }]);
+          setIsAssetModalOpen(false);
+          setNewAssetUrl('');
+          setNewAssetName('');
+      } catch (err: any) {
+          setDownloadError(err.message || 'Error al descargar. Verifica que el enlace sea directo y permita CORS.');
+      } finally {
+          setIsDownloading(false);
+      }
+  };
+
+  const dynamicCategories = CATEGORIES.map(cat => ({
+      ...cat,
+      items: [
+          ...cat.items,
+          ...customAssets.filter(a => a.category === cat.id).map(a => `Custom: ${a.name}`)
+      ]
+  }));
+  
   const [pastStates, setPastStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
   const [futureStates, setFutureStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
 
@@ -627,6 +708,10 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
         return;
     }
 
+    const isCustom = selectedSubType.startsWith('Custom: ');
+    const customName = selectedSubType.replace('Custom: ', '');
+    const customAsset = customAssets.find(a => a.name === customName);
+
     const newItem: PlacedItem = {
       id: Math.random().toString(36).substring(7),
       category: activeCategory,
@@ -637,7 +722,22 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       color: '#ffffff'
     };
     
-    if (activeCategory === 'Paredes') {
+    if (customAsset) {
+        if (customAsset.type === 'texture') {
+            if (activeCategory === 'Pisos') {
+               newItem.scale = [3, 0.1, 3];
+               newItem.position[1] = y + 0.05;
+            } else if (activeCategory === 'Paredes') {
+               newItem.scale = [3, 3, 0.2];
+               newItem.position[1] = y + 1.5;
+            } else {
+               newItem.scale = [2, 2, 0.2];
+               newItem.position[1] = y + 1;
+            }
+        } else {
+            newItem.position[1] = y;
+        }
+    } else if (activeCategory === 'Paredes') {
        newItem.scale = [3, 3, 0.2];
        newItem.position[1] = y + 1.5; 
        newItem.color = selectedSubType.includes('Ladrillo') ? '#ffffff' : '#cccccc';
@@ -769,9 +869,14 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
               </div>
 
               <div className={`space-y-4 ${toolMode === 'EXPLORAR' ? 'opacity-30 pointer-events-none' : ''}`}>
-                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Catálogo (Sims Mode)</label>
+                <div className="flex items-center justify-between">
+                    <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Catálogo (Sims Mode)</label>
+                    <button onClick={() => setIsAssetModalOpen(true)} className="text-[#D4AF37] flex items-center gap-1 text-xs hover:text-white transition-colors">
+                        <DownloadCloud size={14} /> Importar
+                    </button>
+                </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {CATEGORIES.map(cat => (
+                  {dynamicCategories.map(cat => (
                     <div key={cat.id} className="space-y-2">
                       <button
                         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
@@ -839,6 +944,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                         onSelect={handleObjectSelect}
                         onTransformEnd={handleTransformEnd}
                         toolMode={toolMode}
+                        customAssets={customAssets}
                      />
                   ))}
 
@@ -878,6 +984,69 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             )}
           </div>
         </div>
+        
+        {isAssetModalOpen && (
+            <div className="absolute inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4">
+                <div className="bg-[#121B2A] border border-white/10 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative">
+                    <button onClick={() => setIsAssetModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                        <X size={20} />
+                    </button>
+                    <h3 className="text-[#D4AF37] font-bold text-lg mb-4 flex items-center gap-2">
+                        <DownloadCloud size={20} /> Descargar Asset
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Enlace Directo (.jpg, .png, .glb)</label>
+                            <input 
+                                type="text" 
+                                value={newAssetUrl}
+                                onChange={e => setNewAssetUrl(e.target.value)}
+                                placeholder="https://ejemplo.com/textura.jpg"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Nombre del Asset</label>
+                            <input 
+                                type="text" 
+                                value={newAssetName}
+                                onChange={e => setNewAssetName(e.target.value)}
+                                placeholder="Muro de Piedra Oscura"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Categoría</label>
+                            <select 
+                                value={newAssetCategory}
+                                onChange={e => setNewAssetCategory(e.target.value)}
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                            >
+                                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                            </select>
+                        </div>
+                        
+                        {downloadError && (
+                            <div className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 p-2 rounded">
+                                {downloadError}
+                            </div>
+                        )}
+                        
+                        <button 
+                            onClick={handleDownloadAsset}
+                            disabled={isDownloading || !newAssetUrl || !newAssetName}
+                            className="w-full bg-[#D4AF37] hover:bg-[#b5952f] text-black font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {isDownloading ? 'Descargando...' : 'Descargar y Guardar (Memoria)'}
+                        </button>
+                        
+                        <p className="text-[10px] text-gray-500 text-center leading-tight">
+                            Se guardará en IndexedDB para no usar el almacenamiento de archivos visible de tu teléfono.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
     </KeyboardControls>
   );
 }
