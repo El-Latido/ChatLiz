@@ -9,18 +9,32 @@ jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
-      - name: Push to Hugging Face
+      - name: Checkout GitHub code
+        uses: actions/checkout@v4
+
+      - name: Sync and Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions Sync"
           
-          HF_REPO="https://oauth2:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz"
+          echo "1. Clonando el repositorio actual de Hugging Face..."
+          git clone --depth 1 https://AxissHelizabeth:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz hf_space
           
-          git remote add huggingface $HF_REPO
-          git push -f huggingface main
+          echo "2. Sincronizando archivos limpios..."
+          # Esto copia tus archivos nuevos al repo de Hugging Face, eliminando lo que ya no existe (como los juegos)
+          rsync -av --delete --exclude='.git/' --exclude='hf_space/' ./ hf_space/
+          
+          cd hf_space
+          
+          echo "3. Preparando commit..."
+          git add -A
+          
+          # Hacemos commit solo si hay cambios
+          git diff --staged --quiet || git commit -m "Deploy latest clean code from GitHub"
+          
+          echo "4. Empujando a Hugging Face de forma segura..."
+          git push https://AxissHelizabeth:$HF_TOKEN@huggingface.co/spaces/AxissHelizabeth/ChatLiz main
+          
+          echo "¡Sincronización Completada!"
