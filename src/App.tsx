@@ -542,7 +542,11 @@ function MainApp() {
             }
         } else {
             signInAnonymously(auth).catch((error) => {
-               console.error("Error signing in anonymously to Firebase:", error);
+                if (error.code === 'auth/api-key-not-valid' || error.message.includes('API key not valid')) {
+                    console.warn("⚠️ Firebase sin configurar: Faltan las variables de entorno en Hugging Face. Las funciones web seguirán funcionando con WebSocket.");
+                } else {
+                    console.error("Error de autenticación Firebase:", error);
+                }
             });
         }
     });
