@@ -3,7 +3,7 @@ import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
-import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X } from 'lucide-react';
+import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2 } from 'lucide-react';
 import * as THREE from 'three';
 import localforage from 'localforage';
 
@@ -568,6 +568,21 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       });
   }, []);
 
+  useEffect(() => {
+      if (newAssetUrl) {
+          const url = newAssetUrl.toLowerCase();
+          if (url.match(/\.(glb|gltf)$/i)) {
+              if (newAssetCategory !== 'Mobiliario' && newAssetCategory !== 'Plantillas' && newAssetCategory !== 'Puertas') {
+                  setNewAssetCategory('Mobiliario');
+              }
+          } else if (url.match(/\.(jpg|jpeg|png)$/i)) {
+              if (newAssetCategory !== 'Pisos' && newAssetCategory !== 'Paredes') {
+                  setNewAssetCategory('Pisos');
+              }
+          }
+      }
+  }, [newAssetUrl]);
+
   const handleDownloadAsset = async () => {
       if (!newAssetUrl || !newAssetName) return;
       setIsDownloading(true);
@@ -596,13 +611,22 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       }
   };
 
-  const dynamicCategories = CATEGORIES.map(cat => ({
-      ...cat,
-      items: [
-          ...cat.items,
-          ...customAssets.filter(a => a.category === cat.id).map(a => `Custom: ${a.name}`)
-      ]
-  }));
+  const handleDeleteCustomAsset = async (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!window.confirm('¿Seguro que quieres borrar este asset?')) return;
+      
+      await localforage.removeItem(`asset_${id}`);
+      const updatedMetadata = customAssets.filter(a => a.id !== id).map(({blobUrl, ...rest}) => rest);
+      await localforage.setItem('custom_assets_metadata', updatedMetadata);
+      
+      setCustomAssets(prev => prev.filter(a => a.id !== id));
+      
+      const deletedAsset = customAssets.find(a => a.id === id);
+      if (deletedAsset && selectedSubType === `Custom: ${deletedAsset.name}`) {
+          setSelectedSubType(CATEGORIES[0].items[0]);
+          setActiveCategory(CATEGORIES[0].id);
+      }
+  };
   
   const [pastStates, setPastStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
   const [futureStates, setFutureStates] = useState<{items: PlacedItem[], terrain: number[]}[]>([]);
@@ -876,7 +900,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                     </button>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {dynamicCategories.map(cat => (
+                  {CATEGORIES.map(cat => (
                     <div key={cat.id} className="space-y-2">
                       <button
                         className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
@@ -890,19 +914,41 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                         <span className="font-medium text-sm">{cat.id}</span>
                       </button>
                       {activeCategory === cat.id && (
-                        <div className="pl-5 pr-2 space-y-1 mt-1 border-l-2 border-[#D4AF37]/20 ml-4">
+                        <div className="grid grid-cols-2 gap-2 mt-2 pl-3 pr-2 border-l-2 border-[#D4AF37]/20 ml-4">
                           {cat.items.map(item => (
                             <button
                               key={item}
-                              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
+                              className={`w-full text-center px-2 py-3 rounded-md text-xs font-medium transition-all border ${
                                 selectedSubType === item
-                                  ? 'bg-[#D4AF37]/20 text-[#E8D9B0] font-medium'
-                                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                  ? 'bg-[#D4AF37]/20 text-[#E8D9B0] border-[#D4AF37]/50'
+                                  : 'bg-black/20 text-gray-400 border-white/5 hover:text-gray-200 hover:bg-white/5'
                               }`}
                               onClick={() => { setSelectedSubType(item); setToolMode('CONSTRUIR'); }}
                             >
                               {item}
                             </button>
+                          ))}
+                          
+                          {/* Custom Assets for this category */}
+                          {customAssets.filter(a => a.category === cat.id).map(asset => (
+                            <div
+                              key={asset.id}
+                              className={`relative group w-full text-center px-2 py-3 rounded-md text-xs font-medium transition-all border cursor-pointer flex items-center justify-center ${
+                                selectedSubType === `Custom: ${asset.name}`
+                                  ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50'
+                                  : 'bg-emerald-500/5 text-emerald-400/80 border-emerald-500/20 border-dashed hover:bg-emerald-500/10'
+                              }`}
+                              onClick={() => { setSelectedSubType(`Custom: ${asset.name}`); setToolMode('CONSTRUIR'); }}
+                            >
+                              <span className="truncate w-full block">{asset.name}</span>
+                              <button
+                                onClick={(e) => handleDeleteCustomAsset(asset.id, e)}
+                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                title="Eliminar Asset"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -1020,9 +1066,28 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                             <select 
                                 value={newAssetCategory}
                                 onChange={e => setNewAssetCategory(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37] [&>optgroup]:font-bold [&>optgroup]:text-[#D4AF37]"
                             >
-                                {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                <optgroup label="Texturas de Pared/Piso">
+                                    <option value="Pisos">Pisos (Suelos)</option>
+                                    <option value="Paredes">Paredes (Muros)</option>
+                                </optgroup>
+                                <optgroup label="Muebles / Decoración">
+                                    <option value="Mobiliario">Mobiliario General</option>
+                                    <option value="Electrodomésticos">Electrodomésticos</option>
+                                    <option value="Electrónica">Electrónica</option>
+                                    <option value="Vegetación">Vegetación / Plantas</option>
+                                </optgroup>
+                                <optgroup label="Estructuras / Prefabricados">
+                                    <option value="Plantillas">Casas Completas</option>
+                                    <option value="Techos">Techos</option>
+                                    <option value="Escaleras">Escaleras / Ascensores</option>
+                                    <option value="Piscinas">Piscinas</option>
+                                </optgroup>
+                                <optgroup label="Puertas y Ventanas">
+                                    <option value="Puertas">Puertas</option>
+                                    <option value="Ventanas">Ventanas</option>
+                                </optgroup>
                             </select>
                         </div>
                         
