@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls, Html } from '@react-three/drei';
+import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls, Html, Float } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
 import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2, Upload } from 'lucide-react';
@@ -32,7 +32,7 @@ export interface CustomAsset {
 }
 
 const CATEGORIES = [
-  { id: 'Plantillas', icon: <Home size={20} />, items: ['Moderna Minimalista', 'Cabaña Rústica', 'Contemporánea Cristal', 'Villa Mediterránea', 'Industrial Loft'] },
+  { id: 'Plantillas', icon: <Home size={20} />, items: ['Santuario Japonés', 'Moderna Minimalista', 'Cabaña Rústica', 'Contemporánea Cristal', 'Villa Mediterránea', 'Industrial Loft'] },
   { id: 'Pisos', icon: <GridIcon size={20} />, items: ['Madera', 'Piedra', 'Cerámica', 'Adoquines'] },
   { id: 'Paredes', icon: <Cuboid size={20} />, items: ['Muro Básico', 'Muro Ladrillo'] },
   { id: 'Puertas', icon: <DoorOpen size={20} />, items: ['Puerta Madera', 'Puerta Vidrio'] },
@@ -429,11 +429,278 @@ function TemplateDoor({ position, rotationY, itemRotationY, isExplore, texture }
     );
 }
 
+const sjColors = {
+  bg: '#050814',
+  woodDark: '#2b1b11',
+  woodLight: '#d2a679',
+  shoji: '#fffae6',
+  neonPink: '#ff1493',
+  neonBlue: '#00ffff',
+  stone: '#4a5054',
+  water: '#00aaff',
+  leaves: '#ff99cc',
+  bamboo: '#8f9779',
+  candle: '#ffaa00'
+};
+
+function SakuraPetals() {
+  const count = 150;
+  const mesh = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+
+  const particles = useMemo(() => {
+    const temp = [];
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 10;
+      const y = Math.random() * 8 + 2;
+      const z = (Math.random() - 0.5) * 10;
+      const speed = Math.random() * 0.02 + 0.01;
+      temp.push({ x, y, z, speed });
+    }
+    return temp;
+  }, [count]);
+
+  useFrame(() => {
+    if (!mesh.current) return;
+    particles.forEach((particle, i) => {
+      particle.y -= particle.speed;
+      particle.x += Math.sin(particle.y) * 0.01;
+      if (particle.y < 0) particle.y = 8;
+
+      dummy.position.set(particle.x, particle.y, particle.z);
+      dummy.rotation.x += particle.speed;
+      dummy.rotation.y += particle.speed;
+      dummy.updateMatrix();
+      mesh.current!.setMatrixAt(i, dummy.matrix);
+    });
+    if (mesh.current.instanceMatrix) mesh.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={mesh} args={[undefined, undefined, count]} position={[0, 0, -15]}>
+      <planeGeometry args={[0.2, 0.2]} />
+      <meshBasicMaterial color={sjColors.leaves} side={THREE.DoubleSide} />
+    </instancedMesh>
+  );
+}
+
+function SantuarioJaponesColliders() {
+  return (
+    <group>
+        {/* MainHouse */}
+        <group position={[0, 0.5, 0]}>
+          <mesh position={[0, -0.25, 0]} castShadow receiveShadow>
+            <boxGeometry args={[20, 0.5, 15]} />
+            <meshStandardMaterial color={sjColors.woodLight} roughness={0.8} />
+          </mesh>
+          <mesh position={[0, -0.25, 7.6]} castShadow receiveShadow>
+            <boxGeometry args={[20.2, 0.1, 0.1]} />
+            <meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} />
+          </mesh>
+
+          <group position={[0, 0, 0]}>
+            <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+              <boxGeometry args={[4, 0.2, 2]} />
+              <meshStandardMaterial color={sjColors.woodDark} roughness={0.9} />
+            </mesh>
+            <mesh position={[0, 0.1, 1.5]} castShadow receiveShadow><boxGeometry args={[1, 0.1, 1]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[0, 0.1, -1.5]} castShadow receiveShadow><boxGeometry args={[1, 0.1, 1]} /><meshStandardMaterial color="#884444" /></mesh>
+          </group>
+
+          <group position={[-5, 0, -3]}>
+            <mesh position={[0, 0.1, 0]} castShadow receiveShadow><boxGeometry args={[3, 0.2, 4]} /><meshStandardMaterial color="#eeeeee" /></mesh>
+            <mesh position={[3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 7]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} /></mesh>
+          </group>
+
+          <group position={[5, 0, -3]}>
+            <mesh position={[0, 0.5, -1]} castShadow receiveShadow><boxGeometry args={[3, 1, 2]} /><meshStandardMaterial color="#222" /></mesh>
+            <mesh position={[0, 0.9, -1]} castShadow receiveShadow><boxGeometry args={[2.8, 0.1, 1.8]} /><meshStandardMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.5} transparent opacity={0.8} /></mesh>
+            <mesh position={[2, 1.5, 2]} castShadow receiveShadow><boxGeometry args={[1, 3, 3]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[-3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 7]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} /></mesh>
+          </group>
+
+          <mesh position={[0, 3.5, 0]} castShadow receiveShadow>
+            <coneGeometry args={[14, 3, 4]} />
+            <meshStandardMaterial color="#111" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 5, 0]} castShadow receiveShadow>
+            <boxGeometry args={[1, 0.2, 15]} />
+            <meshStandardMaterial color={sjColors.neonBlue} emissive={sjColors.neonBlue} emissiveIntensity={1.5} />
+          </mesh>
+        </group>
+
+        {/* Backyard */}
+        <group position={[0, 0, -15]}>
+          <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <planeGeometry args={[12, 8]} />
+            <meshStandardMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.5} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0, 0.2, 4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+          <mesh position={[0, 0.2, -4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+
+          <group position={[0, 0.5, 0]}>
+            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[2, 1, 3]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+            <mesh position={[0, 1, 1]} castShadow receiveShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+            <mesh position={[0, 1.5, 2]} castShadow receiveShadow><boxGeometry args={[1, 1, 2]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+            <mesh position={[0.3, 1.6, 2.5]} castShadow receiveShadow><sphereGeometry args={[0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
+            <mesh position={[-0.3, 1.6, 2.5]} castShadow receiveShadow><sphereGeometry args={[0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
+          </group>
+
+          <group position={[-7, 0, 0]}>
+            <mesh position={[0, 3, 0]} castShadow receiveShadow><cylinderGeometry args={[0.5, 0.8, 6]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[0, 6, 0]} castShadow receiveShadow><sphereGeometry args={[4, 16, 16]} /><meshStandardMaterial color={sjColors.leaves} roughness={0.8} /></mesh>
+          </group>
+
+          <group position={[6, 0, 0]}>
+            <mesh position={[-2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[-2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[0, 4, 0]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 5]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+          </group>
+
+          <group position={[-10, 0, -8]}>
+            <mesh position={[0, 2, 0]} castShadow receiveShadow><boxGeometry args={[6, 4, 6]} /><meshStandardMaterial color="#5c3a21" roughness={1} /></mesh>
+            <mesh position={[0, 1.5, 3.01]} castShadow receiveShadow><planeGeometry args={[1.5, 3]} /><meshStandardMaterial color="#ff7700" emissive="#ff4400" emissiveIntensity={0.5} /></mesh>
+          </group>
+
+          <mesh position={[0, 5, -10]} rotation={[0, 0, 0]} castShadow receiveShadow>
+            <planeGeometry args={[6, 10]} />
+            <meshStandardMaterial color="#88ddff" emissive="#00aaff" emissiveIntensity={0.8} transparent opacity={0.8} />
+          </mesh>
+        </group>
+
+        {/* MysticCave */}
+        <group position={[25, 0, -10]}>
+          <mesh position={[0, 2, 0]} receiveShadow>
+            <dodecahedronGeometry args={[12, 1]} />
+            <meshStandardMaterial color="#222529" roughness={0.9} side={THREE.BackSide} />
+          </mesh>
+          <mesh position={[0, 2, 0]} castShadow receiveShadow>
+            <dodecahedronGeometry args={[12.5, 1]} />
+            <meshStandardMaterial color="#1a1c1e" roughness={1} />
+          </mesh>
+          <mesh position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <circleGeometry args={[8, 32]} />
+            <meshStandardMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.5} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+          <mesh position={[-7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+        </group>
+
+        {/* EnvironmentAndPaths */}
+        <group>
+          <group position={[0, 0, 15]}>
+            <mesh position={[-4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[0, 7, 0]} castShadow receiveShadow><boxGeometry args={[10, 0.6, 0.6]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[0, 8.2, 0]} castShadow receiveShadow><boxGeometry args={[12, 0.8, 0.8]} /><meshStandardMaterial color={sjColors.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[0, 8.2, 0.45]} castShadow receiveShadow><boxGeometry args={[12.2, 0.1, 0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
+          </group>
+
+          {Array.from({ length: 40 }).map((_, i) => (
+            <mesh key={`fence-${i}`} position={[-15 + (i * 0.8), 1.5, 12]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.1, 0.1, 3]} />
+              <meshStandardMaterial color={sjColors.bamboo} roughness={0.8} />
+            </mesh>
+          ))}
+
+          {Array.from({ length: 10 }).map((_, i) => (
+            <mesh key={`path1-${i}`} position={[0, 0.05, 8 + (i * 0.7)]} rotation={[-Math.PI / 2, 0, Math.sin(i)]} castShadow receiveShadow>
+              <planeGeometry args={[1.5, 1]} />
+              <meshStandardMaterial color={sjColors.stone} roughness={0.9} />
+            </mesh>
+          ))}
+          {Array.from({ length: 25 }).map((_, i) => (
+            <mesh key={`path2-${i}`} position={[5 + (i * 0.8), 0.05, 0 - (i * 0.4)]} rotation={[-Math.PI / 2, 0, Math.cos(i)]} castShadow receiveShadow>
+              <planeGeometry args={[1.2, 1]} />
+              <meshStandardMaterial color={sjColors.stone} roughness={0.9} />
+            </mesh>
+          ))}
+          
+          <group position={[8, 0.5, 2]}>
+            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[0.6, 1, 0.6]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+            <mesh position={[0, 1.2, 0]} castShadow receiveShadow><coneGeometry args={[0.6, 0.6, 4]} /><meshStandardMaterial color={sjColors.stone} roughness={0.9} /></mesh>
+          </group>
+        </group>
+    </group>
+  );
+}
+
+function SantuarioJaponesLights() {
+    return (
+        <group>
+            {/* Pergola Light */}
+            <group position={[0, 0, -15]}>
+                <group position={[6, 0, 0]}>
+                    <mesh position={[0, 3.5, 0]}>
+                        <cylinderGeometry args={[0.3, 0.3, 0.5]} />
+                        <meshStandardMaterial color={sjColors.candle} emissive={sjColors.candle} emissiveIntensity={2} />
+                        <pointLight color={sjColors.candle} intensity={2} distance={10} />
+                    </mesh>
+                </group>
+            </group>
+
+            {/* Cave Lights */}
+            <group position={[25, 0, -10]}>
+                <spotLight position={[0, 15, 0]} angle={0.3} penumbra={0.5} intensity={5} color="#add8e6" castShadow />
+                <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5}>
+                    <group position={[3, 0.6, 2]}>
+                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={1} /></mesh>
+                    <pointLight color={sjColors.candle} intensity={1} distance={5} />
+                    </group>
+                </Float>
+                <Float speed={2.5} rotationIntensity={0.1} floatIntensity={0.6}>
+                    <group position={[-4, 0.6, -3]}>
+                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={1} /></mesh>
+                    <pointLight color={sjColors.candle} intensity={1} distance={5} />
+                    </group>
+                </Float>
+            </group>
+
+            {/* Path Lights */}
+            <group position={[8, 0.5, 2]}>
+                <pointLight position={[0, 0.8, 0]} color={sjColors.neonBlue} intensity={1} distance={4} />
+            </group>
+        </group>
+    );
+}
+
 function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: any) {
+    const parentGroupRef = useRef<THREE.Group>(null);
+
+    if (item.subType === 'Santuario Japonés') {
+        return (
+            <group 
+                ref={parentGroupRef} 
+                position={item.position as [number, number, number]} 
+                rotation={item.rotation as [number, number, number]} 
+                onClick={(e) => { if (!isExplore) { e.stopPropagation(); onSelect(item.id); } }}
+            >
+                <RigidBody type="fixed" colliders="trimesh">
+                   <SantuarioJaponesColliders />
+                </RigidBody>
+                <SantuarioJaponesLights />
+                <SakuraPetals />
+
+                {isSelected && !isExplore && (
+                    <TransformControls 
+                        object={parentGroupRef} 
+                        mode="translate" 
+                        onMouseUp={(e) => {
+                            if (parentGroupRef.current) {
+                                onTransformEnd(item.id, parentGroupRef.current.position);
+                            }
+                        }} 
+                    />
+                )}
+                {isSelected && <Outlines thickness={2} color="#D4AF37" />}
+            </group>
+        );
+    }
+
     const data = HOUSE_DATA[item.subType];
     if (!data) return null;
-
-    const parentGroupRef = useRef<THREE.Group>(null);
     
     // Load textures
     const loadedTextures = useMemo(() => {
