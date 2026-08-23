@@ -222,16 +222,14 @@ function SketchfabEmbed({ uid, isExplore }: { uid: string, isExplore: boolean })
 
     useEffect(() => {
         if (scriptLoaded && iframeRef.current && (window as any).Sketchfab) {
-            const client = new (window as any).Sketchfab('1.12.1', iframeRef.current);
+            var client = new (window as any).Sketchfab(iframeRef.current);
             client.init(uid, {
                 success: function onSuccess(api: any) {
                     api.start();
-                    api.addEventListener('viewerready', function() {
-                        console.log('Sketchfab viewer ready');
-                    });
+                    console.log('Modelo de Sketchfab cargado con éxito en la sala');
                 },
                 error: function onError() {
-                    console.error('Sketchfab API error');
+                    console.log('Error al cargar el modelo de Sketchfab');
                 },
                 autostart: 1,
                 ui_controls: 1,
@@ -246,6 +244,7 @@ function SketchfabEmbed({ uid, isExplore }: { uid: string, isExplore: boolean })
         <Html transform occlude distanceFactor={5} position={[0, 0.5, 0]}>
             <div style={{ width: '400px', height: '400px', pointerEvents: isExplore ? 'auto' : 'none', background: 'transparent' }}>
                 <iframe
+                    id={`api-frame-${uid}`}
                     ref={iframeRef}
                     title={`Sketchfab-${uid}`}
                     style={{ width: '100%', height: '100%', border: 'none', background: 'transparent' }}
