@@ -32,7 +32,7 @@ export interface CustomAsset {
 }
 
 const CATEGORIES = [
-  { id: 'Plantillas', icon: <Home size={20} />, items: ['Casa Moderna', 'Cabaña'] },
+  { id: 'Plantillas', icon: <Home size={20} />, items: ['Moderna Minimalista', 'Cabaña Rústica', 'Contemporánea Cristal', 'Villa Mediterránea', 'Industrial Loft'] },
   { id: 'Pisos', icon: <GridIcon size={20} />, items: ['Madera', 'Piedra', 'Cerámica', 'Adoquines'] },
   { id: 'Paredes', icon: <Cuboid size={20} />, items: ['Muro Básico', 'Muro Ladrillo'] },
   { id: 'Puertas', icon: <DoorOpen size={20} />, items: ['Puerta Madera', 'Puerta Vidrio'] },
@@ -45,6 +45,140 @@ const CATEGORIES = [
   { id: 'Electrodomésticos', icon: <Archive size={20} />, items: ['Lavarropas', 'Heladera'] },
   { id: 'Electrónica', icon: <Monitor size={20} />, items: ['TV', 'Consola', 'PC'] },
 ];
+
+const HOUSE_DATA: Record<string, any> = {
+    'Moderna Minimalista': {
+        walls: [
+            [-4.9, 1.5, 0, 0.2, 3, 10, '#ffffff'],
+            [4.9, 1.5, 0, 0.2, 3, 10, '#ffffff'],
+            [0, 1.5, -4.9, 10, 3, 0.2, '#ffffff'],
+            [-3, 1.5, 4.9, 4, 3, 0.2, '#ffffff'],
+            [3, 1.5, 4.9, 4, 3, 0.2, '#ffffff'],
+            [0, 2.55, 4.9, 2, 0.9, 0.2, '#ffffff'],
+            [-4.9, 4.6, -2.5, 0.2, 3, 5, '#ffffff'],
+            [4.9, 4.6, -2.5, 0.2, 3, 5, '#ffffff'],
+            [0, 4.6, -4.9, 10, 3, 0.2, '#ffffff'],
+            [0, 4.6, 0, 10, 3, 0.2, '#ffffff'],
+        ],
+        glass: [
+            [0, 3.6, 4.9, 10, 1, 0.1],
+            [-4.9, 3.6, 2.45, 0.1, 1, 5],
+            [4.9, 3.6, 2.45, 0.1, 1, 5],
+            [0, 4.6, 0.1, 8, 2.5, 0.1]
+        ],
+        floors: [
+            [0, 0.1, 0, 10, 0.2, 10, 'ceramica'],
+            [0, 3.1, 0, 10, 0.2, 10, 'madera'],
+            [0, 6.2, -2.5, 10, 0.2, 5, 'ceramica'],
+        ],
+        stairs: [
+            [-3.5, 1.6, 0, Math.PI/2]
+        ],
+        doors: [
+            [0, 1.1, 4.9, 0]
+        ]
+    },
+    'Cabaña Rústica': {
+        walls: [
+            [-4.9, 1.5, 0, 0.2, 3, 10, '#ffffff', 'madera'],
+            [4.9, 1.5, 0, 0.2, 3, 10, '#ffffff', 'madera'],
+            [0, 1.5, -4.9, 10, 3, 0.2, '#ffffff', 'madera'],
+            [-3, 1.5, 4.9, 4, 3, 0.2, '#ffffff', 'madera'],
+            [3, 1.5, 4.9, 4, 3, 0.2, '#ffffff', 'madera'],
+            [0, 2.55, 4.9, 2, 0.9, 0.2, '#ffffff', 'madera'],
+        ],
+        roofs: [
+            [-2.5, 4, 0, 6, 0.2, 11, '#6b4c3a', Math.PI/6],
+            [2.5, 4, 0, 6, 0.2, 11, '#6b4c3a', -Math.PI/6]
+        ],
+        floors: [
+            [0, 0.1, 0, 10, 0.2, 10, 'madera'],
+            [0, 3.1, 0, 10, 0.2, 10, 'madera']
+        ],
+        glass: [
+            [-3, 1.5, 5, 2, 1.5, 0.1]
+        ],
+        chimneys: [
+            [5, 3, 0, 1.5, 6, 1.5, 'piedra']
+        ],
+        doors: [
+            [0, 1.1, 4.9, 0]
+        ]
+    },
+    'Contemporánea Cristal': {
+        walls: [
+            [-4.9, 1.5, 0, 0.2, 3, 10, '#ffffff', 'ladrillo'],
+            [4.9, 1.5, 0, 0.2, 3, 10, '#ffffff', 'ladrillo'],
+            [0, 1.5, -4.9, 10, 3, 0.2, '#ffffff', 'ladrillo'],
+            [0, 1.5, 4.9, 10, 0.5, 0.2, '#ffffff', 'ladrillo'],
+        ],
+        glass: [
+            [-2.5, 2, 4.9, 5, 2, 0.1],
+            [3.5, 2, 4.9, 3, 2, 0.1]
+        ],
+        floors: [
+            [0, 0.1, 0, 10, 0.2, 10, 'ceramica'],
+            [0, 3.2, 0, 11, 0.3, 11, 'ceramica']
+        ],
+        doors: [
+            [1, 1.1, 4.9, 0]
+        ]
+    },
+    'Villa Mediterránea': {
+        walls: [
+            [-4.9, 1.5, 0, 0.2, 3, 10, '#e3dac9'],
+            [4.9, 1.5, 0, 0.2, 3, 10, '#e3dac9'],
+            [0, 1.5, -4.9, 10, 3, 0.2, '#e3dac9'],
+            [-3, 1.5, 4.9, 4, 3, 0.2, '#e3dac9'],
+            [3, 1.5, 4.9, 4, 3, 0.2, '#e3dac9'],
+            [0, 2.55, 4.9, 2, 0.9, 0.2, '#e3dac9'],
+            [-1.5, 1.5, 7, 0.5, 3, 0.5, '#e3dac9'],
+            [1.5, 1.5, 7, 0.5, 3, 0.5, '#e3dac9'],
+            [0, 3.2, 7, 4, 0.5, 0.5, '#e3dac9']
+        ],
+        roofs: [
+            [0, 3.6, 0, 11, 0.4, 11, '#cc4b37', 0]
+        ],
+        floors: [
+            [0, 0.1, 0, 10, 0.2, 10, 'ceramica'],
+            [0, 0.1, 6, 4, 0.2, 3, 'adoquines']
+        ],
+        doors: [
+            [0, 1.1, 4.9, 0]
+        ]
+    },
+    'Industrial Loft': {
+        walls: [
+            [-4.9, 2.5, 0, 0.2, 5, 10, '#555555', 'piedra'],
+            [4.9, 2.5, 0, 0.2, 5, 10, '#555555', 'piedra'],
+            [0, 2.5, -4.9, 10, 5, 0.2, '#555555', 'piedra'],
+            [-3, 2.5, 4.9, 4, 5, 0.2, '#555555', 'piedra'],
+            [3, 2.5, 4.9, 4, 5, 0.2, '#555555', 'piedra'],
+            [0, 3.55, 4.9, 2, 2.9, 0.2, '#555555', 'piedra'],
+        ],
+        beams: [
+            [-5, 5.1, 0, 0.4, 0.4, 10.4, '#111111'],
+            [5, 5.1, 0, 0.4, 0.4, 10.4, '#111111'],
+            [0, 5.1, -5, 10.4, 0.4, 0.4, '#111111'],
+            [0, 5.1, 5, 10.4, 0.4, 0.4, '#111111'],
+            [-5, 2.5, -5, 0.4, 5.4, 0.4, '#111111'],
+            [5, 2.5, -5, 0.4, 5.4, 0.4, '#111111'],
+            [-5, 2.5, 5, 0.4, 5.4, 0.4, '#111111'],
+            [5, 2.5, 5, 0.4, 5.4, 0.4, '#111111'],
+        ],
+        floors: [
+            [0, 0.1, 0, 10, 0.2, 10, 'adoquines'],
+            [0, 5.3, 0, 10, 0.2, 10, 'ceramica']
+        ],
+        glass: [
+            [-2, 2.5, 5, 1.5, 2, 0.1],
+            [2, 2.5, 5, 1.5, 2, 0.1]
+        ],
+        doors: [
+            [0, 1.1, 4.9, 0]
+        ]
+    }
+};
 
 type ToolMode = 'CONSTRUIR' | 'MOVER' | 'ROTAR' | 'BORRAR' | 'TERRENO' | 'CAMARA' | 'EXPLORAR';
 
@@ -256,8 +390,171 @@ function SketchfabEmbed({ uid, isExplore }: { uid: string, isExplore: boolean })
     );
 }
 
+// ================= PLANTILLAS PREFABRICADAS =================
+function TemplateDoor({ position, rotationY, itemRotationY, isExplore, texture }: any) {
+    const [isOpen, setIsOpen] = useState(false);
+    const currentRotY = useRef(rotationY);
+    const bodyRef = useRef<any>(null);
+    const meshRef = useRef<any>(null);
+
+    useFrame((state, delta) => {
+        const target = isOpen ? rotationY + Math.PI / 2 : rotationY;
+        currentRotY.current = THREE.MathUtils.lerp(currentRotY.current, target, delta * 5);
+        
+        if (bodyRef.current && isExplore) {
+            const worldRotY = itemRotationY + currentRotY.current;
+            bodyRef.current.setNextKinematicRotation(
+                new THREE.Quaternion().setFromEuler(new THREE.Euler(0, worldRotY, 0))
+            );
+        } else if (meshRef.current && !isExplore) {
+            meshRef.current.rotation.y = currentRotY.current;
+        }
+    });
+
+    return (
+        <RigidBody 
+            type={isExplore ? 'kinematicPositionBased' : 'fixed'}
+            position={position}
+            ref={bodyRef}
+        >
+            <group ref={meshRef} position={[0,0,0]} rotation={[0, rotationY, 0]}>
+                <group position={[0.6, 0, 0]}>
+                    <mesh position={[-0.6, 0, 0]} castShadow receiveShadow onClick={(e) => { e.stopPropagation(); if (isExplore) setIsOpen(!isOpen); }}>
+                        <boxGeometry args={[1.2, 2, 0.1]} />
+                        <meshStandardMaterial map={texture} />
+                    </mesh>
+                </group>
+            </group>
+        </RigidBody>
+    );
+}
+
+function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: any) {
+    const data = HOUSE_DATA[item.subType];
+    if (!data) return null;
+
+    const parentGroupRef = useRef<THREE.Group>(null);
+    
+    // Load textures
+    const loadedTextures = useMemo(() => {
+        const result: Record<string, THREE.Texture> = {};
+        Object.keys(textures).forEach((key) => {
+            const img = new Image();
+            img.src = (textures as any)[key];
+            const tex = new THREE.Texture(img);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            // House scale is mostly 1, so texture repeat can just be hardcoded or tied to size, but standard 1x1 is fine
+            img.onload = () => tex.needsUpdate = true;
+            result[key] = tex;
+        });
+        return result;
+    }, []);
+
+    return (
+        <group 
+            ref={parentGroupRef} 
+            position={item.position as [number, number, number]} 
+            rotation={item.rotation as [number, number, number]} 
+            onClick={(e) => { if (!isExplore) { e.stopPropagation(); onSelect(item.id); } }}
+        >
+            <RigidBody type="fixed" colliders="trimesh">
+                <group>
+                    {data.walls?.map((w: any, i: number) => (
+                        <mesh key={`w-${i}`} position={[w[0], w[1], w[2]]} castShadow receiveShadow>
+                            <boxGeometry args={[w[3], w[4], w[5]]} />
+                            <meshStandardMaterial color={w[6] || '#ffffff'} map={w[7] ? loadedTextures[w[7]] : undefined} />
+                        </mesh>
+                    ))}
+                    {data.floors?.map((f: any, i: number) => (
+                        <mesh key={`f-${i}`} position={[f[0], f[1], f[2]]} castShadow receiveShadow>
+                            <boxGeometry args={[f[3], f[4], f[5]]} />
+                            <meshStandardMaterial map={f[6] ? loadedTextures[f[6]] : undefined} />
+                        </mesh>
+                    ))}
+                    {data.roofs?.map((r: any, i: number) => (
+                        <mesh key={`r-${i}`} position={[r[0], r[1], r[2]]} rotation={[0, 0, r[7]]} castShadow receiveShadow>
+                            <boxGeometry args={[r[3], r[4], r[5]]} />
+                            <meshStandardMaterial color={r[6]} />
+                        </mesh>
+                    ))}
+                    {data.chimneys?.map((c: any, i: number) => (
+                        <mesh key={`c-${i}`} position={[c[0], c[1], c[2]]} castShadow receiveShadow>
+                            <boxGeometry args={[c[3], c[4], c[5]]} />
+                            <meshStandardMaterial map={loadedTextures[c[6]]} />
+                        </mesh>
+                    ))}
+                    {data.beams?.map((b: any, i: number) => (
+                        <mesh key={`b-${i}`} position={[b[0], b[1], b[2]]} castShadow receiveShadow>
+                            <boxGeometry args={[b[3], b[4], b[5]]} />
+                            <meshStandardMaterial color={b[6]} />
+                        </mesh>
+                    ))}
+                    {/* Invisible physics ramps for stairs */}
+                    {data.stairs?.map((s: any, i: number) => (
+                        <group key={`s-${i}`} position={[s[0], s[1], s[2]]} rotation={[0, s[3], 0]}>
+                            <mesh rotation={[Math.PI/4, 0, 0]} visible={false}>
+                                <boxGeometry args={[2, 4.2, 0.5]} />
+                                <meshStandardMaterial />
+                            </mesh>
+                        </group>
+                    ))}
+                </group>
+            </RigidBody>
+
+            {/* Non-colliding visible glass panels */}
+            {data.glass?.map((g: any, i: number) => (
+                <mesh key={`g-${i}`} position={[g[0], g[1], g[2]]} castShadow receiveShadow>
+                    <boxGeometry args={[g[3], g[4], g[5]]} />
+                    <meshStandardMaterial color="black" transparent opacity={0.4} />
+                </mesh>
+            ))}
+
+            {/* Visible stairs (no physics to prevent bumping) */}
+            {data.stairs?.map((s: any, i: number) => (
+                <group key={`vs-${i}`} position={[s[0], s[1], s[2]]} rotation={[0, s[3], 0]}>
+                    <mesh rotation={[Math.PI/4, 0, 0]}>
+                        <boxGeometry args={[2, 4.2, 0.3]} />
+                        <meshStandardMaterial color="#555555" />
+                    </mesh>
+                </group>
+            ))}
+
+            {/* Interactive Doors */}
+            {data.doors?.map((d: any, i: number) => (
+                <TemplateDoor 
+                    key={`d-${i}`}
+                    position={[d[0], d[1], d[2]]}
+                    rotationY={d[3]}
+                    itemRotationY={item.rotation[1]}
+                    isExplore={isExplore}
+                    texture={loadedTextures.madera}
+                />
+            ))}
+
+            {isSelected && !isExplore && (
+                <TransformControls 
+                    object={parentGroupRef} 
+                    mode="translate" 
+                    onMouseUp={(e) => {
+                        if (parentGroupRef.current) {
+                            onTransformEnd(item.id, parentGroupRef.current.position);
+                        }
+                    }} 
+                />
+            )}
+            
+            {isSelected && <Outlines thickness={2} color="#D4AF37" />}
+        </group>
+    );
+}
+
 // ================= OBJETOS COLOCADOS =================
 function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, customAssets }: any) {
+    if (item.category === 'Plantillas') {
+        return <HousePrefab item={item} isExplore={toolMode === 'EXPLORAR'} onSelect={onSelect} onTransformEnd={onTransformEnd} isSelected={isSelected} />;
+    }
+
     const meshRef = useRef<THREE.Group>(null);
     const bodyRef = useRef<any>(null);
     const isExplore = toolMode === 'EXPLORAR';
@@ -852,28 +1149,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     const z = snapEnabled ? Math.round(point.z / step) * step : point.z;
     const y = point.y;
     
-    // SISTEMA DE PREFABS (Casas)
-    if (activeCategory === 'Plantillas') {
-        const batch: PlacedItem[] = [];
-        if (selectedSubType === 'Casa Moderna') {
-            batch.push({ id: Math.random().toString(), category: 'Pisos', subType: 'Madera', position: [x, y + 0.05, z], rotation: [0,0,0], scale: [6, 0.1, 6], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x, y + 1.5, z - 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x, y + 1.5, z + 3], rotation: [0,0,0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x - 3, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Básico', position: [x + 3, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [6, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Plano', position: [x, y + 3.1, z], rotation: [0,0,0], scale: [6.2, 0.2, 6.2], color: '#555555' });
-        } else if (selectedSubType === 'Cabaña') {
-            batch.push({ id: Math.random().toString(), category: 'Pisos', subType: 'Madera', position: [x, y + 0.05, z], rotation: [0,0,0], scale: [5, 0.1, 5], color: '#8b5a2b' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x, y + 1.5, z - 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x, y + 1.5, z + 2.5], rotation: [0,0,0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x - 2.5, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Paredes', subType: 'Muro Ladrillo', position: [x + 2.5, y + 1.5, z], rotation: [0, Math.PI/2, 0], scale: [5, 3, 0.2], color: '#ffffff' });
-            batch.push({ id: Math.random().toString(), category: 'Techos', subType: 'Inclinado', position: [x, y + 3.1, z], rotation: [0,0,0], scale: [5.5, 2, 5.5], color: '#443322' });
-        }
-        setPlacedItems(prev => [...prev, ...batch]);
-        return;
-    }
-
     const isCustom = selectedSubType.startsWith('Custom: ');
     const customName = selectedSubType.replace('Custom: ', '');
     const customAsset = customAssets.find(a => a.name === customName);
