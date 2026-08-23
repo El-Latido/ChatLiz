@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei';
+import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls, Html } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
 import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2, Upload } from 'lucide-react';
@@ -26,8 +26,9 @@ export interface CustomAsset {
   id: string;
   name: string;
   category: string;
-  type: 'model' | 'texture';
+  type: 'model' | 'texture' | 'sketchfab';
   blobUrl?: string;
+  sketchfabUid?: string;
 }
 
 const CATEGORIES = [
@@ -200,6 +201,62 @@ function Player({ toolMode }: { toolMode: ToolMode }) {
     );
 }
 
+// ================= SKETCHFAB EMBED =================
+function SketchfabEmbed({ uid, isExplore }: { uid: string, isExplore: boolean }) {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const [scriptLoaded, setScriptLoaded] = useState(false);
+
+    useEffect(() => {
+        const existingScript = document.getElementById('sketchfab-script');
+        if (!existingScript) {
+            const script = document.createElement('script');
+            script.id = 'sketchfab-script';
+            script.src = 'https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js';
+            script.async = true;
+            script.onload = () => setScriptLoaded(true);
+            document.body.appendChild(script);
+        } else {
+            setScriptLoaded(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (scriptLoaded && iframeRef.current && (window as any).Sketchfab) {
+            const client = new (window as any).Sketchfab('1.12.1', iframeRef.current);
+            client.init(uid, {
+                success: function onSuccess(api: any) {
+                    api.start();
+                    api.addEventListener('viewerready', function() {
+                        console.log('Sketchfab viewer ready');
+                    });
+                },
+                error: function onError() {
+                    console.error('Sketchfab API error');
+                },
+                autostart: 1,
+                ui_controls: 1,
+                ui_infos: 0,
+                ui_watermark: 0,
+                transparent: 1
+            });
+        }
+    }, [uid, scriptLoaded]);
+
+    return (
+        <Html transform occlude distanceFactor={5} position={[0, 0.5, 0]}>
+            <div style={{ width: '400px', height: '400px', pointerEvents: isExplore ? 'auto' : 'none', background: 'transparent' }}>
+                <iframe
+                    ref={iframeRef}
+                    title={`Sketchfab-${uid}`}
+                    style={{ width: '100%', height: '100%', border: 'none', background: 'transparent' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    allow="autoplay; fullscreen; xr-spatial-tracking"
+                />
+            </div>
+        </Html>
+    );
+}
+
 // ================= OBJETOS COLOCADOS =================
 function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, customAssets }: any) {
     const meshRef = useRef<THREE.Group>(null);
@@ -263,7 +320,17 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
     // Generar Geometría Específica
     let geometryNode = <boxGeometry args={[1, 1, 1]} />;
     
-    if (customAsset && customAsset.type === 'model' && customAsset.blobUrl) {
+    if (customAsset && customAsset.type === 'sketchfab' && customAsset.sketchfabUid) {
+        geometryNode = (
+            <group>
+                <SketchfabEmbed uid={customAsset.sketchfabUid} isExplore={isExplore} />
+                <mesh visible={!isExplore}>
+                    <boxGeometry args={[1, 1, 1]} />
+                    <meshBasicMaterial color="#1CAAD9" wireframe transparent opacity={0.5} />
+                </mesh>
+            </group>
+        );
+    } else if (customAsset && customAsset.type === 'model' && customAsset.blobUrl) {
         geometryNode = (
             <React.Suspense fallback={<boxGeometry args={[1, 1, 1]} />}>
                 <GLTFModel url={customAsset.blobUrl + '#fake.glb'} scale={1} />
@@ -358,7 +425,7 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
             scale={item.scale} 
             onClick={handleInteract}
         >
-            {(item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' && item.category !== 'Puertas' && item.category !== 'Ventanas' && item.category !== 'Escaleras' && !(customAsset && customAsset.type === 'model')) ? (
+            {(item.category !== 'Mobiliario' && item.category !== 'Electrodomésticos' && item.category !== 'Electrónica' && item.category !== 'Puertas' && item.category !== 'Ventanas' && item.category !== 'Escaleras' && !(customAsset && (customAsset.type === 'model' || customAsset.type === 'sketchfab'))) ? (
                 <mesh castShadow receiveShadow>
                     {geometryNode}
                     <meshStandardMaterial 
@@ -547,6 +614,8 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   
   const [customAssets, setCustomAssets] = useState<CustomAsset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'url_file' | 'sketchfab'>('url_file');
+  const [sketchfabUid, setSketchfabUid] = useState('');
   const [newAssetUrl, setNewAssetUrl] = useState('');
   const [newAssetName, setNewAssetName] = useState('');
   const [newAssetCategory, setNewAssetCategory] = useState(CATEGORIES[0].id);
@@ -560,17 +629,41 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       setTimeout(() => setToastMessage(null), 4000);
   };
 
+  const handleSaveSketchfab = async () => {
+      if (!sketchfabUid || !newAssetName) return;
+      try {
+          const id = Math.random().toString(36).substring(7);
+          const newAsset: CustomAsset = { 
+              id, 
+              name: newAssetName, 
+              category: newAssetCategory, 
+              type: 'sketchfab',
+              sketchfabUid 
+          };
+          const newMetadata = [...customAssets, newAsset].map(({blobUrl, ...rest}) => rest);
+          await localforage.setItem('custom_assets_metadata', newMetadata);
+          setCustomAssets(prev => [...prev, newAsset]);
+          setIsAssetModalOpen(false);
+          setSketchfabUid('');
+          setNewAssetName('');
+          showToast(`¡Modelo de Sketchfab ${newAssetName} guardado con éxito!`);
+      } catch (err: any) {
+          setDownloadError('Error al guardar el asset de Sketchfab.');
+      }
+  };
+
   useEffect(() => {
       localforage.getItem<CustomAsset[]>('custom_assets_metadata').then(async (metadata) => {
           if (metadata) {
               const loadedAssets = await Promise.all(metadata.map(async (m) => {
+                  if (m.type === 'sketchfab') return m;
                   const blob = await localforage.getItem<Blob>(`asset_${m.id}`);
                   if (blob) {
                       return { ...m, blobUrl: URL.createObjectURL(blob) };
                   }
                   return m;
               }));
-              setCustomAssets(loadedAssets.filter(a => a.blobUrl));
+              setCustomAssets(loadedAssets.filter(a => a.blobUrl || a.type === 'sketchfab'));
           }
       });
   }, []);
@@ -1096,26 +1189,45 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                         <X size={20} />
                     </button>
                     <h3 className="text-[#D4AF37] font-bold text-lg mb-4 flex items-center gap-2">
-                        <DownloadCloud size={20} /> Descargar Asset
+                        <DownloadCloud size={20} /> Importar Asset
                     </h3>
+                    
+                    <div className="flex bg-black/40 rounded-lg p-1 mb-4">
+                        <button onClick={() => setImportMode('url_file')} className={`flex-1 py-1.5 text-xs rounded-md font-bold transition-colors ${importMode === 'url_file' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'}`}>Archivo / URL</button>
+                        <button onClick={() => setImportMode('sketchfab')} className={`flex-1 py-1.5 text-xs rounded-md font-bold transition-colors ${importMode === 'sketchfab' ? 'bg-[#1CAAD9]/20 text-[#1CAAD9]' : 'text-gray-500 hover:text-gray-300'}`}>Sketchfab (API)</button>
+                    </div>
+
                     <div className="space-y-4">
-                        <div>
-                            <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Enlace Directo (.jpg, .png, .glb)</label>
-                            <input 
-                                type="text" 
-                                value={newAssetUrl}
-                                onChange={e => setNewAssetUrl(e.target.value)}
-                                placeholder="https://ejemplo.com/textura.jpg"
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
-                            />
-                        </div>
+                        {importMode === 'url_file' ? (
+                            <div>
+                                <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Enlace Directo (.jpg, .png, .glb)</label>
+                                <input 
+                                    type="text" 
+                                    value={newAssetUrl}
+                                    onChange={e => setNewAssetUrl(e.target.value)}
+                                    placeholder="https://ejemplo.com/textura.jpg"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                                />
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="text-xs text-[#1CAAD9] font-bold uppercase block mb-1">UID del Modelo Sketchfab</label>
+                                <input 
+                                    type="text" 
+                                    value={sketchfabUid}
+                                    onChange={e => setSketchfabUid(e.target.value.trim())}
+                                    placeholder="Ej: 731235038f6945d19f10d9331b78ea09"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1CAAD9]"
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="text-xs text-gray-400 font-bold uppercase block mb-1">Nombre del Asset</label>
                             <input 
                                 type="text" 
                                 value={newAssetName}
                                 onChange={e => setNewAssetName(e.target.value)}
-                                placeholder="Muro de Piedra Oscura"
+                                placeholder="Ej: Muro de Piedra / Sofá Moderno"
                                 className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
                             />
                         </div>
@@ -1155,39 +1267,56 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                             </div>
                         )}
                         
-                        <button 
-                            onClick={handleDownloadAsset}
-                            disabled={isDownloading || !newAssetUrl || !newAssetName}
-                            className="w-full bg-[#D4AF37] hover:bg-[#b5952f] text-black font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            {isDownloading ? 'Descargando...' : 'Descargar y Guardar (Memoria)'}
-                        </button>
-                        
-                        <div className="relative flex items-center py-2">
-                            <div className="flex-grow border-t border-white/10"></div>
-                            <span className="flex-shrink-0 mx-4 text-gray-500 text-xs uppercase font-bold">O alternativamente</span>
-                            <div className="flex-grow border-t border-white/10"></div>
-                        </div>
+                        {importMode === 'sketchfab' ? (
+                            <>
+                                <button 
+                                    onClick={handleSaveSketchfab}
+                                    disabled={isDownloading || !sketchfabUid || !newAssetName}
+                                    className="w-full bg-[#1CAAD9] hover:bg-[#158bb3] text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    Guardar Referencia Sketchfab
+                                </button>
+                                <p className="text-[10px] text-gray-500 text-center leading-tight">
+                                    El modelo de Sketchfab se renderizará en vivo dentro del espacio 3D ahorrando memoria local.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <button 
+                                    onClick={handleDownloadAsset}
+                                    disabled={isDownloading || !newAssetUrl || !newAssetName}
+                                    className="w-full bg-[#D4AF37] hover:bg-[#b5952f] text-black font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isDownloading ? 'Descargando...' : 'Descargar y Guardar (Memoria)'}
+                                </button>
+                                
+                                <div className="relative flex items-center py-2">
+                                    <div className="flex-grow border-t border-white/10"></div>
+                                    <span className="flex-shrink-0 mx-4 text-gray-500 text-xs uppercase font-bold">O alternativamente</span>
+                                    <div className="flex-grow border-t border-white/10"></div>
+                                </div>
 
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isDownloading}
-                            className="w-full bg-transparent hover:bg-white/5 border border-white/20 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            <Upload size={16} />
-                            {isDownloading ? 'Procesando...' : 'Cargar archivo local (.glb, .png, .jpg)'}
-                        </button>
-                        <input 
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileUpload}
-                            accept=".glb,.gltf,.jpg,.jpeg,.png,image/png,image/jpeg"
-                            className="hidden"
-                        />
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isDownloading}
+                                    className="w-full bg-transparent hover:bg-white/5 border border-white/20 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    <Upload size={16} />
+                                    {isDownloading ? 'Procesando...' : 'Cargar archivo local (.glb, .png, .jpg)'}
+                                </button>
+                                <input 
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileUpload}
+                                    accept=".glb,.gltf,.jpg,.jpeg,.png,image/png,image/jpeg"
+                                    className="hidden"
+                                />
 
-                        <p className="text-[10px] text-gray-500 text-center leading-tight">
-                            Se guardará en IndexedDB para no usar el almacenamiento de archivos visible de tu teléfono.
-                        </p>
+                                <p className="text-[10px] text-gray-500 text-center leading-tight">
+                                    Se guardará en IndexedDB para no usar el almacenamiento de archivos visible de tu teléfono.
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
