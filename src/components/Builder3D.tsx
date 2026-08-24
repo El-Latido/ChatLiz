@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls, Html, Float } from '@react-three/drei';
+import { Environment, OrbitControls, Grid, Outlines, useGLTF, TransformControls, KeyboardControls, useKeyboardControls, PointerLockControls, Html, Float } from '@react-three/drei';
 import { Physics, RigidBody } from '@react-three/rapier';
 import { UserObj } from '../types';
 import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2, Upload } from 'lucide-react';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { EffectComposer, Bloom, N8AO } from '@react-three/postprocessing';
 import localforage from 'localforage';
 
 interface Builder3DProps {
@@ -443,6 +445,26 @@ const sjColors = {
   candle: '#ffaa00'
 };
 
+function buildMergedGeometry(configs: any[]) {
+    const geos = configs.map(c => {
+        let geo;
+        if (c.type === 'box') geo = new THREE.BoxGeometry(...(c.args || []));
+        else if (c.type === 'plane') geo = new THREE.PlaneGeometry(...(c.args || []));
+        else if (c.type === 'cylinder') geo = new THREE.CylinderGeometry(...(c.args || []));
+        else geo = new THREE.BoxGeometry();
+
+        const mat = new THREE.Matrix4();
+        mat.compose(
+            c.position ? new THREE.Vector3(...c.position) : new THREE.Vector3(),
+            c.rotation ? new THREE.Quaternion().setFromEuler(new THREE.Euler(...c.rotation)) : new THREE.Quaternion(),
+            c.scale ? new THREE.Vector3(...c.scale) : new THREE.Vector3(1, 1, 1)
+        );
+        geo.applyMatrix4(mat);
+        return geo;
+    });
+    return mergeGeometries(geos);
+}
+
 function SakuraPetals() {
   const count = 150;
   const mesh = useRef<THREE.InstancedMesh>(null);
@@ -492,7 +514,7 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
           {/* Base / First Floor Foundation */}
           <mesh position={[0, -0.25, 0]} castShadow receiveShadow>
             <boxGeometry args={[30, 0.5, 20]} />
-            <meshStandardMaterial map={tex.woodLight} roughness={0.8} metalness={0.1} />
+            <meshStandardMaterial map={tex.woodLight} bumpMap={tex.woodLight} bumpScale={0.05} roughness={0.8} metalness={0.1} />
           </mesh>
           <mesh position={[0, -0.25, 10.1]} castShadow receiveShadow>
             <boxGeometry args={[30.2, 0.1, 0.1]} />
@@ -505,7 +527,7 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
             {/* Main Table */}
             <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
               <boxGeometry args={[6, 0.2, 3]} />
-              <meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} />
+              <meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} />
             </mesh>
             {/* Cushions */}
             <mesh position={[0, 0.1, 2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
@@ -519,19 +541,19 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
           {/* Kitchen & Dining */}
           <group position={[5, 0, 2]}>
             {/* Kitchen Counter */}
-            <mesh position={[3, 0.5, -2]} castShadow receiveShadow><boxGeometry args={[4, 1, 2]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[3, 0.5, -2]} castShadow receiveShadow><boxGeometry args={[4, 1, 2]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} /></mesh>
             {/* Dining Table */}
-            <mesh position={[-1, 0.5, 3]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 3]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
+            <mesh position={[-1, 0.5, 3]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 3]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} /></mesh>
             {/* Dining Chairs (Stools) */}
-            <mesh position={[-1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
-            <mesh position={[1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
-            <mesh position={[-3, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
+            <mesh position={[-1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} bumpMap={tex.woodLight} bumpScale={0.05} /></mesh>
+            <mesh position={[1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} bumpMap={tex.woodLight} bumpScale={0.05} /></mesh>
+            <mesh position={[-3, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} bumpMap={tex.woodLight} bumpScale={0.05} /></mesh>
           </group>
 
           {/* First Floor Bathroom */}
           <group position={[10, 0, -5]}>
             <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[4, 1, 3]} /><meshStandardMaterial color="#222" /></mesh>
-            <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 2.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} /></mesh>
+            <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 2.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.0} ior={1.33} thickness={2} clearcoat={1} transparent opacity={1} /></mesh>
             <mesh position={[-3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 6]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
           </group>
 
@@ -546,7 +568,7 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
              {/* Floor 2 Base */}
              <mesh position={[0, -0.1, 0]} castShadow receiveShadow>
                 <boxGeometry args={[26, 0.2, 16]} />
-                <meshStandardMaterial map={tex.woodLight} roughness={0.8} />
+                <meshStandardMaterial map={tex.woodLight} bumpMap={tex.woodLight} bumpScale={0.05} roughness={0.8} />
              </mesh>
              
              {/* Second Floor Master Bedroom */}
@@ -558,7 +580,7 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
              {/* Second Floor Bathroom */}
              <group position={[8, 0, 0]}>
                 <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[4, 1, 4]} /><meshStandardMaterial color="#222" /></mesh>
-                <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 3.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} /></mesh>
+                <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 3.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.0} ior={1.33} thickness={2} clearcoat={1} transparent opacity={1} /></mesh>
                 <mesh position={[-4, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 8]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
              </group>
           </group>
@@ -578,40 +600,40 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
         <group position={[0, 0, -15]}>
           <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
             <planeGeometry args={[12, 8]} />
-            <meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} />
+            <meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.0} ior={1.33} thickness={2} clearcoat={1} transparent opacity={1} />
           </mesh>
-          <mesh position={[0, 0.2, 4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
-          <mesh position={[0, 0.2, -4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
+          <mesh position={[0, 0.2, 4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
+          <mesh position={[0, 0.2, -4]} castShadow receiveShadow><boxGeometry args={[12, 0.5, 1]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
 
           <group position={[0, 0.5, 0]}>
-            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[2, 1, 3]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
-            <mesh position={[0, 1, 1]} castShadow receiveShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
-            <mesh position={[0, 1.5, 2]} castShadow receiveShadow><boxGeometry args={[1, 1, 2]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
+            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[2, 1, 3]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
+            <mesh position={[0, 1, 1]} castShadow receiveShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
+            <mesh position={[0, 1.5, 2]} castShadow receiveShadow><boxGeometry args={[1, 1, 2]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
             <mesh position={[0.3, 1.6, 2.5]} castShadow receiveShadow><sphereGeometry args={[0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
             <mesh position={[-0.3, 1.6, 2.5]} castShadow receiveShadow><sphereGeometry args={[0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
           </group>
 
           <group position={[-7, 0, 0]}>
-            <mesh position={[0, 3, 0]} castShadow receiveShadow><cylinderGeometry args={[0.5, 0.8, 6]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[0, 3, 0]} castShadow receiveShadow><cylinderGeometry args={[0.5, 0.8, 6]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
             <mesh position={[0, 6, 0]} castShadow receiveShadow><sphereGeometry args={[4, 16, 16]} /><meshStandardMaterial color={sjColors.leaves} roughness={0.6} side={THREE.DoubleSide} transparent opacity={0.9} /></mesh>
           </group>
 
           <group position={[6, 0, 0]}>
-            <mesh position={[-2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[-2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[0, 4, 0]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 5]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[-2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[2, 2, -2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[-2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[2, 2, 2]} castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 4]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[0, 4, 0]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 5]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
           </group>
 
           <group position={[-10, 0, -8]}>
-            <mesh position={[0, 2, 0]} castShadow receiveShadow><boxGeometry args={[6, 4, 6]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[0, 1.5, 3.01]} castShadow receiveShadow><planeGeometry args={[1.5, 3]} /><meshStandardMaterial color="#ff7700" emissive="#ff4400" emissiveIntensity={0.5} /></mesh>
+            <mesh position={[0, 2, 0]} castShadow receiveShadow><boxGeometry args={[6, 4, 6]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[0, 1.5, 3.01]} castShadow receiveShadow><planeGeometry args={[1.5, 3]} /><meshStandardMaterial color="#ff7700" emissive="#ff4400" emissiveIntensity={2.0} /></mesh>
           </group>
 
           <mesh position={[0, 5, -10]} rotation={[0, 0, 0]} castShadow receiveShadow>
             <planeGeometry args={[6, 10]} />
-            <meshPhysicalMaterial color="#88ddff" emissive="#00aaff" emissiveIntensity={0.5} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} />
+            <meshPhysicalMaterial color="#88ddff" emissive="#00aaff" emissiveIntensity={2.0} transmission={0.9} roughness={0.0} ior={1.33} thickness={2} clearcoat={1} transparent opacity={1} />
           </mesh>
         </group>
 
@@ -619,61 +641,55 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
         <group position={[25, 0, -10]}>
           <mesh position={[0, 2, 0]} receiveShadow>
             <dodecahedronGeometry args={[12, 1]} />
-            <meshStandardMaterial map={tex.stone} color="#555" roughness={0.9} side={THREE.BackSide} />
+            <meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} color="#555" roughness={0.9} side={THREE.BackSide} />
           </mesh>
           <mesh position={[0, 2, 0]} castShadow receiveShadow>
             <dodecahedronGeometry args={[12.5, 1]} />
-            <meshStandardMaterial map={tex.stone} color="#444" roughness={1} />
+            <meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} color="#444" roughness={1} />
           </mesh>
           <mesh position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
             <circleGeometry args={[8, 32]} />
-            <meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} />
+            <meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.0} ior={1.33} thickness={2} clearcoat={1} transparent opacity={1} />
           </mesh>
-          <mesh position={[7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
-          <mesh position={[-7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
+          <mesh position={[7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
+          <mesh position={[-7, 0.8, 0]} castShadow receiveShadow><boxGeometry args={[1.5, 0.5, 4]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
         </group>
 
         {/* EnvironmentAndPaths */}
         <group>
           <group position={[0, 0, 15]}>
-            <mesh position={[-4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[0, 7, 0]} castShadow receiveShadow><boxGeometry args={[10, 0.6, 0.6]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[0, 8.2, 0]} castShadow receiveShadow><boxGeometry args={[12, 0.8, 0.8]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[-4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[4, 4, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.4, 8]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[0, 7, 0]} castShadow receiveShadow><boxGeometry args={[10, 0.6, 0.6]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
+            <mesh position={[0, 8.2, 0]} castShadow receiveShadow><boxGeometry args={[12, 0.8, 0.8]} /><meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} metalness={0.1} /></mesh>
             <mesh position={[0, 8.2, 0.45]} castShadow receiveShadow><boxGeometry args={[12.2, 0.1, 0.1]} /><meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} /></mesh>
           </group>
 
-          {Array.from({ length: 40 }).map((_, i) => (
-            <mesh key={`fence-${i}`} position={[-15 + (i * 0.8), 1.5, 12]} castShadow receiveShadow>
-              <cylinderGeometry args={[0.1, 0.1, 3]} />
-              <meshStandardMaterial map={tex.bamboo} roughness={0.8} />
-            </mesh>
-          ))}
+          {/* Border Fences - Merged */}
+          <mesh castShadow receiveShadow geometry={useMemo(() => buildMergedGeometry(Array.from({ length: 40 }).map((_, i) => ({ type: 'cylinder', args: [0.1, 0.1, 3], position: [-15 + (i * 0.8), 1.5, 12] }))), [])}>
+             <meshStandardMaterial map={tex.bamboo} bumpMap={tex.bamboo} bumpScale={0.05} roughness={0.8} />
+          </mesh>
 
-          {/* Border Trees (Sakuras) around the lot */}
-          {Array.from({ length: 15 }).map((_, i) => (
-             <group key={`tree-${i}`} position={[-18 + (i * 2.5), 0, -18 + Math.sin(i) * 3]}>
-                <mesh position={[0, 3, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.6, 6]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
-                <mesh position={[0, 6, 0]} castShadow receiveShadow><sphereGeometry args={[3, 8, 8]} /><meshStandardMaterial color={sjColors.leaves} roughness={0.6} side={THREE.DoubleSide} transparent opacity={0.9} /></mesh>
-             </group>
-          ))}
+          {/* Border Trees (Sakuras) around the lot - Merged Trunks */}
+          <mesh castShadow receiveShadow geometry={useMemo(() => buildMergedGeometry(Array.from({ length: 15 }).map((_, i) => ({ type: 'cylinder', args: [0.4, 0.6, 6], position: [-18 + (i * 2.5), 3, -18 + Math.sin(i) * 3] }))), [])}>
+             <meshStandardMaterial map={tex.woodDark} bumpMap={tex.woodDark} bumpScale={0.05} roughness={0.9} />
+          </mesh>
+          {/* Border Trees (Sakuras) around the lot - Merged Leaves */}
+          <mesh castShadow receiveShadow geometry={useMemo(() => buildMergedGeometry(Array.from({ length: 15 }).map((_, i) => ({ type: 'box', args: [6, 6, 6], position: [-18 + (i * 2.5), 6, -18 + Math.sin(i) * 3] }))), [])}>
+             <meshStandardMaterial color={sjColors.leaves} roughness={0.6} side={THREE.DoubleSide} transparent opacity={0.9} />
+          </mesh>
 
-          {Array.from({ length: 10 }).map((_, i) => (
-            <mesh key={`path1-${i}`} position={[0, 0.05, 8 + (i * 0.7)]} rotation={[-Math.PI / 2, 0, Math.sin(i)]} castShadow receiveShadow>
-              <planeGeometry args={[1.5, 1]} />
-              <meshStandardMaterial map={tex.stone} roughness={0.9} />
-            </mesh>
-          ))}
-          {Array.from({ length: 25 }).map((_, i) => (
-            <mesh key={`path2-${i}`} position={[5 + (i * 0.8), 0.05, 0 - (i * 0.4)]} rotation={[-Math.PI / 2, 0, Math.cos(i)]} castShadow receiveShadow>
-              <planeGeometry args={[1.2, 1]} />
-              <meshStandardMaterial map={tex.stone} roughness={0.9} />
-            </mesh>
-          ))}
+          {/* Paths - Merged */}
+          <mesh castShadow receiveShadow geometry={useMemo(() => buildMergedGeometry([
+             ...Array.from({ length: 10 }).map((_, i) => ({ type: 'plane', args: [1.5, 1], position: [0, 0.05, 8 + (i * 0.7)], rotation: [-Math.PI / 2, 0, Math.sin(i)] })),
+             ...Array.from({ length: 25 }).map((_, i) => ({ type: 'plane', args: [1.2, 1], position: [5 + (i * 0.8), 0.05, 0 - (i * 0.4)], rotation: [-Math.PI / 2, 0, Math.cos(i)] }))
+          ] as any[]), [])}>
+             <meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} />
+          </mesh>
           
           <group position={[8, 0.5, 2]}>
-            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[0.6, 1, 0.6]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
-            <mesh position={[0, 1.2, 0]} castShadow receiveShadow><coneGeometry args={[0.6, 0.6, 4]} /><meshStandardMaterial map={tex.stone} roughness={0.9} /></mesh>
+            <mesh position={[0, 0, 0]} castShadow receiveShadow><boxGeometry args={[0.6, 1, 0.6]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
+            <mesh position={[0, 1.2, 0]} castShadow receiveShadow><coneGeometry args={[0.6, 0.6, 4]} /><meshStandardMaterial map={tex.stone} bumpMap={tex.stone} bumpScale={0.05} roughness={0.9} /></mesh>
           </group>
         </group>
     </group>
@@ -683,6 +699,10 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
 function SantuarioJaponesLights() {
     return (
         <group>
+            {/* Global Ilumination & Ambient Occlusion support */}
+            <hemisphereLight skyColor={sjColors.bg} groundColor="#1c1008" intensity={0.6} />
+            <fog attach="fog" args={[sjColors.bg, 20, 90]} />
+
             {/* Ambient subtle neon */}
             <pointLight position={[0, 4, 3]} color={sjColors.neonPink} intensity={1} distance={15} />
 
@@ -705,13 +725,13 @@ function SantuarioJaponesLights() {
                 <pointLight position={[0, 3, 0]} color={sjColors.water} intensity={2} distance={20} />
                 <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5}>
                     <group position={[3, 0.6, 2]}>
-                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={1} /></mesh>
+                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={2.5} /></mesh>
                     <pointLight color={sjColors.candle} intensity={2} distance={10} />
                     </group>
                 </Float>
                 <Float speed={2.5} rotationIntensity={0.1} floatIntensity={0.6}>
                     <group position={[-4, 0.6, -3]}>
-                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={1} /></mesh>
+                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color="#fff" emissive={sjColors.candle} emissiveIntensity={2.5} /></mesh>
                     <pointLight color={sjColors.candle} intensity={2} distance={10} />
                     </group>
                 </Float>
@@ -1758,6 +1778,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
           <div className="flex-1 relative cursor-crosshair">
             <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
               <color attach="background" args={['#87CEEB']} />
+              <Environment preset="sunset" background={false} />
               
               <Physics gravity={[0, -9.81, 0]}>
                   <ambientLight intensity={0.6} />
@@ -1800,6 +1821,10 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                  minDistance={2} maxDistance={100}
                  enabled={toolMode !== 'EXPLORAR'} 
               />
+              <EffectComposer disableNormalPass>
+                 <N8AO aoRadius={2} intensity={1} color="#000000" />
+                 <Bloom luminanceThreshold={1} mipmapBlur intensity={1.5} />
+              </EffectComposer>
             </Canvas>
             
             {toolMode === 'EXPLORAR' && (
