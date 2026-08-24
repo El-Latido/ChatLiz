@@ -487,44 +487,89 @@ function SakuraPetals() {
 function SantuarioJaponesColliders({ tex }: { tex: any }) {
   return (
     <group>
-        {/* MainHouse */}
+        {/* MainHouse - Two Floors */}
         <group position={[0, 0.5, 0]}>
+          {/* Base / First Floor Foundation */}
           <mesh position={[0, -0.25, 0]} castShadow receiveShadow>
-            <boxGeometry args={[20, 0.5, 15]} />
+            <boxGeometry args={[30, 0.5, 20]} />
             <meshStandardMaterial map={tex.woodLight} roughness={0.8} metalness={0.1} />
           </mesh>
-          <mesh position={[0, -0.25, 7.6]} castShadow receiveShadow>
-            <boxGeometry args={[20.2, 0.1, 0.1]} />
+          <mesh position={[0, -0.25, 10.1]} castShadow receiveShadow>
+            <boxGeometry args={[30.2, 0.1, 0.1]} />
             <meshStandardMaterial color={sjColors.neonPink} emissive={sjColors.neonPink} emissiveIntensity={2} />
           </mesh>
 
-          <group position={[0, 0, 0]}>
+          {/* FIRST FLOOR */}
+          {/* Living Room */}
+          <group position={[-5, 0, 2]}>
+            {/* Main Table */}
             <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
-              <boxGeometry args={[4, 0.2, 2]} />
+              <boxGeometry args={[6, 0.2, 3]} />
               <meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} />
             </mesh>
-            <mesh position={[0, 0.1, 1.5]} castShadow receiveShadow><boxGeometry args={[1, 0.1, 1]} /><meshStandardMaterial color="#884444" /></mesh>
-            <mesh position={[0, 0.1, -1.5]} castShadow receiveShadow><boxGeometry args={[1, 0.1, 1]} /><meshStandardMaterial color="#884444" /></mesh>
+            {/* Cushions */}
+            <mesh position={[0, 0.1, 2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[2, 0.1, 2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[-2, 0.1, 2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[0, 0.1, -2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[2, 0.1, -2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
+            <mesh position={[-2, 0.1, -2.5]} castShadow receiveShadow><boxGeometry args={[1.5, 0.1, 1.5]} /><meshStandardMaterial color="#884444" /></mesh>
           </group>
 
-          <group position={[-5, 0, -3]}>
-            <mesh position={[0, 0.1, 0]} castShadow receiveShadow><boxGeometry args={[3, 0.2, 4]} /><meshStandardMaterial color="#eeeeee" /></mesh>
-            <mesh position={[3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 7]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
+          {/* Kitchen & Dining */}
+          <group position={[5, 0, 2]}>
+            {/* Kitchen Counter */}
+            <mesh position={[3, 0.5, -2]} castShadow receiveShadow><boxGeometry args={[4, 1, 2]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
+            {/* Dining Table */}
+            <mesh position={[-1, 0.5, 3]} castShadow receiveShadow><boxGeometry args={[5, 0.2, 3]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
+            {/* Dining Chairs (Stools) */}
+            <mesh position={[-1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
+            <mesh position={[1, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
+            <mesh position={[-3, 0.25, 5]} castShadow receiveShadow><cylinderGeometry args={[0.3, 0.3, 0.5]} /><meshStandardMaterial map={tex.woodLight} /></mesh>
           </group>
 
-          <group position={[5, 0, -3]}>
-            <mesh position={[0, 0.5, -1]} castShadow receiveShadow><boxGeometry args={[3, 1, 2]} /><meshStandardMaterial color="#222" /></mesh>
-            <mesh position={[0, 0.9, -1]} castShadow receiveShadow><boxGeometry args={[2.8, 0.1, 1.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} /></mesh>
-            <mesh position={[2, 1.5, 2]} castShadow receiveShadow><boxGeometry args={[1, 3, 3]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} metalness={0.1} /></mesh>
-            <mesh position={[-3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 7]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
+          {/* First Floor Bathroom */}
+          <group position={[10, 0, -5]}>
+            <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[4, 1, 3]} /><meshStandardMaterial color="#222" /></mesh>
+            <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 2.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} /></mesh>
+            <mesh position={[-3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 6]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
           </group>
 
-          <mesh position={[0, 3.5, 0]} castShadow receiveShadow>
-            <coneGeometry args={[14, 3, 4]} />
+          {/* First Floor Bedrooms (Shoji sliding doors) */}
+          <group position={[-10, 0, -5]}>
+            <mesh position={[0, 0.1, 0]} castShadow receiveShadow><boxGeometry args={[4, 0.2, 5]} /><meshStandardMaterial color="#eeeeee" /></mesh>
+            <mesh position={[3, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 8]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
+          </group>
+
+          {/* SECOND FLOOR */}
+          <group position={[0, 3, 0]}>
+             {/* Floor 2 Base */}
+             <mesh position={[0, -0.1, 0]} castShadow receiveShadow>
+                <boxGeometry args={[26, 0.2, 16]} />
+                <meshStandardMaterial map={tex.woodLight} roughness={0.8} />
+             </mesh>
+             
+             {/* Second Floor Master Bedroom */}
+             <group position={[-6, 0, 0]}>
+                <mesh position={[0, 0.1, 0]} castShadow receiveShadow><boxGeometry args={[6, 0.2, 8]} /><meshStandardMaterial color="#eeeeee" /></mesh>
+                <mesh position={[4, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 10]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
+             </group>
+
+             {/* Second Floor Bathroom */}
+             <group position={[8, 0, 0]}>
+                <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[4, 1, 4]} /><meshStandardMaterial color="#222" /></mesh>
+                <mesh position={[0, 0.9, 0]} castShadow receiveShadow><boxGeometry args={[3.8, 0.1, 3.8]} /><meshPhysicalMaterial color={sjColors.water} emissive={sjColors.water} emissiveIntensity={0.2} transmission={0.9} roughness={0.1} ior={1.33} transparent opacity={1} /></mesh>
+                <mesh position={[-4, 1.5, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 3, 8]} /><meshStandardMaterial color={sjColors.shoji} transparent opacity={0.7} roughness={0.4} /></mesh>
+             </group>
+          </group>
+
+          {/* Roof */}
+          <mesh position={[0, 6.5, 0]} castShadow receiveShadow>
+            <coneGeometry args={[20, 4, 4]} />
             <meshStandardMaterial color="#111" roughness={0.8} />
           </mesh>
-          <mesh position={[0, 5, 0]} castShadow receiveShadow>
-            <boxGeometry args={[1, 0.2, 15]} />
+          <mesh position={[0, 8.5, 0]} castShadow receiveShadow>
+            <boxGeometry args={[1, 0.2, 22]} />
             <meshStandardMaterial color={sjColors.neonBlue} emissive={sjColors.neonBlue} emissiveIntensity={1.5} />
           </mesh>
         </group>
@@ -603,6 +648,14 @@ function SantuarioJaponesColliders({ tex }: { tex: any }) {
               <cylinderGeometry args={[0.1, 0.1, 3]} />
               <meshStandardMaterial map={tex.bamboo} roughness={0.8} />
             </mesh>
+          ))}
+
+          {/* Border Trees (Sakuras) around the lot */}
+          {Array.from({ length: 15 }).map((_, i) => (
+             <group key={`tree-${i}`} position={[-18 + (i * 2.5), 0, -18 + Math.sin(i) * 3]}>
+                <mesh position={[0, 3, 0]} castShadow receiveShadow><cylinderGeometry args={[0.4, 0.6, 6]} /><meshStandardMaterial map={tex.woodDark} roughness={0.9} /></mesh>
+                <mesh position={[0, 6, 0]} castShadow receiveShadow><sphereGeometry args={[3, 8, 8]} /><meshStandardMaterial color={sjColors.leaves} roughness={0.6} side={THREE.DoubleSide} transparent opacity={0.9} /></mesh>
+             </group>
           ))}
 
           {Array.from({ length: 10 }).map((_, i) => (
@@ -1743,7 +1796,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
 
               <OrbitControls 
                  makeDefault 
-                 maxPolarAngle={Math.PI / 2 - 0.05} 
+                 maxPolarAngle={Math.PI / 2} 
                  minDistance={2} maxDistance={100}
                  enabled={toolMode !== 'EXPLORAR'} 
               />
