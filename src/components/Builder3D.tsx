@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { EffectComposer, Bloom, N8AO } from '@react-three/postprocessing';
 import localforage from 'localforage';
+import { RyokanNeo } from "./RyokanNeo";
 
 interface Builder3DProps {
   user: UserObj;
@@ -34,7 +35,7 @@ export interface CustomAsset {
 }
 
 const CATEGORIES = [
-  { id: 'Plantillas', icon: <Home size={20} />, items: ['Santuario Japonés', 'Moderna Minimalista', 'Cabaña Rústica', 'Contemporánea Cristal', 'Villa Mediterránea', 'Industrial Loft'] },
+  { id: 'Plantillas', icon: <Home size={20} />, items: ['Ryokan Neofuturista', 'Santuario Japonés', 'Moderna Minimalista', 'Cabaña Rústica', 'Contemporánea Cristal', 'Villa Mediterránea', 'Industrial Loft'] },
   { id: 'Pisos', icon: <GridIcon size={20} />, items: ['Madera', 'Piedra', 'Cerámica', 'Adoquines'] },
   { id: 'Paredes', icon: <Cuboid size={20} />, items: ['Muro Básico', 'Muro Ladrillo'] },
   { id: 'Puertas', icon: <DoorOpen size={20} />, items: ['Puerta Madera', 'Puerta Vidrio'] },
@@ -751,6 +752,7 @@ function SantuarioJaponesLights() {
 }
 
 function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected, toolMode }: any) {
+    if (item.subType === 'Ryokan Neofuturista') return <RyokanNeo item={item} isExplore={isExplore} onSelect={onSelect} onTransformEnd={onTransformEnd} isSelected={isSelected} toolMode={toolMode} />;
     const parentGroupRef = useRef<THREE.Group>(null);
 
     const sjTextures = useMemo(() => {
@@ -1331,13 +1333,13 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const hasAccess = true; // user && user.username === 'Axiss';
 
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>(() => {
-    const saved = localStorage.getItem('builder3d_items');
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('builder3d_items_v2');
+    return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff', emissiveIntensity: 0 }];
   });
   
   const [terrainHeights, setTerrainHeights] = useState<number[]>(() => {
-    const saved = localStorage.getItem('builder3d_terrain');
-    return saved ? JSON.parse(saved) : [];
+    const saved = localStorage.getItem('builder3d_terrain_v2');
+    return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff', emissiveIntensity: 0 }];
   });
   
   const [customAssets, setCustomAssets] = useState<CustomAsset[]>([]);
@@ -1544,8 +1546,8 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   }, [placedItems, terrainHeights, pastStates, futureStates]);
 
   useEffect(() => {
-    localStorage.setItem('builder3d_items', JSON.stringify(placedItems));
-    localStorage.setItem('builder3d_terrain', JSON.stringify(terrainHeights));
+    localStorage.setItem('builder3d_items_v2', JSON.stringify(placedItems));
+    localStorage.setItem('builder3d_terrain_v2', JSON.stringify(terrainHeights));
   }, [placedItems, terrainHeights]);
   
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
@@ -1915,13 +1917,13 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             )}
 
             <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
-              <color attach="background" args={['#87CEEB']} />
+              <color attach="background" args={['#0a1128']} />
               <Environment preset="sunset" background={false} />
               
               <Physics gravity={[0, -9.81, 0]}>
-                  <ambientLight intensity={0.6} />
+                  <ambientLight intensity={0.2} color="#88aaff" />
                   <directionalLight 
-                    position={[20, 30, 10]} intensity={1.2} castShadow 
+                    position={[20, 30, 10]} intensity={0.4} color="#4466aa" castShadow 
                     shadow-mapSize={[2048, 2048]} 
                     shadow-camera-left={-30} shadow-camera-right={30}
                     shadow-camera-top={30} shadow-camera-bottom={-30}
