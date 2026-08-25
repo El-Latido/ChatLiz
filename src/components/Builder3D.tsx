@@ -6,7 +6,7 @@ import { UserObj } from '../types';
 import { Layers, Cuboid, Image as ImageIcon, Box, Trees, Waves, ArrowLeft, MousePointer2, Eraser, Move, Mountain, Home, Monitor, Armchair, Archive, Undo2, Redo2, RotateCw, DoorOpen, Grid as GridIcon, ArrowUp, Footprints, DownloadCloud, X, Trash2, Upload } from 'lucide-react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { EffectComposer, Bloom, N8AO } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, N8AO, DepthOfField, ToneMapping } from '@react-three/postprocessing';
 import localforage from 'localforage';
 import { RyokanNeo } from "./RyokanNeo";
 
@@ -1961,9 +1961,11 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                  minDistance={2} maxDistance={100}
                  enabled={toolMode !== 'EXPLORAR'} 
               />
-              <EffectComposer disableNormalPass>
-                 <N8AO aoRadius={2} intensity={1} color="#000000" />
-                 <Bloom luminanceThreshold={1} mipmapBlur intensity={1.5} />
+              <EffectComposer disableNormalPass multisampling={0}>
+                 <N8AO aoRadius={4} intensity={2.5} color="#0a0a0a" distanceFalloff={1} />
+                 <Bloom luminanceThreshold={0.8} mipmapBlur intensity={2.5} radius={0.8} />
+                 <DepthOfField focusDistance={0.015} focalLength={0.02} bokehScale={2} height={480} />
+                 <ToneMapping adaptive resolution={256} middleGrey={0.6} maxLuminance={16.0} averageLuminance={1.0} adaptationRate={1.0} />
               </EffectComposer>
             </Canvas>
             
