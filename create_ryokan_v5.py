@@ -1,4 +1,6 @@
+import os
 
+code = """
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Outlines, TransformControls, MeshReflectorMaterial } from '@react-three/drei';
@@ -567,3 +569,6 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
         </group>
     );
 }
+"""
+with open("src/components/RyokanNeo.tsx", "w") as f:
+    f.write(code)
