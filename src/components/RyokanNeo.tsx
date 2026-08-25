@@ -51,7 +51,7 @@ function SakuraFoliage({ color, scale, position }: any) {
 }
 
 function SakuraPetals() {
-  const count = 1000;
+  const count = window.innerWidth < 768 ? 200 : 1000;
   const mesh = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
@@ -92,7 +92,7 @@ function SakuraPetals() {
 }
 
 function SteamParticles() {
-  const count = 300;
+  const count = window.innerWidth < 768 ? 80 : 300;
   const mesh = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   
@@ -166,7 +166,7 @@ function Avatars() {
 function usePBRTextures() {
     return useMemo(() => {
         const createTex = (type: string) => {
-            const size = 1024;
+            const size = window.innerWidth < 768 ? 256 : 1024;
             const c = document.createElement('canvas'); c.width = size; c.height = size; const ctx = c.getContext('2d')!;
             const cBump = document.createElement('canvas'); cBump.width = size; cBump.height = size; const ctxBump = cBump.getContext('2d')!;
             const cEm = document.createElement('canvas'); cEm.width = size; cEm.height = size; const ctxEm = cEm.getContext('2d')!;

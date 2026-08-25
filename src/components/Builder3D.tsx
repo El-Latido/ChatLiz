@@ -1554,6 +1554,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const [selectedSubType, setSelectedSubType] = useState(CATEGORIES[0].items[0]);
   const [toolMode, setToolMode] = useState<ToolMode>('CAMARA');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const isMobile = window.innerWidth < 768;
 
   if (!hasAccess) {
     return (
@@ -1916,7 +1917,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                 </div>
             )}
 
-            <Canvas shadows camera={{ position: [0, 60, 110], fov: 45 }}>
+            <Canvas shadows dpr={isMobile ? [1, 1] : [1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: false }} camera={{ position: [0, 60, 110], fov: 45 }}>
               <color attach="background" args={['#0a1128']} />
               <Environment preset="sunset" background={false} />
               
@@ -1961,12 +1962,14 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                  minDistance={2} maxDistance={100}
                  enabled={toolMode !== 'EXPLORAR'} 
               />
-              <EffectComposer disableNormalPass multisampling={0}>
-                 <N8AO aoRadius={4} intensity={2.5} color="#0a0a0a" distanceFalloff={1} />
-                 <Bloom luminanceThreshold={0.8} mipmapBlur intensity={2.5} radius={0.8} />
-                 <DepthOfField focusDistance={0.015} focalLength={0.02} bokehScale={2} height={480} />
-                 <ToneMapping adaptive resolution={256} middleGrey={0.6} maxLuminance={16.0} averageLuminance={1.0} adaptationRate={1.0} />
-              </EffectComposer>
+              {!isMobile && (
+                  <EffectComposer disableNormalPass multisampling={0}>
+                     <N8AO aoRadius={4} intensity={2.5} color="#0a0a0a" distanceFalloff={1} />
+                     <Bloom luminanceThreshold={0.8} mipmapBlur intensity={2.5} radius={0.8} />
+                     <DepthOfField focusDistance={0.015} focalLength={0.02} bokehScale={2} height={480} />
+                     <ToneMapping adaptive resolution={256} middleGrey={0.6} maxLuminance={16.0} averageLuminance={1.0} adaptationRate={1.0} />
+                  </EffectComposer>
+              )}
             </Canvas>
             
             {toolMode === 'EXPLORAR' && (
