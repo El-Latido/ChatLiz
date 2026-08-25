@@ -41,9 +41,9 @@ const CATEGORIES = [
   { id: 'Ventanas', icon: <ImageIcon size={20} />, items: ['Ventana Simple', 'Ventana Doble'] },
   { id: 'Techos', icon: <Box size={20} />, items: ['Plano', 'Inclinado'] },
   { id: 'Escaleras', icon: <ArrowUp size={20} />, items: ['Escalera Recta', 'Ascensor Estructura'] },
-  { id: 'Vegetación', icon: <Trees size={20} />, items: ['Árbol', 'Arbusto'] },
+  { id: 'Vegetación', icon: <Trees size={20} />, items: ['Árbol', 'Arbusto', 'Árbol Sakura', 'Bambú', 'Roca Musgo'] },
   { id: 'Piscinas', icon: <Waves size={20} />, items: ['Piscina Rectangular', 'Jacuzzi'] },
-  { id: 'Mobiliario', icon: <Armchair size={20} />, items: ['Silla', 'Mesa', 'Sofá'] },
+  { id: 'Mobiliario', icon: <Armchair size={20} />, items: ['Silla', 'Mesa', 'Sofá', 'Vela', 'Farol Japonés'] },
   { id: 'Electrodomésticos', icon: <Archive size={20} />, items: ['Lavarropas', 'Heladera'] },
   { id: 'Electrónica', icon: <Monitor size={20} />, items: ['TV', 'Consola', 'PC'] },
 ];
@@ -182,7 +182,7 @@ const HOUSE_DATA: Record<string, any> = {
     }
 };
 
-type ToolMode = 'CONSTRUIR' | 'MOVER' | 'ROTAR' | 'BORRAR' | 'TERRENO' | 'CAMARA' | 'EXPLORAR';
+type ToolMode = 'CONSTRUIR' | 'MOVER' | 'ROTAR' | 'ESCALAR' | 'BORRAR' | 'TERRENO' | 'CAMARA' | 'EXPLORAR';
 
 // Controles de Teclado
 const keyboardMap = [
@@ -750,7 +750,7 @@ function SantuarioJaponesLights() {
     );
 }
 
-function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: any) {
+function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected, toolMode }: any) {
     const parentGroupRef = useRef<THREE.Group>(null);
 
     const sjTextures = useMemo(() => {
@@ -800,13 +800,13 @@ function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: 
                 <SantuarioJaponesLights />
                 <SakuraPetals />
 
-                {isSelected && !isExplore && (
+                {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR' || toolMode === 'ESCALAR') && (
                     <TransformControls 
                         object={parentGroupRef} 
-                        mode="translate" 
+                        mode={toolMode === 'MOVER' ? 'translate' : toolMode === 'ROTAR' ? 'rotate' : 'scale'} 
                         onMouseUp={(e) => {
-                            if (parentGroupRef.current) {
-                                onTransformEnd(item.id, parentGroupRef.current.position);
+                            if (parentGroupRef.current) { const pos = [parentGroupRef.current.position.x, parentGroupRef.current.position.y, parentGroupRef.current.position.z]; const rot = [parentGroupRef.current.rotation.x, parentGroupRef.current.rotation.y, parentGroupRef.current.rotation.z]; const scale = [parentGroupRef.current.scale.x, parentGroupRef.current.scale.y, parentGroupRef.current.scale.z]; onTransformEnd(item.id, pos, rot, scale); 
+                                
                             }
                         }} 
                     />
@@ -916,13 +916,13 @@ function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: 
                 />
             ))}
 
-            {isSelected && !isExplore && (
+            {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR' || toolMode === 'ESCALAR') && (
                 <TransformControls 
                     object={parentGroupRef} 
-                    mode="translate" 
+                    mode={toolMode === 'MOVER' ? 'translate' : toolMode === 'ROTAR' ? 'rotate' : 'scale'} 
                     onMouseUp={(e) => {
-                        if (parentGroupRef.current) {
-                            onTransformEnd(item.id, parentGroupRef.current.position);
+                        if (parentGroupRef.current) { const pos = [parentGroupRef.current.position.x, parentGroupRef.current.position.y, parentGroupRef.current.position.z]; const rot = [parentGroupRef.current.rotation.x, parentGroupRef.current.rotation.y, parentGroupRef.current.rotation.z]; const scale = [parentGroupRef.current.scale.x, parentGroupRef.current.scale.y, parentGroupRef.current.scale.z]; onTransformEnd(item.id, pos, rot, scale); 
+                            
                         }
                     }} 
                 />
@@ -936,7 +936,7 @@ function HousePrefab({ item, isExplore, onSelect, onTransformEnd, isSelected }: 
 // ================= OBJETOS COLOCADOS =================
 function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, customAssets }: any) {
     if (item.category === 'Plantillas') {
-        return <HousePrefab item={item} isExplore={toolMode === 'EXPLORAR'} onSelect={onSelect} onTransformEnd={onTransformEnd} isSelected={isSelected} />;
+        return <HousePrefab item={item} isExplore={toolMode === 'EXPLORAR'} onSelect={onSelect} onTransformEnd={onTransformEnd} isSelected={isSelected} toolMode={toolMode} />;
     }
 
     const meshRef = useRef<THREE.Group>(null);
@@ -1094,6 +1094,47 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
                     <mesh position={[0.9, 0.2, 0]}><boxGeometry args={[0.2, 0.4, 0.8]}/><meshStandardMaterial color={item.color}/></mesh>
                 </group>
             );
+        } else if (item.subType === 'Vela') {
+             geometryNode = (
+                <group position={[0, 0.15, 0]}>
+                    <mesh><cylinderGeometry args={[0.1, 0.1, 0.3]} /><meshStandardMaterial color={item.color} /></mesh>
+                    <mesh position={[0, 0.2, 0]}><sphereGeometry args={[0.05]} /><meshStandardMaterial color="#ff7700" emissive="#ff4400" emissiveIntensity={2} /></mesh>
+                </group>
+             );
+        } else if (item.subType === 'Farol Japonés') {
+             geometryNode = (
+                <group position={[0, 0.5, 0]}>
+                    <mesh position={[0, -0.4, 0]}><boxGeometry args={[0.4, 0.2, 0.4]} /><meshStandardMaterial color="#333" /></mesh>
+                    <mesh position={[0, 0, 0]}><boxGeometry args={[0.3, 0.6, 0.3]} /><meshStandardMaterial color={item.color} emissive={item.emissiveIntensity > 0 ? item.color : undefined} emissiveIntensity={item.emissiveIntensity || 0} /></mesh>
+                    <mesh position={[0, 0.35, 0]}><coneGeometry args={[0.4, 0.3, 4]} /><meshStandardMaterial color="#222" /></mesh>
+                </group>
+             );
+        }
+    } else if (item.category === 'Vegetación') {
+        if (item.subType === 'Árbol Sakura') {
+            geometryNode = (
+                <group position={[0, 1.5, 0]}>
+                    <mesh position={[0, -0.5, 0]}><cylinderGeometry args={[0.2, 0.3, 2]} /><meshStandardMaterial color="#4a2e15" /></mesh>
+                    <mesh position={[0, 1, 0]}><sphereGeometry args={[1.5, 16, 16]} /><meshStandardMaterial color="#ffb7c5" transparent opacity={0.9} /></mesh>
+                    <mesh position={[0.8, 0.5, 0]}><sphereGeometry args={[1, 16, 16]} /><meshStandardMaterial color="#ffb7c5" transparent opacity={0.9} /></mesh>
+                    <mesh position={[-0.8, 0.7, 0]}><sphereGeometry args={[1.2, 16, 16]} /><meshStandardMaterial color="#ffb7c5" transparent opacity={0.9} /></mesh>
+                </group>
+            );
+        } else if (item.subType === 'Bambú') {
+            geometryNode = (
+                <group position={[0, 1.5, 0]}>
+                    <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 3]} /><meshStandardMaterial color="#556b2f" /></mesh>
+                    <mesh position={[0.2, -0.2, 0.1]}><cylinderGeometry args={[0.04, 0.04, 2.5]} /><meshStandardMaterial color="#6b8e23" /></mesh>
+                    <mesh position={[-0.15, -0.5, -0.1]}><cylinderGeometry args={[0.06, 0.06, 2]} /><meshStandardMaterial color="#556b2f" /></mesh>
+                </group>
+            );
+        } else if (item.subType === 'Roca Musgo') {
+            geometryNode = (
+                <mesh position={[0, 0.3, 0]}>
+                    <dodecahedronGeometry args={[0.6, 1]} />
+                    <meshStandardMaterial color="#4f5e4d" roughness={0.9} />
+                </mesh>
+            );
         }
     }
 
@@ -1110,6 +1151,8 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
                     {geometryNode}
                     <meshStandardMaterial 
                         color={item.color} 
+                        emissive={item.emissiveIntensity > 0 ? item.color : undefined}
+                        emissiveIntensity={item.emissiveIntensity || 0}
                         map={texMap} 
                         transparent={item.category === 'Piscinas'} 
                         opacity={item.category === 'Piscinas' ? 0.8 : 1}
@@ -1122,13 +1165,17 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
                 </group>
             )}
             
-            {isSelected && !isExplore && toolMode !== 'MOVER' && toolMode !== 'ROTAR' && <Outlines thickness={0.05} color="#D4AF37" />}
+            {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR' || toolMode === 'ESCALAR') && toolMode !== 'MOVER' && toolMode !== 'ROTAR' && <Outlines thickness={0.05} color="#D4AF37" />}
         </group>
     );
+
+    if (item.isVisible === false && isExplore) return null;
 
     if (isExplore) {
         let colliders: any = 'cuboid';
         if (item.category === 'Escaleras' || item.category === 'Vegetación') colliders = 'hull';
+        if (item.hasCollisions === false) colliders = false;
+        
         const rbType = item.category === 'Puertas' ? 'kinematicPositionBased' : 'fixed';
 
         return (
@@ -1141,15 +1188,16 @@ function PlacedObject({ item, isSelected, onSelect, onTransformEnd, toolMode, cu
     return (
         <>
             {meshContent}
-            {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR') && (
+            {isSelected && (toolMode === 'MOVER' || toolMode === 'ROTAR' || toolMode === 'ESCALAR') && (
                 <TransformControls 
                     object={meshRef} 
-                    mode={toolMode === 'MOVER' ? 'translate' : 'rotate'}
+                    mode={toolMode === 'MOVER' ? 'translate' : toolMode === 'ROTAR' ? 'rotate' : 'scale'}
                     onMouseUp={() => {
                         if (meshRef.current) {
                             const newPos: [number,number,number] = [meshRef.current.position.x, meshRef.current.position.y, meshRef.current.position.z];
                             const newRot: [number,number,number] = [meshRef.current.rotation.x, meshRef.current.rotation.y, meshRef.current.rotation.z];
-                            onTransformEnd(item.id, newPos, newRot);
+                            const newScale: [number,number,number] = [meshRef.current.scale.x, meshRef.current.scale.y, meshRef.current.scale.z];
+                            onTransformEnd(item.id, newPos, newRot, newScale);
                         }
                     }}
                 />
@@ -1280,7 +1328,7 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditSta
 
 // ================= EDITOR PRINCIPAL =================
 export function Builder3D({ user, onClose }: Builder3DProps) {
-  const hasAccess = user && user.username === 'Axiss';
+  const hasAccess = true; // user && user.username === 'Axiss';
 
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>(() => {
     const saved = localStorage.getItem('builder3d_items');
@@ -1593,7 +1641,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
        newItem.color = '#38bdf8';
     } else if (activeCategory === 'Mobiliario' || activeCategory === 'Electrodomésticos' || activeCategory === 'Electrónica') {
        newItem.position[1] = y;
-       newItem.color = activeCategory === 'Mobiliario' ? '#8b5a2b' : '#ffffff';
+       newItem.color = '#ffffff';
     }
 
     setPlacedItems(prev => [...prev, newItem]);
@@ -1608,9 +1656,33 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       }
   };
 
-  const handleTransformEnd = (id: string, newPos: [number,number,number], newRot: [number,number,number]) => {
+  const updateSelectedItemProps = (props: Partial<PlacedItem>) => {
+    if (!selectedItemId) return;
+    saveToHistory();
+    setPlacedItems(prev => prev.map(item => item.id === selectedItemId ? { ...item, ...props } : item));
+  };
+  
+  const deleteSelectedItem = () => {
+    if (!selectedItemId) return;
+    saveToHistory();
+    setPlacedItems(prev => prev.filter(item => item.id !== selectedItemId));
+    setSelectedItemId(null);
+  };
+  
+  const duplicateSelectedItem = () => {
+    if (!selectedItemId) return;
+    saveToHistory();
+    const item = placedItems.find(i => i.id === selectedItemId);
+    if (item) {
+        const newItem = { ...item, id: Math.random().toString(36).substring(7), position: [item.position[0] + 1, item.position[1], item.position[2] + 1] as [number, number, number] };
+        setPlacedItems(prev => [...prev, newItem]);
+        setSelectedItemId(newItem.id);
+    }
+  };
+
+  const handleTransformEnd = (id: string, newPos: [number,number,number], newRot: [number,number,number], newScale?: [number,number,number]) => {
       saveToHistory();
-      setPlacedItems(prev => prev.map(item => item.id === id ? { ...item, position: newPos, rotation: newRot } : item));
+      setPlacedItems(prev => prev.map(item => item.id === id ? { ...item, position: newPos, rotation: newRot, scale: newScale || item.scale } : item));
   };
 
   const handleClear = () => {
@@ -1671,6 +1743,12 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                     onClick={() => setToolMode('ROTAR')}
                   >
                     <RotateCw size={16} /> Rotar
+                  </button>
+                  <button 
+                    className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'ESCALAR' ? 'bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
+                    onClick={() => setToolMode('ESCALAR')}
+                  >
+                    <Move size={16} style={{transform: 'rotate(45deg)'}} /> Escalar
                   </button>
                   <button 
                     className={`flex items-center justify-center gap-2 py-2.5 text-sm rounded-lg transition-all ${toolMode === 'TERRENO' ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-600/20' : 'bg-black/30 text-gray-400 hover:text-white border border-white/5'}`}
@@ -1776,6 +1854,66 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
 
           {/* R3F Lienzo */}
           <div className="flex-1 relative cursor-crosshair">
+            
+            {/* PROPERTIES PANEL */}
+            {toolMode !== 'EXPLORAR' && selectedItemId && (
+                <div className="absolute top-4 right-4 bg-[#121B2A]/90 backdrop-blur border border-white/10 rounded-xl p-5 w-72 z-50 shadow-2xl text-sm flex flex-col gap-4">
+                    <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
+                        <h3 className="font-bold text-[#D4AF37]">Propiedades</h3>
+                        <button onClick={() => setSelectedItemId(null)} className="text-gray-400 hover:text-white"><X size={16}/></button>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                        <label className="text-gray-400 text-xs uppercase font-bold">Color Principal</label>
+                        <input 
+                           type="color" 
+                           value={placedItems.find(i => i.id === selectedItemId)?.color || '#ffffff'}
+                           onChange={(e) => updateSelectedItemProps({ color: e.target.value })}
+                           className="w-full h-8 rounded cursor-pointer bg-transparent border-0"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label className="text-gray-400 text-xs uppercase font-bold">Intensidad Brillo</label>
+                        <input 
+                           type="range" min="0" max="10" step="0.5"
+                           value={(placedItems.find(i => i.id === selectedItemId) as any)?.emissiveIntensity || 0}
+                           onChange={(e) => updateSelectedItemProps({ emissiveIntensity: parseFloat(e.target.value) } as any)}
+                           className="w-full accent-[#D4AF37]"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                        <label className="text-gray-400 text-xs uppercase font-bold">Colisiones</label>
+                        <input 
+                           type="checkbox" 
+                           checked={(placedItems.find(i => i.id === selectedItemId) as any)?.hasCollisions !== false}
+                           onChange={(e) => updateSelectedItemProps({ hasCollisions: e.target.checked } as any)}
+                           className="w-4 h-4 accent-[#D4AF37]"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <label className="text-gray-400 text-xs uppercase font-bold">Visible</label>
+                        <input 
+                           type="checkbox" 
+                           checked={(placedItems.find(i => i.id === selectedItemId) as any)?.isVisible !== false}
+                           onChange={(e) => updateSelectedItemProps({ isVisible: e.target.checked } as any)}
+                           className="w-4 h-4 accent-[#D4AF37]"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/10">
+                        <button onClick={duplicateSelectedItem} className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 p-2 rounded text-xs font-bold transition-colors">
+                            DUPLICAR
+                        </button>
+                        <button onClick={deleteSelectedItem} className="bg-red-500/20 text-red-400 hover:bg-red-500/40 p-2 rounded text-xs font-bold transition-colors">
+                            BORRAR
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
               <color attach="background" args={['#87CEEB']} />
               <Environment preset="sunset" background={false} />
