@@ -1916,7 +1916,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
                 </div>
             )}
 
-            <Canvas shadows camera={{ position: [0, 15, 20], fov: 45 }}>
+            <Canvas shadows camera={{ position: [0, 60, 110], fov: 45 }}>
               <color attach="background" args={['#0a1128']} />
               <Environment preset="sunset" background={false} />
               
