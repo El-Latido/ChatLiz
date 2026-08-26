@@ -30,6 +30,64 @@ function buildMergedGeometry(configs: any[]) {
     return mergeGeometries(geos);
 }
 
+// Highly optimized Vegetation
+function Vegetation() {
+  const count = 120;
+  const grassMesh = useRef<THREE.InstancedMesh>(null);
+  const flowerMesh = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  
+  const flowerColors = useMemo(() => [
+    new THREE.Color(0xff758f),
+    new THREE.Color(0xffb703),
+    new THREE.Color(0xe0aaff),
+    new THREE.Color(0xc7f9cc)
+  ], []);
+
+  React.useLayoutEffect(() => {
+    let fIdx = 0;
+    for (let k = 0; k < count; k++) {
+      let x = (Math.random() - 0.5) * 90;
+      let z = (Math.random() - 0.5) * 90;
+      if (x > -5 && x < 25 && z > -15 && z < 10) {
+        x += 30; // Push out of center
+      }
+
+      // Grass
+      dummy.position.set(x, 0.4, z);
+      dummy.updateMatrix();
+      if (grassMesh.current) grassMesh.current.setMatrixAt(k, dummy.matrix);
+
+      // Flowers (1 every 3 grasses)
+      if (k % 3 === 0 && flowerMesh.current) {
+        dummy.position.set(x, 0.8, z);
+        dummy.updateMatrix();
+        flowerMesh.current.setMatrixAt(fIdx, dummy.matrix);
+        flowerMesh.current.setColorAt(fIdx, flowerColors[Math.floor(Math.random() * flowerColors.length)]);
+        fIdx++;
+      }
+    }
+    if (grassMesh.current) grassMesh.current.instanceMatrix.needsUpdate = true;
+    if (flowerMesh.current) {
+        flowerMesh.current.instanceMatrix.needsUpdate = true;
+        if (flowerMesh.current.instanceColor) flowerMesh.current.instanceColor.needsUpdate = true;
+    }
+  }, [count, dummy, flowerColors]);
+
+  return (
+    <group>
+      <instancedMesh ref={grassMesh} args={[undefined, undefined, count]} castShadow={!isMobile} receiveShadow>
+        <coneGeometry args={[0.15, 0.8, 4]} />
+        <meshStandardMaterial color="#1b4332" roughness={0.9} />
+      </instancedMesh>
+      <instancedMesh ref={flowerMesh} args={[undefined, undefined, Math.floor(count / 3) + 1]} castShadow={!isMobile} receiveShadow>
+        <sphereGeometry args={[0.12, 6, 6]} />
+        <meshStandardMaterial roughness={0.5} />
+      </instancedMesh>
+    </group>
+  );
+}
+
 // Highly optimized Sakura Petals
 function SakuraPetals() {
   const count = isMobile ? 100 : 400;
@@ -267,25 +325,37 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
         >
             <RigidBody type="fixed" colliders="trimesh">
                 
-                {/* --- 1. SUELO GENERAL --- */}
-                <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-                    <planeGeometry args={[120, 120]} />
-                    <meshStandardMaterial color="#0f172a" roughness={0.9} />
-                </mesh>
-
-                {/* --- 2. MONTAÑAS Y TERRAZAS ESCALONADAS (Lado izquierdo) --- */}
+                {/* --- 1. SUELO GENERAL AMPLIADO --- */}
                 <group>
-                    {/* Montaña base trasera */}
-                    <mesh position={[-25, 12, -15]}>
-                        <boxGeometry args={[40, 30, 15]} />
-                        <meshStandardMaterial color="#1e293b" roughness={0.9} />
+                    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                        <planeGeometry args={[250, 250]} />
+                        <meshStandardMaterial color="#0f172a" roughness={0.95} />
+                    </mesh>
+                    {/* Base plana elevada donde irá la casa principal */}
+                    <mesh position={[10, 0.3, -5]} receiveShadow>
+                        <boxGeometry args={[35, 0.6, 25]} />
+                        <meshStandardMaterial color="#1e293b" roughness={0.8} />
+                    </mesh>
+                    {/* Base circular hundida/delimitada para la pileta (Onsen) */}
+                    <mesh position={[-8, 0.2, 4]}>
+                        <cylinderGeometry args={[8, 8, 0.4, 32]} />
+                        <meshStandardMaterial color="#334155" roughness={0.7} />
+                    </mesh>
+                </group>
+
+                {/* --- 2. MONTAÑAS GIGANTES Y TERRAZAS (Lado izquierdo y fondo) --- */}
+                <group>
+                    {/* Montaña principal trasera */}
+                    <mesh position={[-40, 20, -45]}>
+                        <boxGeometry args={[120, 50, 30]} />
+                        <meshStandardMaterial color="#111827" roughness={0.9} />
                     </mesh>
 
-                    {/* Terrazas de la montaña */}
-                    {[0, 1, 2, 3].map(i => (
-                        <mesh key={`terrace-${i}`} position={[-18, 3 + (i * 3.5), -10 + (i * 2)]}>
-                            <boxGeometry args={[12 - (i * 1.5), 1.5, 8]} />
-                            <meshStandardMaterial color="#334155" roughness={0.8} />
+                    {/* Terrazas escalonadas de la montaña */}
+                    {[0, 1, 2, 3, 4].map(i => (
+                        <mesh key={`terrace-${i}`} position={[-35 + (i * 1.5), 4 + (i * 4), -20 + (i * 3)]}>
+                            <boxGeometry args={[25 - (i * 2), 2, 12]} />
+                            <meshStandardMaterial color="#1e293b" roughness={0.8} />
                         </mesh>
                     ))}
                 </group>
@@ -385,15 +455,18 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                     <mesh position={[0, 5.5, 0]} rotation={[0, Math.PI/4, 0]} castShadow={!isMobile} receiveShadow><coneGeometry args={[9, 3, 4]} /><meshStandardMaterial color="#1a1c1e" roughness={0.9} /></mesh>
                 </group>
 
-                {/* --- 3. ESTRUCTURA BASE DE LA CASCADA --- */}
+                {/* --- 3. CAUCE DE LA CASCADA --- */}
                 <group>
-                    {[0, 1, 2].map(j => (
-                        <mesh key={`waterfall-${j}`} position={[-14 + (j * 0.5), 10 - (j * 3), -5 + (j * 1.5)]}>
-                            <planeGeometry args={[4, 6]} />
-                            <meshStandardMaterial color="#00b4d8" roughness={0.2} transparent opacity={0.8} />
+                    {[0, 1, 2, 3].map(j => (
+                        <mesh key={`riverbed-${j}`} position={[-20, 16 - (j * 3.5), -12 + (j * 3)]}>
+                            <boxGeometry args={[6, 1, 4]} />
+                            <meshStandardMaterial color="#0f172a" roughness={0.5} />
                         </mesh>
                     ))}
                 </group>
+
+                {/* --- 4. VEGETACIÓN --- */}
+                <Vegetation />
 
                 {/* --- 4. ONSEN (Perfect Clear Water, NO surface stones) --- */}
                 <group position={[-16, 0, 16]} scale={1.8}>
