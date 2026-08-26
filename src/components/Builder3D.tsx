@@ -1945,13 +1945,13 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             )}
 
             <Canvas shadows dpr={isMobile ? [1, 1] : [1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: false }} camera={{ position: [0, 60, 110], fov: 45 }}>
-              <color attach="background" args={['#080c14']} />
-              <fogExp2 attach="fog" args={['#080c14', 0.008]} />
+              <color attach="background" args={['#060913']} />
+              <fogExp2 attach="fog" args={['#060913', 0.006]} />
               
               <Physics gravity={[0, -9.81, 0]}>
-                  <ambientLight intensity={1.2} color="#1a233a" />
+                  <ambientLight intensity={1.3} color="#162032" />
                   <directionalLight 
-                    position={[30, 50, 30]} intensity={0.6} color="#48cae4" castShadow 
+                    position={[40, 60, 40]} intensity={0.7} color="#48cae4" castShadow 
                     shadow-mapSize={[2048, 2048]} 
                     shadow-camera-left={-60} shadow-camera-right={60}
                     shadow-camera-top={60} shadow-camera-bottom={-60}

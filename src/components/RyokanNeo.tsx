@@ -30,43 +30,56 @@ function buildMergedGeometry(configs: any[]) {
     return mergeGeometries(geos);
 }
 
-// Highly optimized Organic Mountain using math vertex deformation
-function OrganicMountain() {
+// Great Mountain Range Background
+function GreatMountainRange() {
   const geometry = useMemo(() => {
-      const mountainGeo = new THREE.PlaneGeometry(80, 60, 24, 24);
-      mountainGeo.rotateX(-Math.PI / 2); // Dejarla vertical/inclinada como terreno
-
-      // Deformamos los vértices matemáticamente para crear picos, valles y curvas naturales
-      const pos = mountainGeo.attributes.position;
-      for (let i = 0; i < pos.count; i++) {
-          let vx = pos.getX(i);
-          let vz = pos.getZ(i);
-          
-          // Función de ondas combinadas para simular relieve de montaña real con crestas
-          let height = Math.sin(vx * 0.1) * Math.cos(vz * 0.1) * 12 + Math.sin(vx * 0.05) * 8;
-          
-          // Hacemos que los bordes bajen suavemente hacia el suelo plano
-          let distanceToCenter = Math.sqrt(vx * vx + vz * vz);
-          if (distanceToCenter > 25) {
-              height *= Math.max(0, (40 - distanceToCenter) / 15);
-          }
-          
-          pos.setY(i, Math.max(0, height)); // Evita que hundan el suelo bajo cero
+      const rangeGeo = new THREE.PlaneGeometry(220, 90, 32, 32);
+      rangeGeo.rotateX(-Math.PI / 2);
+      const posRange = rangeGeo.attributes.position;
+      for (let i = 0; i < posRange.count; i++) {
+          let vx = posRange.getX(i);
+          let vz = posRange.getZ(i);
+          // Picos altos y masivos simulando cordillera lejana y lateral
+          let height = Math.sin(vx * 0.05) * 25 + Math.cos(vz * 0.08) * 18 + Math.sin(vx * 0.02) * 35;
+          posRange.setY(i, Math.max(0, height));
       }
-      mountainGeo.computeVertexNormals();
-      return mountainGeo;
+      rangeGeo.computeVertexNormals();
+      return rangeGeo;
   }, []);
 
   return (
-      <mesh geometry={geometry} position={[-35, 0, -25]} receiveShadow castShadow={!isMobile}>
-          <meshStandardMaterial color="#1b263b" roughness={0.9} flatShading={true} />
+      <mesh geometry={geometry} position={[0, 0, -70]} receiveShadow castShadow={!isMobile}>
+          <meshStandardMaterial color="#111c2e" roughness={0.9} flatShading={true} />
+      </mesh>
+  );
+}
+
+// Side Mountain (where waterfalls and terraces are)
+function SideMountain() {
+  const geometry = useMemo(() => {
+      const sideMountainGeo = new THREE.PlaneGeometry(90, 70, 20, 20);
+      sideMountainGeo.rotateX(-Math.PI / 2);
+      const posSide = sideMountainGeo.attributes.position;
+      for (let i = 0; i < posSide.count; i++) {
+          let vx = posSide.getX(i);
+          let vz = posSide.getZ(i);
+          let height = Math.sin(vx * 0.08) * 15 + Math.cos(vz * 0.08) * 15;
+          posSide.setY(i, Math.max(0, height));
+      }
+      sideMountainGeo.computeVertexNormals();
+      return sideMountainGeo;
+  }, []);
+
+  return (
+      <mesh geometry={geometry} position={[-50, 0, -20]} receiveShadow castShadow={!isMobile}>
+          <meshStandardMaterial color="#111c2e" roughness={0.9} flatShading={true} />
       </mesh>
   );
 }
 
 // Highly optimized Vegetation
 function Vegetation() {
-  const count = 120;
+  const count = 140;
   const grassMesh = useRef<THREE.InstancedMesh>(null);
   const flowerMesh = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -81,8 +94,8 @@ function Vegetation() {
   React.useLayoutEffect(() => {
     let fIdx = 0;
     for (let k = 0; k < count; k++) {
-      let x = (Math.random() - 0.5) * 90;
-      let z = (Math.random() - 0.5) * 90;
+      let x = (Math.random() - 0.5) * 100;
+      let z = (Math.random() - 0.5) * 100;
       if (x > -5 && x < 25 && z > -15 && z < 10) {
         x += 30; // Push out of center
       }
@@ -362,8 +375,8 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                 {/* --- 1. SUELO GENERAL AMPLIADO --- */}
                 <group>
                     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-                        <planeGeometry args={[250, 250]} />
-                        <meshStandardMaterial color="#0f172a" roughness={0.95} />
+                        <planeGeometry args={[300, 300]} />
+                        <meshStandardMaterial color="#0b132b" roughness={0.95} />
                     </mesh>
                     {/* Base plana elevada donde irá la casa principal */}
                     <mesh position={[10, 0.3, -5]} receiveShadow>
@@ -379,7 +392,8 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
 
                 {/* --- 2. MONTAÑAS ORGÁNICAS CON CURVAS Y RELIEVE REAL --- */}
                 <group>
-                    <OrganicMountain />
+                    <GreatMountainRange />
+                    <SideMountain />
                 </group>
 
                 {/* --- 1. MAIN HOUSE (Exact Replica 1:1) --- */}
