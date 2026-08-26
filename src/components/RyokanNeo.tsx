@@ -30,6 +30,40 @@ function buildMergedGeometry(configs: any[]) {
     return mergeGeometries(geos);
 }
 
+// Highly optimized Organic Mountain using math vertex deformation
+function OrganicMountain() {
+  const geometry = useMemo(() => {
+      const mountainGeo = new THREE.PlaneGeometry(80, 60, 24, 24);
+      mountainGeo.rotateX(-Math.PI / 2); // Dejarla vertical/inclinada como terreno
+
+      // Deformamos los vértices matemáticamente para crear picos, valles y curvas naturales
+      const pos = mountainGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+          let vx = pos.getX(i);
+          let vz = pos.getZ(i);
+          
+          // Función de ondas combinadas para simular relieve de montaña real con crestas
+          let height = Math.sin(vx * 0.1) * Math.cos(vz * 0.1) * 12 + Math.sin(vx * 0.05) * 8;
+          
+          // Hacemos que los bordes bajen suavemente hacia el suelo plano
+          let distanceToCenter = Math.sqrt(vx * vx + vz * vz);
+          if (distanceToCenter > 25) {
+              height *= Math.max(0, (40 - distanceToCenter) / 15);
+          }
+          
+          pos.setY(i, Math.max(0, height)); // Evita que hundan el suelo bajo cero
+      }
+      mountainGeo.computeVertexNormals();
+      return mountainGeo;
+  }, []);
+
+  return (
+      <mesh geometry={geometry} position={[-35, 0, -25]} receiveShadow castShadow={!isMobile}>
+          <meshStandardMaterial color="#1b263b" roughness={0.9} flatShading={true} />
+      </mesh>
+  );
+}
+
 // Highly optimized Vegetation
 function Vegetation() {
   const count = 120;
@@ -343,21 +377,9 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                     </mesh>
                 </group>
 
-                {/* --- 2. MONTAÑAS GIGANTES Y TERRAZAS (Lado izquierdo y fondo) --- */}
+                {/* --- 2. MONTAÑAS ORGÁNICAS CON CURVAS Y RELIEVE REAL --- */}
                 <group>
-                    {/* Montaña principal trasera */}
-                    <mesh position={[-40, 20, -45]}>
-                        <boxGeometry args={[120, 50, 30]} />
-                        <meshStandardMaterial color="#111827" roughness={0.9} />
-                    </mesh>
-
-                    {/* Terrazas escalonadas de la montaña */}
-                    {[0, 1, 2, 3, 4].map(i => (
-                        <mesh key={`terrace-${i}`} position={[-35 + (i * 1.5), 4 + (i * 4), -20 + (i * 3)]}>
-                            <boxGeometry args={[25 - (i * 2), 2, 12]} />
-                            <meshStandardMaterial color="#1e293b" roughness={0.8} />
-                        </mesh>
-                    ))}
+                    <OrganicMountain />
                 </group>
 
                 {/* --- 1. MAIN HOUSE (Exact Replica 1:1) --- */}
@@ -458,8 +480,8 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                 {/* --- 3. CAUCE DE LA CASCADA --- */}
                 <group>
                     {[0, 1, 2, 3].map(j => (
-                        <mesh key={`riverbed-${j}`} position={[-20, 16 - (j * 3.5), -12 + (j * 3)]}>
-                            <boxGeometry args={[6, 1, 4]} />
+                        <mesh key={`riverbed-${j}`} position={[-18, 12 - (j * 2.8), -10 + (j * 2.5)]}>
+                            <boxGeometry args={[6, 0.8, 4]} />
                             <meshStandardMaterial color="#0f172a" roughness={0.5} />
                         </mesh>
                     ))}
