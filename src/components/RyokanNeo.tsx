@@ -267,27 +267,26 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
         >
             <RigidBody type="fixed" colliders="trimesh">
                 
-                {/* --- 0. BACKGROUND MOUNTAINS & VILLAGE (Terraced) --- */}
-                <group position={[0, -10, -120]}>
-                    <mesh position={[0, 0, 0]} receiveShadow>
-                        <boxGeometry args={[800, 20, 150]} />
-                        <meshStandardMaterial map={tex.rock.map} color="#151b15" roughness={1} />
+                {/* --- 1. SUELO GENERAL --- */}
+                <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                    <planeGeometry args={[120, 120]} />
+                    <meshStandardMaterial color="#0f172a" roughness={0.9} />
+                </mesh>
+
+                {/* --- 2. MONTAÑAS Y TERRAZAS ESCALONADAS (Lado izquierdo) --- */}
+                <group>
+                    {/* Montaña base trasera */}
+                    <mesh position={[-25, 12, -15]}>
+                        <boxGeometry args={[40, 30, 15]} />
+                        <meshStandardMaterial color="#1e293b" roughness={0.9} />
                     </mesh>
-                    <mesh position={[0, 30, -50]} receiveShadow>
-                        <boxGeometry args={[900, 40, 100]} />
-                        <meshStandardMaterial map={tex.rock.map} color="#0c120c" roughness={1} />
-                    </mesh>
-                    
-                    {/* Background Mountain Terrace Houses (Exact replication of village) */}
-                    {[-100, -50, 40, 90, 140].map((x, i) => (
-                        <group key={`bg-house-${i}`} position={[x, 50 + (i%2)*20, -60]} scale={0.7}>
-                            <mesh position={[0, 0, 0]}><boxGeometry args={[30, 2, 20]} /><meshStandardMaterial color="#1a251a" /></mesh>
-                            <mesh position={[0, 5, 0]}><boxGeometry args={[20, 10, 16]} /><meshStandardMaterial map={tex.woodDark.map} /></mesh>
-                            <mesh position={[0, 5, 8.1]}><boxGeometry args={[18, 8, 0.1]} /><meshStandardMaterial map={tex.shoji.map} emissive="#ffbb88" emissiveIntensity={0.8} /></mesh>
-                            <group position={[0, 11, 0]}>
-                                <mesh position={[0, 2, 0]} rotation={[0, Math.PI/4, 0]}><coneGeometry args={[16, 6, 4]} /><meshStandardMaterial color="#111" /></mesh>
-                            </group>
-                        </group>
+
+                    {/* Terrazas de la montaña */}
+                    {[0, 1, 2, 3].map(i => (
+                        <mesh key={`terrace-${i}`} position={[-18, 3 + (i * 3.5), -10 + (i * 2)]}>
+                            <boxGeometry args={[12 - (i * 1.5), 1.5, 8]} />
+                            <meshStandardMaterial color="#334155" roughness={0.8} />
+                        </mesh>
                     ))}
                 </group>
 
@@ -386,13 +385,14 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                     <mesh position={[0, 5.5, 0]} rotation={[0, Math.PI/4, 0]} castShadow={!isMobile} receiveShadow><coneGeometry args={[9, 3, 4]} /><meshStandardMaterial color="#1a1c1e" roughness={0.9} /></mesh>
                 </group>
 
-                {/* --- 3. WATERFALLS (Active cascading) --- */}
-                <group position={[-45, 0, -35]} scale={1.8}>
-                    <mesh position={[0, 6, 0]} castShadow={!isMobile} receiveShadow><boxGeometry args={[15, 12, 10]} /><meshStandardMaterial map={tex.rock.map} roughness={1} /></mesh>
-                    <mesh position={[5, 12, -5]} castShadow={!isMobile} receiveShadow><boxGeometry args={[20, 10, 10]} /><meshStandardMaterial map={tex.rock.map} roughness={1} /></mesh>
-                    <mesh position={[2, 9, 5.1]} rotation={[0, 0, -0.1]}><boxGeometry args={[6, 12, 0.4]} /><meshPhysicalMaterial color="#bbddff" emissive="#0088cc" emissiveIntensity={0.5} transmission={0.9} roughness={0.2} /></mesh>
-                    <mesh position={[0, 3, 5.2]} rotation={[0.2, 0, 0]}><boxGeometry args={[8, 8, 0.4]} /><meshPhysicalMaterial color="#bbddff" emissive="#0088cc" emissiveIntensity={0.5} transmission={0.9} roughness={0.2} /></mesh>
-                    <pointLight position={[2, 6, 8]} color="#00aaff" intensity={3} distance={40} />
+                {/* --- 3. ESTRUCTURA BASE DE LA CASCADA --- */}
+                <group>
+                    {[0, 1, 2].map(j => (
+                        <mesh key={`waterfall-${j}`} position={[-14 + (j * 0.5), 10 - (j * 3), -5 + (j * 1.5)]}>
+                            <planeGeometry args={[4, 6]} />
+                            <meshStandardMaterial color="#00b4d8" roughness={0.2} transparent opacity={0.8} />
+                        </mesh>
+                    ))}
                 </group>
 
                 {/* --- 4. ONSEN (Perfect Clear Water, NO surface stones) --- */}

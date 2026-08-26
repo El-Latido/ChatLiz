@@ -1918,18 +1918,17 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             )}
 
             <Canvas shadows dpr={isMobile ? [1, 1] : [1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: false }} camera={{ position: [0, 60, 110], fov: 45 }}>
-              <color attach="background" args={['#0a1128']} />
-              <Environment preset="sunset" background={false} />
+              <color attach="background" args={['#0b132b']} />
+              <fogExp2 attach="fog" args={['#0b132b', 0.012]} />
               
               <Physics gravity={[0, -9.81, 0]}>
-                  <ambientLight intensity={0.2} color="#88aaff" />
+                  <ambientLight intensity={1.0} color="#1c2541" />
                   <directionalLight 
-                    position={[20, 30, 10]} intensity={0.4} color="#4466aa" castShadow 
+                    position={[20, 40, 20]} intensity={0.7} color="#48cae4" castShadow 
                     shadow-mapSize={[2048, 2048]} 
-                    shadow-camera-left={-30} shadow-camera-right={30}
-                    shadow-camera-top={30} shadow-camera-bottom={-30}
+                    shadow-camera-left={-60} shadow-camera-right={60}
+                    shadow-camera-top={60} shadow-camera-bottom={-60}
                   />
-                  <hemisphereLight groundColor="#2d2d2d" color="#ffffff" intensity={0.4} />
 
                   <Player toolMode={toolMode} />
 
