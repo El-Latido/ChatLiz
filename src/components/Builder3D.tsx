@@ -1858,9 +1858,27 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
           {/* R3F Lienzo */}
           <div className="flex-1 relative cursor-crosshair">
             
+            {/* Botón de Pantalla Completa */}
+            <button
+                onClick={() => {
+                    if (!document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(err => {
+                            console.error(`Error: ${err.message}`);
+                        });
+                    } else {
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen();
+                        }
+                    }
+                }}
+                className="absolute top-4 right-4 bg-[#1e293b]/85 text-[#48cae4] border border-[#48cae4] px-4 py-2.5 rounded-lg font-bold text-sm cursor-pointer z-[100] shadow-[0_4px_10px_rgba(0,0,0,0.5)] backdrop-blur transition-all active:bg-[#48cae4] active:text-[#080c14] hover:bg-[#1e293b]"
+            >
+                ⛶ Pantalla Completa
+            </button>
+
             {/* PROPERTIES PANEL */}
             {toolMode !== 'EXPLORAR' && selectedItemId && (
-                <div className="absolute top-4 right-4 bg-[#121B2A]/90 backdrop-blur border border-white/10 rounded-xl p-5 w-72 z-50 shadow-2xl text-sm flex flex-col gap-4">
+                <div className="absolute top-20 right-4 bg-[#121B2A]/90 backdrop-blur border border-white/10 rounded-xl p-5 w-72 z-50 shadow-2xl text-sm flex flex-col gap-4">
                     <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
                         <h3 className="font-bold text-[#D4AF37]">Propiedades</h3>
                         <button onClick={() => setSelectedItemId(null)} className="text-gray-400 hover:text-white"><X size={16}/></button>
