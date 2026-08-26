@@ -1554,6 +1554,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   const [selectedSubType, setSelectedSubType] = useState(CATEGORIES[0].items[0]);
   const [toolMode, setToolMode] = useState<ToolMode>('CAMARA');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
   const isMobile = window.innerWidth < 768;
 
   if (!hasAccess) {
@@ -1700,7 +1701,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     <KeyboardControls map={keyboardMap}>
         <div className="w-full h-full overflow-hidden bg-[#05080e] fixed inset-0 z-[9999] flex font-sans">
           {/* UI Sidebar Menú */}
-          <div className="w-80 bg-[#121B2A] border-r border-white/10 flex flex-col h-full z-10 shadow-2xl relative">
+          <div className={`w-[260px] bg-[#0f172a]/90 backdrop-blur-md border-r border-white/10 flex flex-col h-full z-20 shadow-2xl absolute top-0 left-0 transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="p-4 border-b border-white/10">
               <button onClick={onClose} className="flex items-center gap-2 text-gray-400 hover:text-white mb-3 text-sm font-medium transition-colors">
                 <ArrowLeft size={16} /> Volver al Chat
@@ -1855,8 +1856,16 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             </div>
           </div>
 
+          {/* Botón Retráctil del Panel */}
+          <button 
+              onClick={() => setIsPanelOpen(!isPanelOpen)}
+              className={`absolute top-4 ${isPanelOpen ? 'left-[275px]' : 'left-[15px]'} w-10 h-10 bg-[#1e293b] text-[#48cae4] border border-[#48cae4] rounded-full flex items-center justify-center font-bold text-lg z-[101] shadow-[0_4px_10px_rgba(0,0,0,0.5)] transition-all duration-300 ease-in-out active:bg-[#48cae4] active:text-[#080c14] hover:bg-[#0f172a]`}
+          >
+              {isPanelOpen ? '◀' : '▶'}
+          </button>
+
           {/* R3F Lienzo */}
-          <div className="flex-1 relative cursor-crosshair">
+          <div className="flex-1 w-full h-full relative cursor-crosshair">
             
             {/* Botón de Pantalla Completa */}
             <button
