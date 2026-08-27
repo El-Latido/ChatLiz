@@ -1,13 +1,13 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Grid, Html } from '@react-three/drei';
-import { Physics, RigidBody } from '@react-three/rapier';
+import React, { useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Grid } from '@react-three/drei';
 import { UserObj } from '../types';
 import { 
   Hammer, ShoppingBag, UserRound, Play, 
-  PaintRoller, Waves, Square, Move, 
+  PaintRoller, Waves, Square,
   Trash2, RotateCw, Check, X, Palette,
-  Armchair, Bed, Utensils, TreePine
+  Armchair, Bed, Utensils, TreePine,
+  Home, DoorOpen, LayoutTemplate, AlignVerticalJustifyStart, Box
 } from 'lucide-react';
 import * as THREE from 'three';
 
@@ -17,7 +17,7 @@ interface Builder3DProps {
 }
 
 type AppMode = 'BUILD' | 'BUY' | 'CAS' | 'LIVE';
-type BuildCategory = 'WALLS' | 'FLOORS' | 'POOLS' | 'FENCES' | 'FOUNDATIONS' | 'ROOFS';
+type BuildCategory = 'WALLS' | 'FLOORS' | 'POOLS' | 'FENCES' | 'FOUNDATIONS' | 'ROOFS' | 'FURNITURE' | 'DOORS' | 'WINDOWS' | 'RAILINGS' | 'DECORATION';
 type BuyCategory = 'SEATING' | 'SURFACES' | 'BEDS' | 'DECOR' | 'OUTDOOR';
 
 interface PlacedObject {
@@ -31,7 +31,6 @@ interface PlacedObject {
   color: string;
 }
 
-// SIMS STYLE BUILDER
 export function Builder3D({ user, onClose }: Builder3DProps) {
   const [mode, setMode] = useState<AppMode>('BUILD');
   
@@ -58,7 +57,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     shoesColor: '#222222'
   });
 
-  // Helper to round to grid (0.5 units)
   const snapToGrid = (val: number) => Math.round(val * 2) / 2;
 
   const handleTerrainPointerMove = (e: any) => {
@@ -84,7 +82,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       setDragStart(snapped);
       setDragEnd(snapped);
     } else if (mode === 'BUY') {
-      // Place furniture instantly
       const newItem: PlacedObject = {
         id: Math.random().toString(36).substring(7),
         type: 'BUY',
@@ -101,15 +98,14 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
 
   const handleTerrainPointerUp = (e: any) => {
     if (mode === 'BUILD' && isPlacing && dragStart && dragEnd) {
-      // Finalize Build shape (Wall line, Pool rect, Floor rect)
       const newItem: PlacedObject = {
         id: Math.random().toString(36).substring(7),
         type: 'BUILD',
         category: buildCategory,
         subType: 'default',
-        position: dragStart, // Store start, we will compute center in render
-        rotation: [0, 0, 0], // Store dragEnd in scale/rotation logically
-        scale: dragEnd, // Using scale to store the end point for simplicity in this demo
+        position: dragStart,
+        rotation: [0, 0, 0],
+        scale: dragEnd, 
         color: buildCategory === 'POOLS' ? '#40E0D0' : (buildCategory === 'WALLS' ? '#e5e5e5' : '#8B4513')
       };
       setPlacedItems(prev => [...prev, newItem]);
@@ -119,7 +115,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
     setDragEnd(null);
   };
 
-  // Rendering dynamic build preview
   const renderBuildPreview = () => {
     if (!isPlacing || !dragStart || !dragEnd || mode !== 'BUILD') return null;
 
@@ -150,6 +145,23 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
            <meshStandardMaterial color={buildCategory === 'POOLS' ? "#40E0D0" : "#88aaff"} transparent opacity={0.6} />
          </mesh>
        );
+    } else if (buildCategory === 'ROOFS') {
+       const w = Math.abs(dx) || 1;
+       const d = Math.abs(dz) || 1;
+       return (
+         <mesh position={[cx, 3, cz]}>
+           <coneGeometry args={[Math.max(w, d)/1.5, 2, 4]} />
+           <meshStandardMaterial color="#88aaff" transparent opacity={0.6} />
+         </mesh>
+       );
+    } else {
+       // Furniture, Doors, Windows, Railings, Decor
+       return (
+         <mesh position={[cx, 0.5, cz]}>
+           <boxGeometry args={[1, 1, 1]} />
+           <meshStandardMaterial color="#88aaff" transparent opacity={0.6} />
+         </mesh>
+       );
     }
   };
 
@@ -169,13 +181,13 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
 
     if (item.type === 'BUILD') {
       const start = item.position;
-      const end = item.scale; // Reusing scale array for end pos
+      const end = item.scale; 
       const dx = end[0] - start[0];
       const dz = end[2] - start[2];
       const cx = start[0] + dx / 2;
       const cz = start[2] + dz / 2;
       
-      if (item.category === 'WALLS' || item.category === 'FENCES') {
+      if (item.category === 'WALLS' || item.category === 'FENCES' || item.category === 'RAILINGS') {
         const length = Math.sqrt(dx*dx + dz*dz) || 1;
         const angle = Math.atan2(dx, dz);
         const height = item.category === 'WALLS' ? 3 : 1;
@@ -186,13 +198,28 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
             <meshStandardMaterial color={matColor} roughness={0.8} />
           </mesh>
         );
+      } else if (item.category === 'ROOFS') {
+        const w = Math.abs(dx) || 1;
+        const d = Math.abs(dz) || 1;
+        return (
+          <mesh key={item.id} position={[cx, 3.5, cz]} rotation={[0, Math.PI/4, 0]} onClick={(e) => { e.stopPropagation(); setSelectedItemId(item.id); }}>
+            <coneGeometry args={[Math.max(w, d)/1.2, 3, 4]} />
+            <meshStandardMaterial color="#a52a2a" roughness={0.9} />
+          </mesh>
+        );
+      } else if (item.category === 'DOORS' || item.category === 'WINDOWS' || item.category === 'FURNITURE' || item.category === 'DECORATION') {
+        return (
+          <mesh key={item.id} position={[cx, 0.5, cz]} onClick={(e) => { e.stopPropagation(); setSelectedItemId(item.id); }}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color={matColor} roughness={0.5} />
+          </mesh>
+        );
       } else {
         const w = Math.abs(dx) || 1;
         const d = Math.abs(dz) || 1;
         const cy = item.category === 'FOUNDATIONS' ? 0.5 : (item.category === 'POOLS' ? -0.4 : 0.01);
         const height = item.category === 'FOUNDATIONS' ? 1 : (item.category === 'POOLS' ? 0.8 : 0.05);
         
-        // Pools render slightly below ground, others above
         return (
           <mesh key={item.id} position={[cx, cy, cz]} onClick={(e) => { e.stopPropagation(); setSelectedItemId(item.id); }}>
             <boxGeometry args={[w, height, d]} />
@@ -201,7 +228,6 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
         );
       }
     } else if (item.type === 'BUY') {
-       // Placeholder for furniture
        return (
          <mesh key={item.id} position={item.position} rotation={item.rotation} onClick={(e) => { e.stopPropagation(); setSelectedItemId(item.id); }}>
            <boxGeometry args={[1, 1, 1]} />
@@ -212,10 +238,10 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#87CEEB] overflow-hidden font-sans">
+    <div className="fixed inset-0 z-[10000] flex flex-col bg-[#87CEEB] overflow-hidden font-sans">
       
       {/* TOP BAR */}
-      <div className="h-14 bg-white/90 backdrop-blur shadow-md flex items-center justify-between px-6 z-10">
+      <div className="h-14 bg-white/90 backdrop-blur shadow-md flex items-center justify-between px-6 z-10 shrink-0">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-bold text-slate-800">Constructor de Casas y Sims</h1>
           
@@ -240,8 +266,53 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
       </div>
 
       {/* MAIN VIEWPORT */}
-      <div className="flex-1 relative">
-        <Canvas shadows camera={{ position: mode === 'CAS' ? [0, 1.5, 4] : [0, 15, 20], fov: 50 }}>
+      <div className="flex-1 relative flex">
+        
+        {/* LEFT SIDEBAR BANNER (BUILD) */}
+        {mode === 'BUILD' && (
+          <div className="absolute left-6 top-6 bottom-6 w-[120px] bg-white/95 backdrop-blur shadow-2xl rounded-2xl py-6 border border-slate-200 flex flex-col items-center gap-4 overflow-y-auto scrollbar-thin z-10">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Elementos</div>
+            {[
+              { id: 'WALLS', icon: <Square size={24} />, label: 'Paredes' },
+              { id: 'FLOORS', icon: <PaintRoller size={24} />, label: 'Suelos' },
+              { id: 'POOLS', icon: <Waves size={24} />, label: 'Piscinas' },
+              { id: 'FENCES', icon: <Square size={24} className="stroke-[3]" />, label: 'Vallas' },
+              { id: 'FOUNDATIONS', icon: <Square size={24} className="opacity-50" />, label: 'Cimientos' },
+              { id: 'ROOFS', icon: <Home size={24} />, label: 'Techos' },
+              { id: 'FURNITURE', icon: <Armchair size={24} />, label: 'Muebles' },
+              { id: 'DOORS', icon: <DoorOpen size={24} />, label: 'Puertas' },
+              { id: 'WINDOWS', icon: <LayoutTemplate size={24} />, label: 'Ventanas' },
+              { id: 'RAILINGS', icon: <AlignVerticalJustifyStart size={24} />, label: 'Barandillas' },
+              { id: 'DECORATION', icon: <Palette size={24} />, label: 'Decoración' },
+            ].map(cat => (
+              <button 
+                key={cat.id} 
+                onClick={() => setBuildCategory(cat.id as BuildCategory)}
+                className={`flex flex-col items-center justify-center gap-2 p-3 w-[100px] rounded-xl transition-all ${buildCategory === cat.id ? 'bg-blue-100 text-blue-700 shadow-inner' : 'text-slate-500 hover:bg-slate-100'}`}
+              >
+                {cat.icon}
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">{cat.label}</span>
+              </button>
+            ))}
+
+            <div className="w-12 h-px bg-slate-200 my-2 shrink-0" />
+
+            {selectedItemId && (
+              <button 
+                onClick={() => {
+                  setPlacedItems(prev => prev.filter(i => i.id !== selectedItemId));
+                  setSelectedItemId(null);
+                }} 
+                className="flex flex-col items-center gap-2 p-3 w-[100px] rounded-xl text-red-500 hover:bg-red-50 transition-all shrink-0"
+              >
+                <Trash2 size={24} />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Borrar</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <Canvas shadows camera={{ position: mode === 'CAS' ? [0, 1.5, 4] : [0, 15, 20], fov: 50 }} className="flex-1">
           <color attach="background" args={['#87CEEB']} />
           <fogExp2 attach="fog" args={['#87CEEB', 0.003]} />
           
@@ -339,7 +410,7 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
         
         {/* CAS PANEL */}
         {mode === 'CAS' && (
-          <div className="absolute top-4 right-4 w-80 bg-white/95 backdrop-blur shadow-2xl rounded-xl p-5 border border-slate-200">
+          <div className="absolute top-4 right-4 w-80 bg-white/95 backdrop-blur shadow-2xl rounded-xl p-5 border border-slate-200 z-10">
             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               <UserRound size={20} className="text-purple-600" /> Crear Sim
             </h2>
@@ -390,52 +461,9 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
           </div>
         )}
 
-        {/* BUILD PANEL */}
-        {mode === 'BUILD' && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur shadow-2xl rounded-2xl p-4 border border-slate-200 flex items-center gap-8">
-            <div className="flex gap-2">
-              {[
-                { id: 'WALLS', icon: <Square size={24} />, label: 'Paredes' },
-                { id: 'FLOORS', icon: <PaintRoller size={24} />, label: 'Suelos' },
-                { id: 'POOLS', icon: <Waves size={24} />, label: 'Piscinas' },
-                { id: 'FENCES', icon: <Square size={24} className="stroke-[3]" />, label: 'Vallas' },
-                { id: 'FOUNDATIONS', icon: <Square size={24} className="opacity-50" />, label: 'Cimientos' },
-              ].map(cat => (
-                <button 
-                  key={cat.id} 
-                  onClick={() => setBuildCategory(cat.id as BuildCategory)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all min-w-[80px] ${buildCategory === cat.id ? 'bg-blue-100 text-blue-700 shadow-inner' : 'text-slate-500 hover:bg-slate-100'}`}
-                >
-                  {cat.icon}
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{cat.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="w-px h-12 bg-slate-200" />
-
-            {selectedItemId && (
-              <button 
-                onClick={() => {
-                  setPlacedItems(prev => prev.filter(i => i.id !== selectedItemId));
-                  setSelectedItemId(null);
-                }} 
-                className="flex flex-col items-center gap-1 p-3 rounded-xl text-red-500 hover:bg-red-50 transition-all"
-              >
-                <Trash2 size={24} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Borrar</span>
-              </button>
-            )}
-            
-            <div className="text-xs text-slate-400 max-w-[150px] font-medium leading-tight">
-              Arrastra en el terreno para dibujar {buildCategory.toLowerCase()}.
-            </div>
-          </div>
-        )}
-
         {/* BUY PANEL */}
         {mode === 'BUY' && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur shadow-2xl rounded-2xl p-4 border border-slate-200 flex items-center gap-8">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur shadow-2xl rounded-2xl p-4 border border-slate-200 flex items-center gap-8 z-10">
             <div className="flex gap-2">
               {[
                 { id: 'SEATING', icon: <Armchair size={24} />, label: 'Asientos' },
