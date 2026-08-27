@@ -8,6 +8,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { EffectComposer, Bloom, N8AO, DepthOfField, ToneMapping } from '@react-three/postprocessing';
 import localforage from 'localforage';
+import { db } from '../firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { RyokanNeo } from "./RyokanNeo";
 
 interface Builder3DProps {
@@ -1332,15 +1334,36 @@ function Terrain({ toolMode, heights, setHeights, onPlaneClick, onTerrainEditSta
 export function Builder3D({ user, onClose }: Builder3DProps) {
   const hasAccess = true; // user && user.username === 'Axiss';
 
-  const [placedItems, setPlacedItems] = useState<PlacedItem[]>(() => {
-    const saved = localStorage.getItem('builder3d_items_v2');
-    return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff', emissiveIntensity: 0 }];
-  });
-  
-  const [terrainHeights, setTerrainHeights] = useState<number[]>(() => {
-    const saved = localStorage.getItem('builder3d_terrain_v2');
-    return saved && JSON.parse(saved).length > 0 ? JSON.parse(saved) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff', emissiveIntensity: 0 }];
-  });
+  const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
+  const [terrainHeights, setTerrainHeights] = useState<number[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadWorld() {
+      try {
+        const docSnap = await getDoc(doc(db, "worlds", "world-1"));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.placedItems && data.placedItems.length > 0) setPlacedItems(data.placedItems);
+          else setPlacedItems([{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff' }]);
+          if (data.terrainHeights && data.terrainHeights.length > 0) setTerrainHeights(data.terrainHeights);
+          else setTerrainHeights(Array(2500).fill(0));
+        } else {
+          const savedItems = localStorage.getItem('builder3d_items_v2');
+          setPlacedItems(savedItems && JSON.parse(savedItems).length > 0 ? JSON.parse(savedItems) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff' }]);
+          const savedHeights = localStorage.getItem('builder3d_terrain_v2');
+          setTerrainHeights(savedHeights && JSON.parse(savedHeights).length > 0 ? JSON.parse(savedHeights) : Array(2500).fill(0));
+        }
+      } catch (err) {
+        console.error("Error loading world from Firebase:", err);
+        const savedItems = localStorage.getItem('builder3d_items_v2');
+        setPlacedItems(savedItems && JSON.parse(savedItems).length > 0 ? JSON.parse(savedItems) : [{ id: 'default-ryokan', category: 'Plantillas', subType: 'Ryokan Neofuturista', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff' }]);
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+    loadWorld();
+  }, []);
   
   const [customAssets, setCustomAssets] = useState<CustomAsset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -1546,9 +1569,20 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
   }, [placedItems, terrainHeights, pastStates, futureStates]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('builder3d_items_v2', JSON.stringify(placedItems));
     localStorage.setItem('builder3d_terrain_v2', JSON.stringify(terrainHeights));
-  }, [placedItems, terrainHeights]);
+
+    const timeout = setTimeout(() => {
+      setDoc(doc(db, "worlds", "world-1"), {
+        placedItems,
+        terrainHeights,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(console.error);
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, [placedItems, terrainHeights, isLoaded]);
   
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
   const [selectedSubType, setSelectedSubType] = useState(CATEGORIES[0].items[0]);
@@ -1946,12 +1980,12 @@ export function Builder3D({ user, onClose }: Builder3DProps) {
 
             <Canvas shadows dpr={isMobile ? [1, 1] : [1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: false }} camera={{ position: [0, 60, 110], fov: 45 }}>
               <color attach="background" args={['#060913']} />
-              <fogExp2 attach="fog" args={['#060913', 0.006]} />
+              <fogExp2 attach="fog" args={['#060913', 0.005]} />
               
               <Physics gravity={[0, -9.81, 0]}>
-                  <ambientLight intensity={1.3} color="#162032" />
+                  <ambientLight intensity={1.4} color="#162032" />
                   <directionalLight 
-                    position={[40, 60, 40]} intensity={0.7} color="#48cae4" castShadow 
+                    position={[40, 60, 40]} intensity={0.6} color="#48cae4" castShadow 
                     shadow-mapSize={[2048, 2048]} 
                     shadow-camera-left={-60} shadow-camera-right={60}
                     shadow-camera-top={60} shadow-camera-bottom={-60}

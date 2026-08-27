@@ -30,49 +30,28 @@ function buildMergedGeometry(configs: any[]) {
     return mergeGeometries(geos);
 }
 
-// Great Mountain Range Background
-function GreatMountainRange() {
+// --- LA GRAN CORDILLERA UNIDA (Formando un arco continuo al fondo y laterales) ---
+function MainCordillera() {
   const geometry = useMemo(() => {
-      const rangeGeo = new THREE.PlaneGeometry(220, 90, 32, 32);
-      rangeGeo.rotateX(-Math.PI / 2);
-      const posRange = rangeGeo.attributes.position;
-      for (let i = 0; i < posRange.count; i++) {
-          let vx = posRange.getX(i);
-          let vz = posRange.getZ(i);
-          // Picos altos y masivos simulando cordillera lejana y lateral
-          let height = Math.sin(vx * 0.05) * 25 + Math.cos(vz * 0.08) * 18 + Math.sin(vx * 0.02) * 35;
-          posRange.setY(i, Math.max(0, height));
+      const cordilleraGeo = new THREE.PlaneGeometry(320, 110, 48, 48);
+      cordilleraGeo.rotateX(-Math.PI / 2);
+      const posC = cordilleraGeo.attributes.position;
+      for (let i = 0; i < posC.count; i++) {
+          let vx = posC.getX(i);
+          let vz = posC.getZ(i);
+          // Matemáticas de ondas entrelazadas para formar múltiples picos unidos en cordillera real
+          let height = Math.abs(Math.sin(vx * 0.04) * 35) + Math.cos(vz * 0.05) * 20 + Math.sin(vx * 0.015) * 45;
+          // Elevamos los bordes laterales para que envuelvan la escena como en la imagen
+          let edgeCurve = Math.abs(vx) * 0.15;
+          posC.setY(i, Math.max(0, height + edgeCurve));
       }
-      rangeGeo.computeVertexNormals();
-      return rangeGeo;
+      cordilleraGeo.computeVertexNormals();
+      return cordilleraGeo;
   }, []);
 
   return (
-      <mesh geometry={geometry} position={[0, 0, -70]} receiveShadow castShadow={!isMobile}>
-          <meshStandardMaterial color="#111c2e" roughness={0.9} flatShading={true} />
-      </mesh>
-  );
-}
-
-// Side Mountain (where waterfalls and terraces are)
-function SideMountain() {
-  const geometry = useMemo(() => {
-      const sideMountainGeo = new THREE.PlaneGeometry(90, 70, 20, 20);
-      sideMountainGeo.rotateX(-Math.PI / 2);
-      const posSide = sideMountainGeo.attributes.position;
-      for (let i = 0; i < posSide.count; i++) {
-          let vx = posSide.getX(i);
-          let vz = posSide.getZ(i);
-          let height = Math.sin(vx * 0.08) * 15 + Math.cos(vz * 0.08) * 15;
-          posSide.setY(i, Math.max(0, height));
-      }
-      sideMountainGeo.computeVertexNormals();
-      return sideMountainGeo;
-  }, []);
-
-  return (
-      <mesh geometry={geometry} position={[-50, 0, -20]} receiveShadow castShadow={!isMobile}>
-          <meshStandardMaterial color="#111c2e" roughness={0.9} flatShading={true} />
+      <mesh geometry={geometry} position={[0, 0, -90]} receiveShadow castShadow={!isMobile}>
+          <meshStandardMaterial color="#0f172a" roughness={0.9} flatShading={true} />
       </mesh>
   );
 }
@@ -94,8 +73,8 @@ function Vegetation() {
   React.useLayoutEffect(() => {
     let fIdx = 0;
     for (let k = 0; k < count; k++) {
-      let x = (Math.random() - 0.5) * 100;
-      let z = (Math.random() - 0.5) * 100;
+      let x = (Math.random() - 0.5) * 110;
+      let z = (Math.random() - 0.5) * 110;
       if (x > -5 && x < 25 && z > -15 && z < 10) {
         x += 30; // Push out of center
       }
@@ -375,7 +354,7 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                 {/* --- 1. SUELO GENERAL AMPLIADO --- */}
                 <group>
                     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-                        <planeGeometry args={[300, 300]} />
+                        <planeGeometry args={[350, 350]} />
                         <meshStandardMaterial color="#0b132b" roughness={0.95} />
                     </mesh>
                     {/* Base plana elevada donde irá la casa principal */}
@@ -390,10 +369,9 @@ export function RyokanNeo({ item, isExplore, onSelect, onTransformEnd, isSelecte
                     </mesh>
                 </group>
 
-                {/* --- 2. MONTAÑAS ORGÁNICAS CON CURVAS Y RELIEVE REAL --- */}
+                {/* --- 2. LA GRAN CORDILLERA UNIDA --- */}
                 <group>
-                    <GreatMountainRange />
-                    <SideMountain />
+                    <MainCordillera />
                 </group>
 
                 {/* --- 1. MAIN HOUSE (Exact Replica 1:1) --- */}

@@ -1,4 +1,21 @@
 {
-  "entities": {},
-  "firestore": {}
+  "entities": {
+    "World": {
+      "title": "World",
+      "description": "A 3D world configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "terrainHeights": { "type": "array" },
+        "placedItems": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/worlds/{worldId}": {
+      "schema": { "$ref": "#/entities/World" },
+      "description": "Worlds collection"
+    }
+  }
 }
