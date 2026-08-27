@@ -742,6 +742,14 @@ function MainApp() {
     );
   }
 
+  if (activeChat === 'builder') {
+    return (
+      <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
+        <Builder3D user={user!} onClose={() => setActiveChat('global')} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-gradient-to-br from-[#0B1220] via-[#121B2A] to-[#0A101C] text-gray-200 flex flex-col font-sans">
       <DebugConsole />
@@ -1684,11 +1692,6 @@ function MainApp() {
           >
             <Box size={28} className="group-hover:scale-110 transition-transform" />
           </button>
-      )}
-
-      {/* Render Builder3D overlay on top of everything */}
-      {activeChat === 'builder' && (
-         <Builder3D user={user} onClose={() => setActiveChat('global')} />
       )}
     </div>
   );
