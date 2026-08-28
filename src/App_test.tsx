@@ -2,7 +2,7 @@ import { DebugConsole } from "./components/DebugConsole";
 import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react';
 import {  
   Send, User, MessageCircle, Settings, Bot, 
-  Image as ImageIcon, Mic, StopCircle, Cloud, 
+  Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart, Home
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
@@ -894,6 +894,7 @@ function MainApp() {
 
               {/* Users List */}
               <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">
+</div>
                  {usersOnline.map(u => {
                     if (u.username === 'Elizabeth') return null;
                     return (

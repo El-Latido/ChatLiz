@@ -1,0 +1,75 @@
+import React, { useState } from 'react';
+import { X, Cloud, Layout, Grid, Server } from 'lucide-react';
+
+interface CloudAdminPanelProps {
+  onClose: () => void;
+}
+
+export function CloudAdminPanel({ onClose }: CloudAdminPanelProps) {
+  const [activeApp, setActiveApp] = useState('constructor');
+
+  const getSrcDoc = () => {
+    if (activeApp === 'constructor') {
+      return "<html><body style='background:#111;color:#fff;text-align:center;padding-top:50px;font-family:sans-serif;'><h2>Módulo Constructor Activo</h2><p>Entorno aislado y operativo.</p></body></html>";
+    } else if (activeApp === 'llanura') {
+      return "<html><body style='background:#87CEEB;color:#fff;text-align:center;padding-top:50px;font-family:sans-serif;'><h2>Llanura Verde Cargada en Cloud</h2></body></html>";
+    } else {
+      return "<html><body style='background:#1e293b;color:#38bdf8;text-align:center;padding-top:50px;font-family:sans-serif;'><h2>Estado del Servidor: En Línea</h2></body></html>";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[20000] flex bg-[#0b0f19] text-slate-100 font-sans">
+      {/* Sidebar */}
+      <div className="w-[260px] bg-[#1e293b] border-r border-[#334155] p-5 flex flex-col gap-4">
+        <div className="flex justify-between items-center border-b border-[#334155] pb-3">
+          <h2 className="text-[#38bdf8] font-bold text-[1.1rem] m-0 leading-none">Panel de Administrador</h2>
+        </div>
+        
+        <div className="flex flex-col gap-2.5 mt-2">
+            <button 
+                onClick={() => setActiveApp('constructor')} 
+                className={`text-left px-[15px] py-[10px] rounded-[6px] border border-[#334155] text-[0.9rem] transition-colors flex items-center gap-2 ${activeApp === 'constructor' ? 'bg-[#334155]' : 'bg-[#0f172a] hover:bg-[#334155]'}`}
+            >
+                <Layout size={16} /> Constructor / Sims
+            </button>
+            <button 
+                onClick={() => setActiveApp('llanura')} 
+                className={`text-left px-[15px] py-[10px] rounded-[6px] border border-[#334155] text-[0.9rem] transition-colors flex items-center gap-2 ${activeApp === 'llanura' ? 'bg-[#334155]' : 'bg-[#0f172a] hover:bg-[#334155]'}`}
+            >
+                <Grid size={16} /> Llanura & Campamento
+            </button>
+            <button 
+                onClick={() => setActiveApp('servidor')} 
+                className={`text-left px-[15px] py-[10px] rounded-[6px] border border-[#334155] text-[0.9rem] transition-colors flex items-center gap-2 ${activeApp === 'servidor' ? 'bg-[#334155]' : 'bg-[#0f172a] hover:bg-[#334155]'}`}
+            >
+                <Server size={16} /> Control de Servidor Cloud
+            </button>
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-[#334155]">
+            <button onClick={onClose} className="w-full flex items-center justify-center gap-2 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-md transition-colors font-bold text-sm">
+                <X size={18} /> Cerrar Panel
+            </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <div className="bg-[#1e293b] px-[25px] py-[15px] border-b border-[#334155] flex justify-between items-center">
+          <span className="font-medium flex items-center gap-2 text-slate-200">
+             <Cloud size={20} className="text-[#38bdf8]" /> Zona Segura - Ejecución en Nube
+          </span>
+          <span className="bg-[#ef4444] text-white px-[8px] py-[4px] rounded-[4px] text-[0.75rem] font-bold tracking-wide">
+             ADMINISTRADOR
+          </span>
+        </div>
+        <iframe 
+          className="flex-1 w-full bg-black border-none"
+          srcDoc={getSrcDoc()}
+          title="Cloud Viewer"
+        />
+      </div>
+    </div>
+  );
+}
