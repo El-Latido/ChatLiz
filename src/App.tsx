@@ -26,7 +26,6 @@ import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
 import { SocialFeed } from './components/social/SocialFeed';
-import { Builder3D } from './components/Builder3D';
 import { CloudAdminPanel } from './components/CloudAdminPanel';
 
 
@@ -748,13 +747,6 @@ function MainApp() {
     return <CloudAdminPanel onClose={() => setActiveChat('global')} />;
   }
 
-  if (activeChat === 'builder') {
-    return (
-      <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0, zIndex: 9999 }}>
-        <Builder3D user={user!} onClose={() => setActiveChat('global')} />
-      </div>
-    );
-  }
 
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'fixed', top: 0, left: 0 }} className="bg-gradient-to-br from-[#0B1220] via-[#121B2A] to-[#0A101C] text-gray-200 flex flex-col font-sans">
@@ -791,13 +783,8 @@ function MainApp() {
                      <button onClick={() => { closeAllModals(); setActiveChat('cloud_admin'); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
                          <Cloud size={20} strokeWidth={1.5} />
                      </button>
-                     <button onClick={() => { closeAllModals(); setActiveChat('builder'); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
-                         <Home size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                         <span className="font-bold text-[#E8D9B0] text-sm">Creador 3D</span>
-                     </button>
-                     <button onClick={() => { closeAllModals(); setActiveChat('builder'); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
-                         <Home size={20} strokeWidth={1.5} />
-                     </button>
+                     
+                     
                  </>
              )}
              
@@ -848,12 +835,6 @@ function MainApp() {
                          <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'cloud_admin' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat('cloud_admin'); }}>
                             <Cloud size={16} strokeWidth={1.5} />
                             Panel Cloud
-                         </button>
-                     )}
-                     {user?.username?.toUpperCase() === 'AXISS' && (
-                         <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'builder' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat('builder'); }}>
-                            <Box size={16} strokeWidth={1.5} />
-                            Creador 3D
                          </button>
                      )}
                      <button className={`${user?.username?.toUpperCase() === 'AXISS' ? 'col-span-2' : 'col-span-1'} flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
@@ -1574,15 +1555,7 @@ function MainApp() {
        )}
 
       {/* Botón Flotante Radical para el Creador 3D */}
-      {user?.username?.toUpperCase() === 'AXISS' && (
-          <button
-            onClick={() => { closeAllModals(); setActiveChat('builder'); }}
-            className="fixed bottom-6 left-6 z-[9000] bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-[0_0_30px_rgba(147,51,234,0.8)] transition-all flex items-center justify-center group"
-            title="Abrir Creador 3D"
-          >
-            <Box size={28} className="group-hover:scale-110 transition-transform" />
-          </button>
-      )}
+      
     </div>
   );
 }
