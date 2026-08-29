@@ -2,7 +2,7 @@ import { DebugConsole } from "./components/DebugConsole";
 import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react';
 import {  
   Send, User, MessageCircle, Settings, Bot, 
-  Image as ImageIcon, Mic, StopCircle, Cloud, 
+  Image as ImageIcon, Mic, StopCircle, 
   Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart, Home
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
@@ -26,10 +26,6 @@ import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
 import { SocialFeed } from './components/social/SocialFeed';
-import { CloudAdminPanel } from './components/CloudAdminPanel';
-
-
-
 const DECORATIONS = [
   // Ajedrez (Themes & Efectos)
   { id: 'chess_theme_wood', type: 'basic', category: 'ajedrez', price: 100, url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wood' },
@@ -743,9 +739,7 @@ function MainApp() {
   }
 
 
-  if (activeChat === 'cloud_admin') {
-    return <CloudAdminPanel onClose={() => setActiveChat('global')} />;
-  }
+  
 
 
   return (
@@ -773,20 +767,6 @@ function MainApp() {
                  <span className="text-amber-400 font-bold text-sm">{user.lizCoins || 0}</span>
                  <span className="text-xs text-amber-200">LM</span>
              </div>
-             
-                                               {user?.username?.toUpperCase() === 'AXISS' && (
-                 <>
-                     <button onClick={() => { closeAllModals(); setActiveChat('cloud_admin'); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
-                         <Cloud size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                         <span className="font-bold text-[#E8D9B0] text-sm">Panel Cloud</span>
-                     </button>
-                     <button onClick={() => { closeAllModals(); setActiveChat('cloud_admin'); }} className="sm:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-1.5 rounded-full hover:bg-white/5 transition-colors">
-                         <Cloud size={20} strokeWidth={1.5} />
-                     </button>
-                     
-                     
-                 </>
-             )}
              
              <button onClick={() => { closeAllModals(); setIsGamesMenuOpen(true); }} className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group">
                  <Gamepad2 size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
@@ -831,12 +811,6 @@ function MainApp() {
                         <ImageIcon size={16} strokeWidth={1.5} />
                         LizGram
                      </button>
-                     {user?.username?.toUpperCase() === 'AXISS' && (
-                         <button className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === 'cloud_admin' ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat('cloud_admin'); }}>
-                            <Cloud size={16} strokeWidth={1.5} />
-                            Panel Cloud
-                         </button>
-                     )}
                      <button className={`${user?.username?.toUpperCase() === 'AXISS' ? 'col-span-2' : 'col-span-1'} flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
                         <Users size={16} strokeWidth={1.5} />
                         Amigos
@@ -878,40 +852,23 @@ function MainApp() {
                  {usersOnline.map(u => {
                     if (u.username === 'Elizabeth') return null;
                     return (
-                        <div key={u.username} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl transition-all ${activeChat === u.username ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-                           <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                               <div 
-                                 title="Ver perfil"
-                                 className="w-10 h-10 rounded-full flex items-center justify-center overflow-visible cursor-pointer flex-shrink-0 relative"
-                                 onClick={() => {
-                                    if (u.username === 'Elizabeth' && user.username.trim() === "Axiss") {
-                                        setAiProfileForm({ profilePic: u.profilePic || '', statusMessage: u.statusMessage || 'Administradora', systemInstruction: u.systemInstruction || '' });
-                                        closeAllModals(); setAdminConfigLizOpen(true);
-                                    } else {
-                                        closeAllModals(); setSelectedUserModal(u);
-                                    }
-                                 }}
-                               >
+                        <div key={u.username} className="bg-[#1A2639]/80 border border-[#D4AF37]/30 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors" onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat(u.username); }}>
+                           <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#D4AF37]/50 relative flex-shrink-0">
+                                   <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} className="w-full h-full object-cover" />
                                    {u.activeDecoration && (
-                                       <div className="absolute -inset-2 pointer-events-none z-10 flex items-center justify-center">
-                                           <img src={DECORATIONS.find(d => d.id === u.activeDecoration)?.url} className="w-full h-full object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                       <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
+                                           <img src={u.activeDecoration} alt="marco" className="w-full h-full object-contain" />
                                        </div>
                                    )}
-                                   <div className="w-full h-full rounded-full border border-white/10 overflow-hidden relative z-0">
-                                       <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt="avatar" className="w-full h-full object-cover" />
-                                   </div>
                                </div>
-                               <button className="text-left flex-1 truncate flex items-center gap-1" onClick={() => { setIsSidebarOpen(false); setIsFriendsSidebarOpen(false); setActiveChat(u.username); }}>
-                                 <span className="font-medium text-gray-300 text-[15px] truncate block">{u.username}</span>
-                                 {Array.isArray(u.awards) && u.awards.map((award, idx) => (
-                                     <span key={idx} className="text-xs">{award}</span>
-                                 ))}
-                                 <span className="text-gray-500">~</span>
-                               </button>
+                               <div className="flex-1 min-w-0">
+                                   <p className="text-[#E8D9B0] font-bold text-sm truncate flex items-center gap-1.5">{u.username} {u.username.toUpperCase() === 'AXISS' && <span className="bg-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>}</p>
+                                   <p className="text-[#8B98B0] text-xs truncate">En línea</p>
+                               </div>
                            </div>
-                           <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] flex-shrink-0"></div>
                         </div>
-                    )
+                    );
                  })}
               </div>
           </aside>
@@ -1555,7 +1512,15 @@ function MainApp() {
        )}
 
       {/* Botón Flotante Radical para el Creador 3D */}
-      
+      {user?.username?.toUpperCase() === 'AXISS' && (
+          <button
+            onClick={() => { closeAllModals(); setActiveChat('builder'); }}
+            className="fixed bottom-6 left-6 z-[9000] bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-[0_0_30px_rgba(147,51,234,0.8)] transition-all flex items-center justify-center group"
+            title="Abrir Creador 3D"
+          >
+            <Box size={28} className="group-hover:scale-110 transition-transform" />
+          </button>
+      )}
     </div>
   );
 }
