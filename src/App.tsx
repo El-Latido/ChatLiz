@@ -773,7 +773,7 @@ function MainApp() {
                  <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
              </button>
              
-             <div className="relative group cursor-pointer" onClick={() => { closeAllModals(); setAdminConfigLizOpen(true); }}>
+             <div className="relative group cursor-pointer" onClick={() => { closeAllModals(); setIsConfigOpen(true); }}>
                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:border-[#D4AF37] transition-all">
                      <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                  </div>
@@ -791,7 +791,7 @@ function MainApp() {
          {/* Sidebar Principal */}
          <aside className={`w-[280px] shrink-0 border-r border-[#D4AF37]/30 bg-[#121B2A]/95 backdrop-blur-xl absolute md:relative z-40 h-full flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
              <div className="p-4 flex flex-col items-center border-b border-[#D4AF37]/30">
-                 <div className="relative mb-3 group cursor-pointer" onClick={() => { closeAllModals(); setAdminConfigLizOpen(true); }}>
+                 <div className="relative mb-3 group cursor-pointer" onClick={() => { closeAllModals(); setIsConfigOpen(true); }}>
                      <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
                          <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                      </div>
@@ -813,7 +813,7 @@ function MainApp() {
                      </button>
                      <button className={`${user?.username?.toUpperCase() === 'AXISS' ? 'col-span-2' : 'col-span-1'} flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? 'border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]' : 'border-[#D4AF37]/30'} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`} onClick={() => { closeAllModals(); setIsFriendsSidebarOpen(!isFriendsSidebarOpen); }}>
                         <Users size={16} strokeWidth={1.5} />
-                        Amigos
+                        Inbox / Amigos
                         {Object.values(unreadPMs).some(v => v) && (
                            <div className="w-2 h-2 bg-cyan-500 rounded-full ml-1"></div>
                         )}
@@ -882,7 +882,7 @@ function MainApp() {
                   <div className="hidden"></div>
 
                   {activeChat === 'lizgram' ? (
-                     <SocialFeed user={user} />
+                     <SocialFeed user={user} onClose={() => setActiveChat('global')} />
                   ) : (
                 <>
                   {activeChat !== 'global' && (() => {
@@ -1351,17 +1351,19 @@ function MainApp() {
                <div className="p-6 border-b border-white/5 flex items-center justify-between">
                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
                        <Users size={24} className="text-cyan-400" />
-                       Mis Amigos
+                       Bandeja y Amigos
                    </h2>
                    <button onClick={() => setIsFriendsSidebarOpen(false)} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
                        <X size={20} />
                    </button>
                </div>
                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                   {(!Array.isArray(user.friends_list) || user.friends_list.length === 0) ? (
-                       <p className="text-gray-500 text-center text-sm mt-10">No tienes amigos agregados aún.</p>
-                   ) : (
-                       Array.isArray(user.friends_list) && user.friends_list.map(friendUsername => {
+                   {(() => {
+                       const inboxUsers = Array.from(new Set([...(user.friends_list || []), ...Object.keys(unreadPMs)]));
+                       if (inboxUsers.length === 0) {
+                           return <p className="text-gray-500 text-center text-sm mt-10">Tu bandeja está vacía.</p>;
+                       }
+                       return inboxUsers.map(friendUsername => {
                            const isOnline = usersOnline.some(u => u.username === friendUsername);
                            const friendInfo = usersOnline.find(u => u.username === friendUsername);
                            return (
@@ -1384,7 +1386,7 @@ function MainApp() {
                                </div>
                            );
                        })
-                   )}
+                   })()}
                </div>
            </div>
        )}

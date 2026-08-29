@@ -10,9 +10,10 @@ import { PlusSquare, Loader2 } from 'lucide-react';
 
 interface SocialFeedProps {
   user: UserObj;
+  onClose?: () => void;
 }
 
-export function SocialFeed({ user }: SocialFeedProps) {
+export function SocialFeed({ user, onClose }: SocialFeedProps) {
   const [posts, setPosts] = useState<PostObj[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,9 +34,16 @@ export function SocialFeed({ user }: SocialFeedProps) {
     <div className="flex-1 w-full bg-[#0a0f1c] flex flex-col relative h-full">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-gradient-to-b from-[#0a0f1c] to-[#0a0f1c]/90 backdrop-blur-sm p-4 border-b border-white/5 flex items-center justify-between">
-        <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 font-[InstaFont,sans-serif]">
-          LizGram
-        </h1>
+        <div className="flex items-center gap-3">
+          {onClose && (
+            <button onClick={onClose} className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors md:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            </button>
+          )}
+          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 font-[InstaFont,sans-serif]">
+            LizGram
+          </h1>
+        </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowCreateModal(true)}
