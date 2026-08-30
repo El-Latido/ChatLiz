@@ -1,4 +1,7 @@
-import React from 'react';
+const fs = require('fs');
+let code = fs.readFileSync('src/components/RecoveryModal.tsx', 'utf8');
+// Just use a completely new file
+fs.writeFileSync('src/components/RecoveryModal.tsx', `import React from 'react';
 import { X } from 'lucide-react';
 import { socket } from '../socket';
 
@@ -89,3 +92,4 @@ export function RecoveryModal({
     </div>
   );
 }
+`);

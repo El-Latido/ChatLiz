@@ -142,6 +142,15 @@ function saveFallbackDB() {
 __name(saveFallbackDB, "saveFallbackDB");
 async function startServer() {
   const app = express();
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_EMAIL || "",
+    pass: process.env.SMTP_PASSWORD || ""
+  }
+});
+
   const PORT = process.env.APPLET_ID
     ? 3e3
     : process.env.PORT
@@ -470,19 +479,43 @@ async function startServer() {
   io.on("connection", (socket) => {
     let currentUsername = "";
     socket.on("forgot_password_request", async (username, callback) => {
-      let exists = false;
+      let userEmail = "";
       if (fdb) {
-        const d = await getDoc(doc(fdb, "users", username));
-        exists = d.exists();
+        try {
+          const d = await getDoc(doc(fdb, "users", username));
+          if (d.exists()) {
+             userEmail = d.data().securityEmail;
+          }
+        } catch(e) {}
       } else {
-        exists = !!fallbackState.users[username];
+        userEmail = fallbackState.users[username]?.securityEmail;
       }
-      if (!exists)
-        return callback({ success: false, error: "Usuario no encontrado" });
+
+      if (!userEmail) {
+        return callback({ success: false, error: "Este usuario no tiene configurado un correo de recuperación. Inicia sesión con la clave actual para agregar uno, o crea una nueva cuenta." });
+      }
+
+      if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+         return callback({ success: false, error: "El servidor no tiene configurado SMTP_EMAIL y SMTP_PASSWORD en sus variables de entorno." });
+      }
+
       const code = Math.floor(1e5 + Math.random() * 9e5).toString();
       recoveryCodes[username] = code;
-      callback({ success: true, code });
+
+      try {
+        await transporter.sendMail({
+          from: process.env.SMTP_EMAIL,
+          to: userEmail,
+          subject: "ChatLiz - Código de Recuperación de Contraseña",
+          text: `Hola ${username},\n\nTu código de recuperación es: ${code}\n\nIngresa este código en ChatLiz para cambiar tu contraseña.\nSi no solicitaste esto, puedes ignorar este correo.\n\n- El equipo de ChatLiz`
+        });
+        callback({ success: true, message: "Código enviado" });
+      } catch (e) {
+        console.error("Mail error:", e);
+        callback({ success: false, error: "Error al enviar el correo. Por favor contacta al administrador." });
+      }
     });
+
     socket.on("forgot_password_reset", async (data, callback) => {
       const { username, newPassword, code } = data;
       if (recoveryCodes[username] !== code)
@@ -569,6 +602,10 @@ async function startServer() {
                 { uid, profileLikes: profileLikes || 0 },
                 { merge: true },
               );
+            }
+            if (userSecurityEmail && userSecurityEmail !== (user?.securityEmail || "")) {
+              await setDoc(userDocRef, { securityEmail: userSecurityEmail }, { merge: true });
+              user.securityEmail = userSecurityEmail;
             }
             if (user?.timezone !== timezone) {
               await setDoc(userDocRef, { timezone }, { merge: true });
@@ -1407,7 +1444,7 @@ ${msg.text}`,
                   .join("\n") +
                 `
 
-Responde al \xFAltimo mensaje de ${currentUsername}.`,
+NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde directamente como Elizabeth.`,
             },
           ];
           if (msg.image && msg.image.startsWith("data:image")) {
@@ -2025,7 +2062,7 @@ ${aiUserTempCache.systemInstruction}`
                   .join("\n") +
                 `
 
-Responde al \xFAltimo mensaje de ${currentUsername}: ${msg.text}`,
+NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada como Elizabeth.`,
             },
           ];
           if (msg.image && msg.image.startsWith("data:image")) {
