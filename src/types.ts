@@ -17,6 +17,7 @@ export interface UserObj {
   preferred_background?: string;
   preferred_theme?: string;
   isAi?: boolean;
+  reactions?: Record<string, string[]>;
   lizCoins?: number;
   activeDecoration?: string | null;
   ownedDecorations?: string[];
@@ -57,6 +58,7 @@ export interface MessageObj {
   image?: string;
   type?: string;
   isAi?: boolean;
+  reactions?: Record<string, string[]>;
   inviteData?: {
     gameId: string;
     gameType: string;
