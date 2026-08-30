@@ -479,7 +479,14 @@ const transporter = nodemailer.createTransport({
   let recoveryCodes = {};
   io.on("connection", (socket) => {
     let currentUsername = "";
-    socket.on("forgot_password_request", async (username, callback) => {
+    socket.on("forgot_password_request", async (data, callback) => {
+      let username = data;
+      let emailFromClient = "";
+      if (typeof data === 'object') {
+         username = data.username;
+         emailFromClient = data.email;
+      }
+      
       let userEmail = "";
       if (fdb) {
         try {
@@ -491,9 +498,13 @@ const transporter = nodemailer.createTransport({
       } else {
         userEmail = fallbackState.users[username]?.securityEmail;
       }
-
+      
       if (!userEmail) {
         return callback({ success: false, error: "Este usuario no tiene configurado un correo de recuperación. Inicia sesión con la clave actual para agregar uno, o crea una nueva cuenta." });
+      }
+      
+      if (emailFromClient && emailFromClient.toLowerCase() !== userEmail.toLowerCase()) {
+         return callback({ success: false, error: "El correo ingresado no coincide con el correo asociado a este usuario." });
       }
 
       if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {

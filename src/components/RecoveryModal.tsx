@@ -6,6 +6,8 @@ interface RecoveryModalProps {
   recoveryStep: number;
   setRecoveryStep: React.Dispatch<React.SetStateAction<number>>;
   recoveryUsername: string;
+  recoveryEmail?: string;
+  setRecoveryEmail?: React.Dispatch<React.SetStateAction<string>>;
   setRecoveryUsername: React.Dispatch<React.SetStateAction<string>>;
   recoveryCodeStr: string;
   setRecoveryCodeStr: React.Dispatch<React.SetStateAction<string>>;
@@ -19,6 +21,7 @@ interface RecoveryModalProps {
 export function RecoveryModal({
   recoveryStep, setRecoveryStep,
   recoveryUsername, setRecoveryUsername,
+  recoveryEmail, setRecoveryEmail,
   recoveryCodeStr, setRecoveryCodeStr,
   inputRecoveryCode, setInputRecoveryCode,
   newPassword, setNewPassword,
@@ -34,12 +37,18 @@ export function RecoveryModal({
           
           {recoveryStep === 1 && (
              <div className="space-y-4">
-                <p className="text-sm text-gray-400">Ingresa tu usuario para solicitar un código de recuperación.</p>
+                <p className="text-sm text-gray-400">Ingresa tu usuario y correo de recuperación.</p>
                 <input className="w-full p-3 text-white transition-all border outline-none bg-white/5 rounded-xl border-white/10 focus:border-cyan-500" placeholder="Usuario" value={recoveryUsername} onChange={e => setRecoveryUsername(e.target.value)} />
-                <button
-                    onClick={() => {
-                      if (!recoveryUsername) return;
-                      socket.emit('forgot_password_request', recoveryUsername, (res: any) => {
+                {setRecoveryEmail && (
+                   <input className="w-full p-3 text-white transition-all border outline-none bg-white/5 rounded-xl border-white/10 focus:border-cyan-500" type="email" placeholder="Correo electrónico" value={recoveryEmail || ''} onChange={e => setRecoveryEmail(e.target.value)} />
+                )}
+                <button 
+                   onClick={() => {
+                      if (!recoveryUsername || !recoveryEmail) {
+                          alert("Por favor ingresa tu usuario y correo electrónico.");
+                          return;
+                      }
+                      socket.emit('forgot_password_request', { username: recoveryUsername, email: recoveryEmail }, (res: any) => {
                          if (res.success) {
                             alert("Código de recuperación enviado a tu correo electrónico asociado.");
                             setRecoveryStep(2);

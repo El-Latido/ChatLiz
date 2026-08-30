@@ -10,7 +10,9 @@ interface LoginProps {
   setRecoveryModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+import { useState } from 'react';
 export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handleGoogleLogin }: LoginProps) {
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -245,8 +247,17 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
       <div className="login-container">
         {/* Títulos sobre el panel */}
         <div className="login-titles">
-           <h1 className="login-title">¡Bienvenido a ChatLiz!</h1>
-           <p className="login-subtitle">Inicia sesión o regístrate para continuar.</p>
+           {isRegisterMode ? (
+             <>
+               <h1 className="login-title">Crea tu cuenta</h1>
+               <p className="login-subtitle">Ingresa tus datos para registrarte.</p>
+             </>
+           ) : (
+             <>
+               <h1 className="login-title">¡Bienvenido a ChatLiz!</h1>
+               <p className="login-subtitle">Inicia sesión para continuar.</p>
+             </>
+           )}
         </div>
 
         <div className="login-panel-wrapper">
@@ -276,6 +287,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
 
                    
                    {/* Input: Email */}
+                   {isRegisterMode && (
                    <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                      <div className="input-icon" style={{ color: '#fbbf24' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -289,6 +301,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                        onKeyDown={e => e.key === 'Enter' && handleLogin()}
                      />
                    </div>
+                   )}
 
                    {/* Input: Contraseña */}
                    <div className="input-group" style={{ marginBottom: '1.5rem' }}>
@@ -319,7 +332,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                      onClick={handleLogin}
                      className="btn-submit"
                    >
-                      <span>ENTRAR AL CHAT</span>
+                      <span>{isRegisterMode ? 'REGISTRARSE' : 'ENTRAR AL CHAT'}</span>
                    </button>
                    
                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -349,11 +362,11 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
 
         {/* Enlaces centrados debajo del panel */}
         <div className="links-container">
-           <button 
-              onClick={handleLogin}
+                      <button 
+               onClick={(e) => { e.preventDefault(); setIsRegisterMode(!isRegisterMode); }}
               className="link-btn link-cyan"
            >
-              Crear nueva cuenta
+              {isRegisterMode ? '¿Ya tienes cuenta? Inicia sesión' : 'Crear nueva cuenta'}
            </button>
            <button 
               onClick={(e) => { e.preventDefault(); setRecoveryModalOpen(true); }} 

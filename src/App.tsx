@@ -199,6 +199,7 @@ function MainApp() {
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState(1);
   const [recoveryUsername, setRecoveryUsername] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryCodeStr, setRecoveryCodeStr] = useState('');
   const [inputRecoveryCode, setInputRecoveryCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -764,6 +765,8 @@ function MainApp() {
         {recoveryModalOpen && (
           <RecoveryModal
             recoveryStep={recoveryStep}
+            recoveryEmail={recoveryEmail}
+            setRecoveryEmail={setRecoveryEmail}
             setRecoveryStep={setRecoveryStep}
             recoveryUsername={recoveryUsername}
             setRecoveryUsername={setRecoveryUsername}
