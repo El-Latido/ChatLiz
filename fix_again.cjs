@@ -1,0 +1,6 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/components/Login.tsx', 'utf8');
+
+code = code.replace("</style>", "\n      `}</style>");
+
+fs.writeFileSync('src/components/Login.tsx', code);
