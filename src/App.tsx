@@ -5,7 +5,7 @@ import {
   Trash2, Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart, Home
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
-import {  signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import {  db, auth } from './firebaseConfig';
 import {  socket } from './socket';
 import {  UserObj, MessageObj } from './types';
