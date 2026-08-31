@@ -4,6 +4,7 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) =>
   __defProp(target, "name", { value, configurable: true });
 import express from "express";
+import ytdl from "ytdl-core";
 import http from "http";
 import path from "path";
 import { Server } from "socket.io";
@@ -619,6 +620,12 @@ const transporter = nodemailer.createTransport({
             }
             emitActiveUsers();
             
+            io.to(socket.id).emit("queue_update", {
+              queue: songQueue,
+              current: currentRequestedSong,
+              history: songHistory
+            });
+
             return callback({
               success: true,
               username,
@@ -684,6 +691,12 @@ const transporter = nodemailer.createTransport({
             };
             emitActiveUsers();
             
+            io.to(socket.id).emit("queue_update", {
+              queue: songQueue,
+              current: currentRequestedSong,
+              history: songHistory
+            });
+
             return callback({
               success: true,
               username: newUsername,
@@ -1464,6 +1477,7 @@ const transporter = nodemailer.createTransport({
       }
       msg.sender = currentUsername;
       msg.senderId = currentUsername;
+      msg.profilePic = activeUsers[currentUsername]?.profilePic || "";
       msg.id = msg.id || Date.now().toString();
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
@@ -2030,6 +2044,7 @@ ${eliMsg.text}`,
       }
       msg.sender = currentUsername;
       msg.senderId = currentUsername;
+      msg.profilePic = activeUsers[currentUsername]?.profilePic || "";
       msg.id = msg.id || Date.now().toString();
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
@@ -2624,7 +2639,33 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.get('/api/download', async (req, res) => {
+    try {
+      const url = req.query.url;
+      const format = req.query.format || 'mp3';
+      const quality = req.query.quality || 'high';
+      
+      if (!url || !ytdl.validateURL(url)) return res.status(400).send('Invalid URL');
+      
+      const info = await ytdl.getInfo(url);
+      const title = info.videoDetails.title.replace(/[^\w\s-]/gi, '');
+      
+      if (format === 'mp3') {
+         res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+         res.header('Content-Type', 'audio/mpeg');
+         ytdl(url, { filter: 'audioonly', quality: quality === 'high' ? 'highestaudio' : 'lowestaudio' }).pipe(res);
+      } else {
+         res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+         res.header('Content-Type', 'video/mp4');
+         ytdl(url, { quality: quality === 'high' ? 'highest' : 'lowest' }).pipe(res);
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Error downloading');
+    }
+  });
+
+  app.use(express.static(distPath));
     app.get("*", (req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
   ensureAutoRadio();

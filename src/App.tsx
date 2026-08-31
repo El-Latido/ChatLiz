@@ -982,7 +982,7 @@ function MainApp() {
                      const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;
                      const decUrl = decId ? DECORATIONS.find(d => d.id === decId)?.url : null;
-                     const avatarUrl = senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
+                     const avatarUrl = m.profilePic || senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
 
                      return (
                          <div key={m.id || idx} className="flex justify-start px-1 md:px-2">
