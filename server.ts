@@ -574,10 +574,7 @@ const transporter = nodemailer.createTransport({
             const snapEmail = await getDocs(qEmail);
             
             if (!snapEmail.empty) {
-              userDocSnap = snapEmail.docs[0];
-              username = userDocSnap.id;
-              // Link googleUid
-              await updateDoc(doc(fdb, "users", username), { googleUid });
+              return callback({ success: false, error: "Ya tienes una cuenta vinculada a la app con este correo." });
             }
           }
 
@@ -756,6 +753,14 @@ const transporter = nodemailer.createTransport({
               userTimezone = timezone;
             }
           } else {
+            if (!userSecurityEmail) {
+                return callback({ success: false, error: "El correo electrónico es obligatorio para registrarse." });
+            }
+            const qEmail = query(collection(fdb, "users"), where("securityEmail", "==", userSecurityEmail));
+            const snapEmail = await getDocs(qEmail);
+            if (!snapEmail.empty) {
+                return callback({ success: false, error: "Ya tienes una cuenta vinculada a la app con este correo." });
+            }
             const newUid = Math.random()
               .toString(36)
               .substring(2, 8)

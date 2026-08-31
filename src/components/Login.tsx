@@ -366,7 +366,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                onClick={(e) => { e.preventDefault(); setIsRegisterMode(!isRegisterMode); }}
               className="link-btn link-cyan"
            >
-              {isRegisterMode ? '¿Ya tienes cuenta? Inicia sesión' : 'Crear nueva cuenta'}
+              {isRegisterMode ? '¿Ya tienes cuenta? Inicia sesión' : 'Crear cuenta'}
            </button>
            <button 
               onClick={(e) => { e.preventDefault(); setRecoveryModalOpen(true); }} 
