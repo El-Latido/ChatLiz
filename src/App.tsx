@@ -760,7 +760,7 @@ function MainApp() {
   if (!isLoggedIn) {
     return (
       <>
-        <Login 
+        <Login handleGoogleLogin={handleGoogleLogin} 
           user={user} 
           setUser={setUser} 
           handleLogin={handleLogin} 
