@@ -507,6 +507,7 @@ const transporter = nodemailer.createTransport({
          return callback({ success: false, error: "El correo ingresado no coincide con el correo asociado a este usuario." });
       }
 
+      console.log("Checking env:", process.env.SMTP_EMAIL, !!process.env.SMTP_PASSWORD);
       if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
          return callback({ success: false, error: "El servidor no tiene configurado SMTP_EMAIL y SMTP_PASSWORD en sus variables de entorno." });
       }
