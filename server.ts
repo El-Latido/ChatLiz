@@ -598,9 +598,23 @@ const transporter = nodemailer.createTransport({
             } else {
                activeUsers[username] = {
                   socketId: socket.id,
+                  status: "online",
+                  username: username,
                   profilePic: user.profilePic || "",
-                  status: user.statusMessage || "Disponible",
-                  role: user.role || "user"
+                  statusMessage: user.statusMessage || "Disponible",
+                  role: user.role || "user",
+                  pais_idioma: user.pais_idioma || "es",
+                  timezone: user.timezone || timezone,
+                  is_friends_public: !!user.is_friends_public,
+                  friends_list: user.friends_list || [],
+                  blocked_list: user.blocked_list || [],
+                  awards: user.awards || [],
+                  lizCoins: user.lizCoins || 0,
+                  activeDecoration: user.activeDecoration || null,
+                  ownedDecorations: user.ownedDecorations || [],
+                  elo: user.elo || 0,
+                  uid: uid,
+                  profileLikes: user.profileLikes || 0
                };
             }
             emitActiveUsers();
@@ -650,9 +664,23 @@ const transporter = nodemailer.createTransport({
             currentUsername = newUsername;
             activeUsers[newUsername] = {
               socketId: socket.id,
+              status: "online",
+              username: newUsername,
               profilePic: photoURL || "",
-              status: "Disponible",
-              role: "user"
+              statusMessage: "Disponible",
+              role: "user",
+              pais_idioma: "es",
+              timezone: timezone,
+              is_friends_public: false,
+              friends_list: [],
+              blocked_list: [],
+              awards: [],
+              lizCoins: 0,
+              activeDecoration: null,
+              ownedDecorations: [],
+              elo: 0,
+              uid: newUid,
+              profileLikes: 0
             };
             emitActiveUsers();
             
