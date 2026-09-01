@@ -105,7 +105,7 @@ export function UserProfileModal({ username, currentUser, onClose }: UserProfile
           
           {/* Profile Header */}
           <div className="flex items-center justify-between mb-8">
-            <img 
+            <img referrerPolicy="no-referrer" 
               src={profileUser?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=\${username}`} 
               alt={username} 
               className="w-24 h-24 rounded-full border-2 border-[#D4AF37]/50 bg-black/50 object-cover" 

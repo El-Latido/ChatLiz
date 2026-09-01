@@ -118,7 +118,7 @@ export function StoreModal({ onClose, user, decorations, initialCategory, onSele
                   </div>
 
                   <div className="w-20 h-20 mb-5 mt-2 relative">
-                    <img src={dec.url} alt="Decoration" className="w-full h-full object-contain filter drop-shadow-lg" style={{ imageRendering: 'pixelated' }} />
+                    <img referrerPolicy="no-referrer" src={dec.url} alt="Decoration" className="w-full h-full object-contain filter drop-shadow-lg" style={{ imageRendering: 'pixelated' }} />
                   </div>
                   
                   <div className="mt-auto w-full">

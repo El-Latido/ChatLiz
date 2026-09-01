@@ -99,7 +99,7 @@ export function PostCard({ post, currentUser, onUserClick }: PostCardProps & { o
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={post.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=\${post.username}`} alt={post.username} className="w-10 h-10 rounded-full border border-[#D4AF37]/30 bg-black/50 object-cover cursor-pointer hover:opacity-80 transition-opacity" />
+          <img referrerPolicy="no-referrer" src={post.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=\${post.username}`} alt={post.username} className="w-10 h-10 rounded-full border border-[#D4AF37]/30 bg-black/50 object-cover cursor-pointer hover:opacity-80 transition-opacity" />
           <div>
             <h3 onClick={() => onUserClick && onUserClick(post.username)} className="text-white font-bold text-sm cursor-pointer hover:underline">{post.username}</h3>
             <span className="text-gray-400 text-xs">{timeAgo(post.createdAt)}</span>
@@ -119,7 +119,7 @@ export function PostCard({ post, currentUser, onUserClick }: PostCardProps & { o
           {post.mediaType === 'video' ? (
             <video src={post.mediaUrl} controls className="w-full max-h-[600px] object-contain" />
           ) : (
-            <img src={post.mediaUrl} alt="Post media" className="w-full max-h-[600px] object-contain" />
+            <img referrerPolicy="no-referrer" src={post.mediaUrl} alt="Post media" className="w-full max-h-[600px] object-contain" />
           )}
         </div>
       )}

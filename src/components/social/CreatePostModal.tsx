@@ -95,7 +95,7 @@ export function CreatePostModal({ onClose, user }: CreatePostModalProps) {
         {/* Content */}
         <div className="p-6 flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=\${user.username}`} alt={user.username} className="w-12 h-12 rounded-full border-2 border-[#D4AF37]/50 object-cover" />
+            <img referrerPolicy="no-referrer" src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=\${user.username}`} alt={user.username} className="w-12 h-12 rounded-full border-2 border-[#D4AF37]/50 object-cover" />
             <span className="text-white font-bold">{user.username}</span>
           </div>
 
@@ -113,7 +113,7 @@ export function CreatePostModal({ onClose, user }: CreatePostModalProps) {
                 <XCircle size={20} />
               </button>
               {fileType === 'image' ? (
-                <img src={filePreview} alt="Preview" className="w-full max-h-[300px] object-contain" />
+                <img referrerPolicy="no-referrer" src={filePreview} alt="Preview" className="w-full max-h-[300px] object-contain" />
               ) : (
                 <video src={filePreview} controls className="w-full max-h-[300px]" />
               )}

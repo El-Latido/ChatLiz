@@ -51,7 +51,7 @@ export function SocialFeed({ user, onClose }: SocialFeedProps) {
           >
             <PlusSquare size={24} />
           </button>
-          <img 
+          <img referrerPolicy="no-referrer" 
             onClick={() => setSelectedUser(user.username)}
             src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
             alt={user.username}

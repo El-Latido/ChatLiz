@@ -91,7 +91,7 @@ export function ProfileConfigModal({
         <div className="space-y-4">
           <div className="flex flex-col items-center mb-4">
             <div className="w-24 h-24 rounded-full border-2 border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center overflow-hidden bg-[#1a1d27] relative">
-               <img src={fotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
+               <img referrerPolicy="no-referrer" src={fotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
                <input type="file" title="Subir foto de perfil" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={e => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -247,7 +247,7 @@ export function ProfileConfigModal({
                   Restaurar
                </button>
             </div>
-            {backgroundBase64 && <img src={backgroundBase64} className="h-16 w-16 rounded-lg object-cover mt-2" alt="Background preview" />}
+            {backgroundBase64 && <img referrerPolicy="no-referrer" src={backgroundBase64} className="h-16 w-16 rounded-lg object-cover mt-2" alt="Background preview" />}
           </div>
           
           {user.username === 'Axiss' && (

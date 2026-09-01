@@ -101,7 +101,7 @@ export function EmojiGifPicker({ onSelect, onClose }: EmojiGifPickerProps) {
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {gifs.map((g, i) => (
-                  <img 
+                  <img referrerPolicy="no-referrer" 
                     key={i} 
                     src={g} 
                     loading="lazy"

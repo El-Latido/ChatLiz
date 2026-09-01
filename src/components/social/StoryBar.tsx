@@ -111,7 +111,7 @@ export function StoryBar({ user }: StoryBarProps) {
                 <div className="text-[#D4AF37] font-bold text-xs">{Math.round(uploadProgress)}%</div>
               ) : (
                 <>
-                  <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="You" className="w-full h-full rounded-full object-cover opacity-60" />
+                  <img referrerPolicy="no-referrer" src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="You" className="w-full h-full rounded-full object-cover opacity-60" />
                   <Plus className="absolute text-[#D4AF37]" size={24} />
                 </>
               )}
@@ -127,7 +127,7 @@ export function StoryBar({ user }: StoryBarProps) {
             return (
               <div key={username} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer" onClick={() => openStory(username)}>
                 <div className="w-16 h-16 rounded-full border-2 border-[#D4AF37] p-0.5 relative">
-                  <img src={latestStory.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`} alt={username} className="w-full h-full rounded-full object-cover bg-black/50" />
+                  <img referrerPolicy="no-referrer" src={latestStory.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`} alt={username} className="w-full h-full rounded-full object-cover bg-black/50" />
                 </div>
                 <span className="text-xs text-white font-medium max-w-[64px] truncate">{username}</span>
               </div>
@@ -151,7 +151,7 @@ export function StoryBar({ user }: StoryBarProps) {
           {/* Header */}
           <div className="absolute top-8 left-0 w-full px-4 flex items-center justify-between z-50">
             <div className="flex items-center gap-2">
-              <img src={groupedStories[activeStoryUser][0].userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeStoryUser}`} className="w-8 h-8 rounded-full border border-white/50 object-cover" alt={activeStoryUser} />
+              <img referrerPolicy="no-referrer" src={groupedStories[activeStoryUser][0].userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeStoryUser}`} className="w-8 h-8 rounded-full border border-white/50 object-cover" alt={activeStoryUser} />
               <span className="text-white font-bold text-sm drop-shadow-md">{activeStoryUser}</span>
             </div>
             <button onClick={() => setActiveStoryUser(null)} className="text-white hover:text-gray-300">
@@ -170,7 +170,7 @@ export function StoryBar({ user }: StoryBarProps) {
                 playsInline
               />
             ) : (
-              <img 
+              <img referrerPolicy="no-referrer" 
                 src={groupedStories[activeStoryUser][currentStoryIndex].mediaUrl} 
                 className="w-full h-full object-contain" 
                 alt="Story"

@@ -301,7 +301,7 @@ export function InlineRadio() {
                </div>
            )}
            {currentRequestedSong && (!currentLiveDJ || currentLiveDJ === 'Elizabeth') ? (
-               <div className="flex flex-col gap-1 border border-pink-500/30 bg-pink-500/5 rounded-xl p-2 relative overflow-hidden">
+               <div onClick={() => currentRequestedSong && setSelectedHistorySong({ title: currentRequestedSong.title, url: currentRequestedSong.url })} className="flex flex-col gap-1 border border-pink-500/30 bg-pink-500/5 hover:bg-pink-500/10 cursor-pointer rounded-xl p-2 relative overflow-hidden transition-colors">
                   <div className="absolute top-0 right-0 w-16 h-16 bg-pink-500/10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
                   <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider flex items-center gap-1"><Youtube size={12}/> Pedido Especial</span>
                   <div className="text-sm font-semibold text-white leading-tight break-words">{currentRequestedSong.title}</div>
@@ -324,7 +324,7 @@ export function InlineRadio() {
                   )}
                </div>
            ) : currentSong ? (
-               <div className="flex flex-col gap-0.5 mb-1 px-2 py-1.5 max-h-[70px]" style={{ fontSize: '0.85rem' }}>
+               <div onClick={() => currentSong && setSelectedHistorySong({ title: currentSong.title, url: currentSong.url || 'https://listen.moe/stream' })} className="flex flex-col gap-0.5 mb-1 px-2 py-1.5 max-h-[70px] cursor-pointer hover:bg-white/5 rounded transition-colors" style={{ fontSize: '0.85rem' }}>
                   <span className="text-[9px] text-pink-400 font-bold uppercase tracking-wider">Sonando Ahora</span>
                   <div className="text-xs font-semibold text-white leading-tight break-words truncate">{currentSong.title}</div>
                   <div className="text-[10px] text-[#D4AF37]/80 truncate">

@@ -144,6 +144,8 @@ function MainApp() {
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
   
   const [activeChat, setActiveChat] = useState('global');
+  const activeChatRef = useRef(activeChat);
+  useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
   const [messages, setMessages] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -344,10 +346,34 @@ function MainApp() {
   };
 
   
+
+
   useEffect(() => {
     if (!isLoggedIn) return;
+
+    const handleReconnect = () => {
+        if (user.username) {
+            // If they have a googleUid, use google_login, else register_or_login
+            if (user.googleUid) {
+                socket.emit('google_login', {
+                    email: user.securityEmail,
+                    displayName: user.username,
+                    photoURL: user.profilePic,
+                    googleUid: user.googleUid,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                }, () => {});
+            } else {
+                // We don't have the password in memory, but we can emit a special reconnect event 
+                // Or since we don't have the password, we can emit a new 'reconnect_user' event
+                socket.emit('reconnect_user', { username: user.username });
+            }
+        }
+    };
+    socket.on('connect', handleReconnect);
+
     let unsubMessages: any = null;
     
+    setMessages([]);
     if (activeChat === 'global') {
         const q = query(collection(db, 'global_chat'), orderBy('timestamp', 'asc'), limitToLast(30));
         unsubMessages = onSnapshot(q, (snapshot) => {
@@ -378,6 +404,15 @@ function MainApp() {
         });
     }
     
+    return () => {
+        socket.off('connect', handleReconnect);
+        if (unsubMessages) unsubMessages();
+    };
+  }, [isLoggedIn, activeChat, user.username]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
 
   socket.on('dj_request_status', (req: { id: string, status: string, title: string }) => {
         setNotifications(prev => [
@@ -392,10 +427,11 @@ function MainApp() {
     });
 
     socket.on('receive_global', (msg: any) => {
-      // In firebase mode, we rely on the onSnapshot listener for most messages.
-      // However, we want to ensure immediate optimistic UI or fallback for non-firebase.
-      // Also, we need to make sure we don't duplicate. We only push if it's not from us 
-      // (since we pushed optimistically) or if it's an AI/System message.
+      // If we are not in global chat, we shouldn't append it to the current messages view
+      if (activeChatRef.current !== 'global') {
+          return;
+      }
+      
       if (msg.sender !== user.username || msg.sender === 'Elizabeth' || msg.isAi) {
           setMessages(prev => { if (prev.some(m => m.id === msg.id)) return prev; return [...prev, msg]; });
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -404,7 +440,7 @@ function MainApp() {
 
     socket.on('receive_private', (msg: any, fromUser: string) => {
       playNotifySound();
-      if (activeChat !== fromUser) {
+      if (activeChatRef.current !== fromUser) {
         setUnreadPMs(prev => ({ ...prev, [fromUser]: true }));
         setToasts(prev => [...prev, { id: Date.now(), type: 'PM', sender: fromUser, text: msg.text || 'Nuevo audio/imagen' }]);
       } else {
@@ -418,6 +454,8 @@ function MainApp() {
     socket.emit('get_hall_of_fame', (data: any[]) => {
       setHallOfFame(data);
     });
+
+    socket.emit('request_initial_state');
 
     socket.on('active_users', (usersList: UserObj[]) => {
       const cleaned = usersList.filter(u => u.username !== 'Elizabeth' && u.username !== user.username);
@@ -578,21 +616,14 @@ function MainApp() {
             }
         });
     };
-        const authUnsubscribe = onAuthStateChanged(auth, (authUser) => {
-        if (authUser) {
-            if (user.username) {
-                setupListeners();
-            }
-        } else {
-            signInAnonymously(auth).catch((error) => {
-                if (error.code === 'auth/api-key-not-valid' || error.message.includes('API key not valid')) {
-                    console.warn("⚠️ Firebase sin configurar: Faltan las variables de entorno en Hugging Face. Las funciones web seguirán funcionando con WebSocket.");
-                } else {
-                    console.error("Error de autenticación Firebase:", error);
-                }
-            });
-        }
+        onAuthStateChanged(auth, (authUser) => {
+       if (!authUser) {
+           signInAnonymously(auth).catch(e => console.warn(e));
+       }
     });
+    if (user.username) {
+        setupListeners();
+    }
 
     return () => {
       socket.off('receive_global');
@@ -823,11 +854,11 @@ function MainApp() {
              
              <div className="relative group cursor-pointer" onClick={() => { closeAllModals(); setIsConfigOpen(true); }}>
                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:border-[#D4AF37] transition-all">
-                     <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
+                     <img referrerPolicy="no-referrer" src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                  </div>
                  {user.activeDecoration && (
                      <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
-                         <img src={user.activeDecoration} alt="marco" className="w-full h-full object-contain" />
+                         <img referrerPolicy="no-referrer" src={user.activeDecoration} alt="marco" className="w-full h-full object-contain" />
                      </div>
                  )}
                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#0B1220]"></div>
@@ -841,11 +872,11 @@ function MainApp() {
              <div className="p-4 flex flex-col items-center border-b border-[#D4AF37]/30">
                  <div className="relative mb-3 group cursor-pointer" onClick={() => { closeAllModals(); setIsConfigOpen(true); }}>
                      <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                         <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
+                         <img referrerPolicy="no-referrer" src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt={user.username} className="w-full h-full object-cover" />
                      </div>
                      {user.activeDecoration && (
                          <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
-                             <img src={user.activeDecoration} alt="marco" className="w-full h-full object-contain" />
+                             <img referrerPolicy="no-referrer" src={user.activeDecoration} alt="marco" className="w-full h-full object-contain" />
                          </div>
                      )}
                      <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-[3px] border-[#121B2A]"></div>
@@ -903,10 +934,10 @@ function MainApp() {
                         <div key={u.username} className="bg-[#1A2639]/80 border border-[#D4AF37]/30 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors" onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat(u.username); }}>
                            <div className="flex items-center gap-3">
                                <div className="w-10 h-10 rounded-full overflow-hidden border border-[#D4AF37]/50 relative flex-shrink-0">
-                                   <img src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} className="w-full h-full object-cover" />
+                                   <img referrerPolicy="no-referrer" src={u.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} alt={u.username} className="w-full h-full object-cover" />
                                    {u.activeDecoration && (
                                        <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
-                                           <img src={u.activeDecoration} alt="marco" className="w-full h-full object-contain" />
+                                           <img referrerPolicy="no-referrer" src={u.activeDecoration} alt="marco" className="w-full h-full object-contain" />
                                        </div>
                                    )}
                                </div>
@@ -942,7 +973,7 @@ function MainApp() {
                       <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                           <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center overflow-hidden shadow-sm relative">
-                                 <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                 <img referrerPolicy="no-referrer" src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1A2639] ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}></div>
                               </div>
                               <div className="flex flex-col">
@@ -982,17 +1013,17 @@ function MainApp() {
                      const senderInfo = isMe ? user : (usersOnline.find(u => u.username === m.sender) || userCache[m.sender]);
                      const decId = senderInfo?.activeDecoration;
                      const decUrl = decId ? DECORATIONS.find(d => d.id === decId)?.url : null;
-                     const avatarUrl = m.profilePic || senderInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
+                     const avatarUrl = senderInfo?.profilePic || m.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender}`;
 
                      return (
                          <div key={m.id || idx} className="flex justify-start px-1 md:px-2">
                              {isLiz ? (
                                  <div className="flex gap-2 w-full max-w-[98%] mt-1 group">
                                      <div className="relative shrink-0 mt-1">
-                                        <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
+                                        <img referrerPolicy="no-referrer" src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#D4AF37]/50" alt={m.sender} />
                                         {decUrl && (
                                             <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
-                                                <img src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                <img referrerPolicy="no-referrer" src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm" style={{ imageRendering: 'pixelated' }} alt="" />
                                             </div>
                                         )}
                                      </div>
@@ -1004,17 +1035,17 @@ function MainApp() {
                                                 <span className="text-[#8B98B0] text-[11px] font-mono shrink-0 ml-auto pl-2">{timeStr}</span>
                                              </div>
                                          </div>
-                                         {m.image && <div className="mt-1.5"><img src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
+                                         {m.image && <div className="mt-1.5"><img referrerPolicy="no-referrer" src={m.image} className="rounded-xl border border-white/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
                                      </div>
                                  </div>
                              ) : (
                                  <div className="flex gap-2 w-full mt-1.5 group">
                                      <div className="relative shrink-0 mt-1">
-                                        <img src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
+                                        <img referrerPolicy="no-referrer" src={avatarUrl} className="w-8 h-8 rounded-full object-cover border border-[#5A52A5]/30 shadow-sm bg-white/5" alt={m.sender} />
                                         {decUrl && (
                                             <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
-                                                <img src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
+                                                <img referrerPolicy="no-referrer" src={decUrl} className="w-[130%] h-[130%] object-contain filter drop-shadow-sm opacity-80 mix-blend-multiply" style={{ imageRendering: 'pixelated' }} alt="" />
                                             </div>
                                         )}
                                      </div>
@@ -1047,7 +1078,7 @@ function MainApp() {
                                              </button>
                                          )}
 
-                                         {m.image && <div className="w-full mt-1.5"><img src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
+                                         {m.image && <div className="w-full mt-1.5"><img referrerPolicy="no-referrer" src={m.image} className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover" alt="adjunto"/></div>}
                                          {(m.type === 'audio' || m.audio) && <div className="w-full mt-1.5"><PremiumAudioPlayer src={m.audio} /></div>}
                                      </div>
                                  </div>
@@ -1081,13 +1112,13 @@ function MainApp() {
                     <div className="flex gap-4 mb-3">
                       {selectedImage && (
                         <div className="relative inline-block animate-in fade-in slide-in-from-bottom-2">
-                           <img src={selectedImage} alt="Preview" className="h-16 w-16 rounded-xl border-2 border-[#D4AF37] object-cover shadow-lg" />
+                           <img referrerPolicy="no-referrer" src={selectedImage} alt="Preview" className="h-16 w-16 rounded-xl border-2 border-[#D4AF37] object-cover shadow-lg" />
                            <button onClick={() => setSelectedImage(null)} className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 transition-colors text-white rounded-full p-1.5 shadow-xl"><X size={14} /></button>
                         </div>
                       )}
                       {selectedGif && (
                         <div className="relative inline-block animate-in fade-in slide-in-from-bottom-2">
-                           <img src={selectedGif} alt="GIF Preview" className="h-16 w-16 rounded-xl border-2 border-[#D4AF37] object-cover shadow-lg" />
+                           <img referrerPolicy="no-referrer" src={selectedGif} alt="GIF Preview" className="h-16 w-16 rounded-xl border-2 border-[#D4AF37] object-cover shadow-lg" />
                            <button onClick={() => setSelectedGif(null)} className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 transition-colors text-white rounded-full p-1.5 shadow-xl"><X size={14} /></button>
                         </div>
                       )}
@@ -1227,7 +1258,7 @@ function MainApp() {
                        setActiveChat(toast.sender);
                        setToasts(prev => prev.filter(t => t.id !== toast.id));
                    }} className="pointer-events-auto cursor-pointer bg-[#0f111a]/95 backdrop-blur-xl border border-[#D4AF37]/50 shadow-[0_4px_20px_rgba(212,175,55,0.15)] rounded-2xl p-3 flex items-center gap-3 w-72 animate-in fade-in slide-in-from-top-4 transition-all hover:bg-white/5">
-                       <img src={senderPic} alt={toast.sender} className="w-10 h-10 rounded-full object-cover border border-[#D4AF37]/30" />
+                       <img referrerPolicy="no-referrer" src={senderPic} alt={toast.sender} className="w-10 h-10 rounded-full object-cover border border-[#D4AF37]/30" />
                        <div className="flex flex-col flex-1 min-w-0">
                            <span className="text-[#E8D9B0] font-bold text-sm truncate">{toast.sender}</span>
                            <span className="text-gray-400 text-xs truncate">{toast.text}</span>
@@ -1256,11 +1287,11 @@ function MainApp() {
              >
                 {selectedUserModal.activeDecoration && (
                     <div className="absolute -inset-4 pointer-events-none z-10 flex items-center justify-center">
-                        <img src={DECORATIONS.find(d => d.id === selectedUserModal.activeDecoration)?.url} className="w-full h-full object-contain filter drop-shadow-lg" style={{ imageRendering: 'pixelated' }} alt="" />
+                        <img referrerPolicy="no-referrer" src={DECORATIONS.find(d => d.id === selectedUserModal.activeDecoration)?.url} className="w-full h-full object-contain filter drop-shadow-lg" style={{ imageRendering: 'pixelated' }} alt="" />
                     </div>
                 )}
                 <div className="w-full h-full rounded-full overflow-hidden relative z-0">
-                    <img src={selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`} className="w-full h-full object-cover" alt="Avatar" />
+                    <img referrerPolicy="no-referrer" src={selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`} className="w-full h-full object-cover" alt="Avatar" />
                     {selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="text-[10px] font-bold text-white uppercase text-center px-1">Cambiar Foto</span>
@@ -1422,7 +1453,7 @@ function MainApp() {
                                        className="flex-1 flex items-center gap-3 cursor-pointer min-w-0"
                                    >
                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 overflow-hidden relative flex-shrink-0">
-                                           <img src={friendInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendUsername}`} className="w-full h-full object-cover" />
+                                           <img referrerPolicy="no-referrer" src={friendInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendUsername}`} className="w-full h-full object-cover" />
                                            <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0f111a] ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}></div>
                                        </div>
                                        <div className="flex-1 min-w-0">

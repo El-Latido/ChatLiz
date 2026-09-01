@@ -216,7 +216,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
             
             <div className="w-full max-w-[500px] flex justify-between items-center mb-2 md:mb-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
-                    <img src={opponent.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-500/50" alt="" />
+                    <img referrerPolicy="no-referrer" src={opponent.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${opponent.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-500/50" alt="" />
                     <div>
                         <div className="font-bold text-white text-lg">{opponent.username}</div>
                         <div className={`text-xs font-bold ${opRank.color}`}>Nivel: {opRank.name} ({opponent.elo || 0})</div>
@@ -247,7 +247,7 @@ export function ChessGameModal({ onClose, user, gameId, opponent, bet, isHost }:
 
             <div className="w-full max-w-[500px] flex justify-between items-center mt-2 md:mt-4 relative z-10 bg-black/40 px-4 py-2 rounded-xl border border-[#D4AF37]/20">
                 <div className="flex items-center gap-3">
-                    <img src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
+                    <img referrerPolicy="no-referrer" src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#D4AF37]" alt="" />
                     <div>
                         <div className="font-bold text-[#D4AF37] text-lg">{user.username} (Tú)</div>
                         <div className={`text-xs font-bold ${myRank.color}`}>Nivel: {myRank.name} ({user.elo || 0})</div>
