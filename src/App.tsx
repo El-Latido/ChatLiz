@@ -617,7 +617,7 @@ function MainApp() {
             }
         });
     };
-        onAuthStateChanged(auth, (authUser) => {
+        const authUnsubscribe = onAuthStateChanged(auth, (authUser) => {
        if (!authUser) {
            signInAnonymously(auth).catch(e => console.warn(e));
        }
