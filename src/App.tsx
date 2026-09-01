@@ -24,6 +24,7 @@ import {  PremiumAudioVisualizer } from './components/PremiumAudioVisualizer';
 import {  InlineRadio } from './components/InlineRadio';
 import {  SongRequestModal } from './components/SongRequestModal';
 import {  DjControlPanelModal } from './components/DjControlPanelModal';
+import { AiSelectorModal } from './components/AiSelectorModal';
 import { SocialFeed } from './components/social/SocialFeed';
 const DECORATIONS = [
   // Ajedrez (Themes & Efectos)
