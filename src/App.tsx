@@ -139,6 +139,7 @@ function MainApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<UserObj & {password?: string, securityEmail?: string}>({ username: '', password: '', countryLanguage: 'es', securityEmail: '' });
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isAiSelectorOpen, setIsAiSelectorOpen] = useState(false);
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
   const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
@@ -642,6 +643,7 @@ function MainApp() {
     setIsSidebarOpen(false);
     setIsFriendsSidebarOpen(false);
     setIsConfigOpen(false);
+    setIsAiSelectorOpen(false);
     setSelectedUserModal(null);
     setAdminConfigLizOpen(false);
     setIsGamesMenuOpen(false);
@@ -901,6 +903,13 @@ function MainApp() {
               
               <div className="w-full h-px bg-white/5 my-2"></div>
 
+                          {/* AI Characters Button */}
+             <div className="px-4 py-2">
+                 <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-3 py-2.5 rounded-xl font-bold shadow-lg transition-transform active:scale-95" onClick={() => { closeAllModals(); setIsAiSelectorOpen(true); }}>
+                    <Bot size={18} />
+                    Personajes IA
+                 </button>
+             </div>
              {/* User Search */}
               <div className="px-4 py-2">
                  <form onSubmit={(e) => {
@@ -965,8 +974,16 @@ function MainApp() {
                   ) : (
                 <>
                   {activeChat !== 'global' && (() => {
-                      const targetUser = usersOnline.find(u => u.username === activeChat) || userCache[activeChat];
-                      const isOnline = !!usersOnline.find(u => u.username === activeChat);
+                      
+                      const aiChar = ['Elizabeth', 'Sensei', 'Shadow', 'Neko'].includes(activeChat) ? {
+                          username: activeChat,
+                          profilePic: `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`,
+                          statusMessage: 'Inteligencia Artificial',
+                          isAi: true
+                      } : null;
+                      const targetUser = aiChar || usersOnline.find(u => u.username === activeChat) || userCache[activeChat];
+
+                      const isOnline = !!aiChar || !!usersOnline.find(u => u.username === activeChat);
                       const avatarUrl = targetUser?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
                       
                       return (
@@ -1269,7 +1286,21 @@ function MainApp() {
        </div>
 
       {/* Selected User Info Modal */}
-       {selectedUserModal && (
+       
+      {isAiSelectorOpen && (
+        <AiSelectorModal
+          onClose={() => setIsAiSelectorOpen(false)}
+          userCoins={user.lizCoins || 0}
+          socket={socket}
+          onSelect={(id) => {
+            setIsAiSelectorOpen(false);
+            setIsSidebarOpen(false);
+            setActiveChat(id);
+          }}
+        />
+      )}
+
+      {selectedUserModal && (
          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4" onClick={() => setSelectedUserModal(null)}>
            <div className="bg-[#12141c] p-8 rounded-3xl w-full max-w-sm shadow-2xl relative border border-white/10 text-center" onClick={e => e.stopPropagation()}>
              <button onClick={() => setSelectedUserModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">

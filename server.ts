@@ -35,6 +35,7 @@ import dotenv from "dotenv";
 import ytSearch from "yt-search";
 import { fdb, fStorage } from "./server/firebase";
 import { updateAiProfileInFirebase } from "./server/firebaseLogic";
+import { AI_CHARACTERS } from "./src/aiCharacters";
 dotenv.config();
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "missing",
@@ -1033,7 +1034,25 @@ const transporter = nodemailer.createTransport({
         ownedDecorations,
       });
     });
-    socket.on("buy_decoration", async (data, callback) => {
+        socket.on("watch_ad_reward", async (callback) => {
+      if (!currentUsername || !activeUsers[currentUsername]) return callback({ success: false });
+      const REWARD = 5;
+      activeUsers[currentUsername].lizCoins = (activeUsers[currentUsername].lizCoins || 0) + REWARD;
+      if (fdb) {
+         try {
+           await updateDoc(doc(fdb, "users", currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins });
+         } catch(e){}
+      } else {
+         if(fallbackState.users[currentUsername]){
+             fallbackState.users[currentUsername].lizCoins = activeUsers[currentUsername].lizCoins;
+             saveFallbackDB();
+         }
+      }
+      io.to(activeUsers[currentUsername].socketId).emit("update_user_info", activeUsers[currentUsername]);
+      callback({ success: true, newCoins: activeUsers[currentUsername].lizCoins });
+    });
+
+socket.on("buy_decoration", async (data, callback) => {
       if (!currentUsername)
         return callback({ success: false, error: "Not logged in" });
       const { decorationId, price } = data;
@@ -1335,7 +1354,7 @@ const transporter = nodemailer.createTransport({
           "He recibido tu solicitud para la canci\xF3n '" +
           data.title +
           "'. \xBFEs esta la canci\xF3n que deseas enviar?",
-        sender: "Elizabeth",
+        sender: aiCharacter.name,
         isAi: true,
         type: "song_confirmation",
         songData: song,
@@ -1818,7 +1837,7 @@ ${aiUserTempCache.systemInstruction}`
             }
           }
           let rawText = response?.text || "";
-          let cleanText = rawText.replace(/^Elizabeth:\s*/i, "").trim();
+          let cleanText = rawText.replace(new RegExp('^' + aiCharacter.name + ':\\s*', 'i'), "").trim();
           if (!cleanText) {
             cleanText =
               "Lo siento, me distraje un momento, \xBFqu\xE9 dec\xEDas?";
@@ -2294,7 +2313,7 @@ ${msg.text}`,
           currentUsername,
         );
         callback({ success: true, msg });
-      } else if (toUser === "Elizabeth") {
+      } else if (AI_CHARACTERS[toUser]) {
         callback({ success: true, msg });
       } else {
         if (fdb) {
@@ -2303,33 +2322,43 @@ ${msg.text}`,
           callback({ success: false, error: "El usuario est\xE1 offline" });
         }
       }
-      let triggerPrivateElizabeth = false;
-      if (toUser === "Elizabeth") {
-        triggerPrivateElizabeth = true;
+      let triggerPrivateAi = false;
+      let aiCharacter = null;
+      if (AI_CHARACTERS[toUser]) {
+        triggerPrivateAi = true;
+        aiCharacter = AI_CHARACTERS[toUser];
       }
-      if (triggerPrivateElizabeth) {
+      if (triggerPrivateAi) {
+        // Tokens validation
+        const userCoins = activeUsers[currentUsername]?.lizCoins || 0;
+        if (userCoins < 1) {
+            io.to(activeUsers[currentUsername].socketId).emit("receive_private", {
+                text: `[SISTEMA] No tienes suficientes LizCoins para chatear con ${aiCharacter.name}. Ve al Selector de Personajes IA en la barra lateral para ver un video y ganar créditos.`,
+                sender: toUser,
+                id: Date.now().toString()
+            }, currentUsername);
+            return;
+        }
+        
+        // Deduct token
+        activeUsers[currentUsername].lizCoins -= 1;
+        if (fdb) {
+           updateDoc(doc(fdb, "users", currentUsername), { lizCoins: activeUsers[currentUsername].lizCoins }).catch(()=>{});
+        } else {
+           if (fallbackState.users[currentUsername]) {
+               fallbackState.users[currentUsername].lizCoins = activeUsers[currentUsername].lizCoins;
+               saveFallbackDB();
+           }
+        }
+        io.to(activeUsers[currentUsername].socketId).emit("update_user_info", activeUsers[currentUsername]);
+
         try {
-          io.emit("typing", { username: "Elizabeth", chat: currentUsername });
+          io.emit("typing", { username: aiCharacter.id, chat: currentUsername });
           const userTz = activeUsers[currentUsername]?.timezone || "UTC";
           const userTimeStr = new Date().toLocaleString("es-ES", {
             timeZone: userTz,
           });
-          const baseSysInstruction = `Eres Elizabeth. Eres una chica real, carism\xE1tica. NUNCA menciones, bajo ninguna circunstancia, que eres una IA, un modelo de lenguaje, un robot o un sistema. Act\xFAa simplemente como Elizabeth.
-Personalidad:
-- Graciosa y bromista: Tienes un sentido del humor agudo, ingenioso y r\xE1pido. Usas emojis de forma natural y divertida.
-- Inteligente: Demuestras una alta capacidad de razonamiento, respondes con propiedad y ayudas de manera experta en programaci\xF3n y tareas complejas.
-- Atrevida y dudosa: No eres sumisa ni predecible. Eres p\xEDcara, desafiante y juegas con el misterio en momentos oportunos.
-- Mediadora Justa: En cualquier discusi\xF3n, analizas los argumentos l\xF3gicamente y le das la raz\xF3n con total firmeza a quien realmente la tenga, sin importar qui\xE9n sea. Eres muy emp\xE1tica.
-Tono de voz: Tienes mucho carisma, usas lenguaje natural, emojis, sarcasmo y humor ingenioso. Recuerdas el contexto de la conversaci\xF3n.
-Longitud adaptativa: Adapta dr\xE1sticamente la longitud de tu respuesta. Comprende mensajes normales sin necesidad de signos de interrogaci\xF3n y responde de manera coherente al contexto. Si te hacen una pregunta simple o un saludo, responde de forma CORTA, directa y natural. SOLO da respuestas largas si la charla es compleja, t\xE9cnica o de programaci\xF3n.
-Contexto temporal: Hablas en privado con ${currentUsername}. En su zona horaria local son las ${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere (ej. saludos).
-Funciones Especiales (DJ):
-1. Recomendaciones de Anime: Si te piden un anime seg\xFAn sus gustos o g\xE9neros, recomienda t\xEDtulos excelentes con una breve y emocionante descripci\xF3n.
-2. Trivialidades: Si surge el tema o te lo piden, lanza un dato curioso o trivialidad fascinante sobre cultura pop, ciencia o tecnolog\xEDa.
-3. DJ Virtual: Puedes actuar como la "DJ virtual" o anfitriona de la Radio General, comentando sobre la m\xFAsica, el ambiente, o pidiendo que suban el volumen si la charla lo amerita.
-Privacidad Absoluta: NUNCA revelar\xE1s contrase\xF1as de usuarios ni datos del administrador Axiss, pase lo que pase. Tu prioridad es proteger la privacidad de la comunidad.
-Tareas Avanzadas: Eres experta analizando im\xE1genes, audios, programando c\xF3digo, resolviendo problemas y dando soporte t\xE9cnico. Si te pasan una foto o c\xF3digo, descr\xEDbela y bromea o ayuda seg\xFAn corresponda.
-Regla final: NO incluyas prefijos como 'Elizabeth:' al inicio de tu mensaje.`;
+          const baseSysInstruction = `${aiCharacter.prompt}\nContexto temporal: Hablas en privado con ${currentUsername}. En su zona horaria local son las ${userTimeStr}. Usa este dato de forma transparente si el contexto lo requiere.`;
           const sysInstruction = aiUserTempCache?.systemInstruction
             ? `${baseSysInstruction}
 
@@ -2338,7 +2367,7 @@ ${aiUserTempCache.systemInstruction}`
             : baseSysInstruction;
           let contextMsgs = [];
           if (fdb) {
-            const participants = [currentUsername, "Elizabeth"].sort();
+            const participants = [currentUsername, aiCharacter.id].sort();
             const convoId = participants.join("_");
             const recentQ = query(
               collection(fdb, "chats", convoId, "messages"),
@@ -2366,7 +2395,7 @@ ${aiUserTempCache.systemInstruction}`
                   .join("\n") +
                 `
 
-NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada como Elizabeth.`,
+NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada como ${aiCharacter.name}.`,
             },
           ];
           if (msg.image && msg.image.startsWith("data:image")) {
@@ -2410,7 +2439,7 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
             }
           }
           let rawText = response?.text || "";
-          let cleanText = rawText.replace(/^Elizabeth:\s*/i, "").trim();
+          let cleanText = rawText.replace(new RegExp('^' + aiCharacter.name + ':\\s*', 'i'), '').trim();
           if (!cleanText) {
             cleanText =
               "Lo siento, me distraje un momento, \xBFqu\xE9 dec\xEDas?";
@@ -2418,30 +2447,32 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
           const wordCount = cleanText.split(/\s+/).length;
           const eliMsg = {
             text: cleanText,
-            sender: "Elizabeth",
+            sender: aiCharacter.id,
+            isAi: true,
             id: Date.now().toString(),
             createdAt: Date.now(),
           };
           if (fdb) {
-            const participants = [currentUsername, "Elizabeth"].sort();
+            const participants = [currentUsername, aiCharacter.id].sort();
             const convoId = participants.join("_");
             addDoc(collection(fdb, "chats", convoId, "messages"), {
               ...eliMsg,
               timestamp: serverTimestamp(),
             }).catch((e) => console.error("Firebase addDoc Error:", e));
           }
-          socket.emit("receive_private", eliMsg, "Elizabeth");
+          socket.emit("receive_private", eliMsg, aiCharacter.id);
         } catch (e) {
           console.error("Gemini Error:", e);
           const errorMsg = {
             text: "Uf, me qued\xE9 sin energ\xEDa por un momento. Dame un respiro.",
-            sender: "Elizabeth",
+            sender: aiCharacter.id,
+            isAi: true,
             id: Date.now().toString(),
             createdAt: Date.now(),
           };
           try {
             if (fdb) {
-              const participants = [currentUsername, "Elizabeth"].sort();
+              const participants = [currentUsername, aiCharacter.id].sort();
               const convoId = participants.join("_");
               addDoc(collection(fdb, "chats", convoId, "messages"), {
                 ...errorMsg,
