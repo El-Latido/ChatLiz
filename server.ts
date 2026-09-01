@@ -207,17 +207,6 @@ const transporter = nodemailer.createTransport({
   let songQueue = [];
   let currentRequestedSong = null;
   let songHistory = [];
-  const initHistory = () => {
-     let shuffled = [...top30Songs].sort(() => 0.5 - Math.random());
-     songHistory = shuffled.slice(0, 20).map(s => ({
-         id: Date.now().toString() + Math.random().toString(),
-         url: s.url,
-         title: s.title,
-         requester: "Elizabeth (AutoDJ)",
-         status: "accepted"
-     }));
-  };
-  initHistory();
   const top30Songs = [
     {
       title: "Blinding Lights - The Weeknd",
@@ -388,6 +377,18 @@ const transporter = nodemailer.createTransport({
       url: "https://www.youtube.com/watch?v=x8VYWazR5mE",
     },
   ];
+  const initHistory = () => {
+     let shuffled = [...top30Songs].sort(() => 0.5 - Math.random());
+     songHistory = shuffled.slice(0, 20).map(s => ({
+         id: Date.now().toString() + Math.random().toString(),
+         url: s.url,
+         title: s.title,
+         requester: "Elizabeth (AutoDJ)",
+         status: "accepted"
+     }));
+  };
+  initHistory();
+  
   function generateAutoSong() {
     const song = top30Songs[Math.floor(Math.random() * top30Songs.length)];
     return {
