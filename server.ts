@@ -830,6 +830,22 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             });
         }
     });
+    
+    socket.on("video_request", (targetUser) => {
+        if (activeUsers[targetUser]) {
+            io.to(activeUsers[targetUser].socketId).emit("video_request", currentUsername);
+        }
+    });
+
+    socket.on("video_response", (data) => {
+        if (activeUsers[data.target]) {
+            io.to(activeUsers[data.target].socketId).emit("video_response", {
+                sender: currentUsername,
+                accepted: data.accepted
+            });
+        }
+    });
+
     socket.on("end_call", (targetUser) => {
         if (activeUsers[targetUser]) {
             io.to(activeUsers[targetUser].socketId).emit("call_ended", currentUsername);
