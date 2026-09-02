@@ -205,6 +205,7 @@ const transporter = nodemailer.createTransport({
   });
   let activeUsers = {};
   const chessGames = {};
+  const pendingCalls = {};
   let songQueue = [];
   let isBatchPlaying = false;
   let currentRequestedSong = null;
@@ -757,6 +758,36 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       } else {
          return callback({ success: false, error: "Base de datos no disponible para Google Login" });
       }
+    });
+
+    
+    socket.on("iniciar_llamada", (targetUser) => {
+        if (!currentUsername) return;
+        if (activeUsers[targetUser]) {
+            io.to(activeUsers[targetUser].socketId).emit("llamada_entrante", currentUsername);
+        } else {
+            pendingCalls[targetUser] = currentUsername;
+        }
+    });
+
+    socket.on("responder_llamada", (data) => {
+        if (!currentUsername) return;
+        if (pendingCalls[currentUsername] === data.targetUser) {
+            delete pendingCalls[currentUsername];
+        }
+        if (activeUsers[data.targetUser]) {
+            io.to(activeUsers[data.targetUser].socketId).emit("respuesta_llamada", {
+                responder: currentUsername,
+                accepted: data.accepted
+            });
+        }
+    });
+
+    socket.on("check_pending_calls", () => {
+        if (!currentUsername) return;
+        if (pendingCalls[currentUsername]) {
+            socket.emit("llamada_entrante", pendingCalls[currentUsername]);
+        }
     });
 
     socket.on("reconnect_user", async (data) => {

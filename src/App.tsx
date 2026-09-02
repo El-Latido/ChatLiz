@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, ErrorInfo, Component } from 'react'
 import {  
   Send, User, MessageCircle, Settings, Bot, 
   Image as ImageIcon, Mic, StopCircle, 
-  Trash2, Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, Heart, Home
+  Trash2, Menu, X, Hash, MessageSquare, LogOut, Search, Gamepad2, Music, Youtube,  Paperclip, Smile, Globe, Box, Users, UserPlus, AlertCircle, Bell, PhoneCall, Heart, Home
 } from 'lucide-react';
 import {  collection, onSnapshot, query, doc, orderBy, limitToLast, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -17,6 +17,8 @@ import {  GamesMenuModal } from './components/GamesMenuModal';
 import {  EmojiGifPicker } from './components/EmojiGifPicker';
 
 import {  StoreModal } from './components/StoreModal';
+import { CallModal } from './components/CallModal';
+import { ActiveCallModal } from './components/ActiveCallModal';
 import { ChessGameModal } from './components/ChessGameModal';
 import {  ChessBotModal } from './components/ChessBotModal';
 import {  PremiumAudioPlayer } from './components/PremiumAudioPlayer';
@@ -146,7 +148,9 @@ function MainApp() {
   const [currentAdminAi, setCurrentAdminAi] = useState('Elizabeth');
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
   
-  const [activeChat, setActiveChat] = useState('global');
+    const [incomingCall, setIncomingCall] = useState<string | null>(null);
+  const [activeCall, setActiveCall] = useState<string | null>(null);
+  const [activeChat, setActiveChat] = useState("global");
   const activeChatRef = useRef(activeChat);
   useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
   const [messages, setMessages] = useState<any[]>([]);
@@ -460,7 +464,21 @@ function MainApp() {
 
     socket.emit('request_initial_state');
 
+    socket.on('llamada_entrante', (caller: string) => {
+      setIncomingCall(caller);
+    });
+
+    socket.on('respuesta_llamada', (data: { responder: string, accepted: boolean }) => {
+      if (data.accepted) {
+          setActiveCall(data.responder);
+          showToast(`Llamada conectada con ${data.responder}`, 'success');
+      } else {
+          showToast(`${data.responder} rechazó la llamada`, 'error');
+      }
+    });
+
     socket.on('active_users', (usersList: UserObj[]) => {
+      socket.emit('check_pending_calls');
       const aiIds = ['Elizabeth', 'Sensei', 'Shadow', 'Neko'];
       const ais = usersList.filter(u => aiIds.includes(u.username)).map(u => ({...u, isAi: true}));
       const others = usersList.filter(u => !aiIds.includes(u.username) && u.username !== user.username);
@@ -1290,6 +1308,29 @@ function MainApp() {
 
       {/* Selected User Info Modal */}
        
+            {incomingCall && (
+        <CallModal 
+            caller={incomingCall}
+            onAccept={() => {
+                socket.emit('responder_llamada', { targetUser: incomingCall, accepted: true });
+                setActiveCall(incomingCall);
+                setIncomingCall(null);
+            }}
+            onReject={() => {
+                socket.emit('responder_llamada', { targetUser: incomingCall, accepted: false });
+                setIncomingCall(null);
+            }}
+        />
+      )}
+
+      {activeCall && (
+        <ActiveCallModal 
+            partner={activeCall}
+            onEndCall={() => {
+                setActiveCall(null);
+            }}
+        />
+      )}
       {isAiSelectorOpen && (
         <AiSelectorModal usersOnline={usersOnline}
           onClose={() => setIsAiSelectorOpen(false)}
@@ -1432,23 +1473,13 @@ function MainApp() {
                          {selectedUserModal.role !== 'admin' && (
                              <button 
                                  onClick={() => {
-                                     socket.emit('toggle_ban', selectedUserModal.username, async (res: any) => {
-                                         if(res.success) {
-                                             setUser(prev => ({
-                                                 ...prev,
-                                                 blocked_list: res.isBanned ? [...(prev.blocked_list || []), selectedUserModal.username] : (prev.blocked_list || []).filter(b => b !== selectedUserModal.username)
-                                             }));
-                                             if (res.isBanned) {
-                                                 await notifyOwner(selectedUserModal.username, 'BAN', user.username);
-                                             }
-                                             setSelectedUserModal(null);
-                                         }
-                                     });
+                                     socket.emit('iniciar_llamada', selectedUserModal.username);
+                                     setSelectedUserModal(null);
                                  }}
-                                 className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-medium transition-colors border ${user.blocked_list?.includes(selectedUserModal.username) ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20'}`}
+                                 className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-medium transition-colors border text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20"
                              >
-                                 <AlertCircle size={18} />
-                                 {user.blocked_list?.includes(selectedUserModal.username) ? 'Desbanear' : 'Banear'}
+                                 <PhoneCall size={18} />
+                                 Llamar
                              </button>
                          )}
                      </div>
