@@ -335,7 +335,7 @@ export function InlineRadio() {
 
            {Array.isArray(songQueue) && songQueue.length > 0 && (
                <div className="flex flex-col gap-1 mt-1 pt-2 border-t border-white/5">
-                  <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> En Cola ({songQueue.length})</span>
+                  <span className="text-[10px] text-[#D4AF37]/60 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><ListMusic size={12}/> En Cola ({songQueue.length}/20)</span>
                   <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1 scrollbar-thin">
                       {songQueue.map((s:any, idx:number) => (
                           <div key={idx} className="flex flex-col opacity-80 hover:opacity-100 transition-opacity">
@@ -402,7 +402,7 @@ export function InlineRadio() {
       )}
 
 
-      <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="absolute inset-0 w-full h-full z-[-1] pointer-events-none overflow-hidden rounded-2xl" aria-hidden="true">
          {currentRequestedSong && (!currentLiveDJ || currentLiveDJ === 'Elizabeth') && (
              <Player 
                  ref={playerRef}

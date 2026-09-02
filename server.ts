@@ -206,6 +206,7 @@ const transporter = nodemailer.createTransport({
   let activeUsers = {};
   const chessGames = {};
   let songQueue = [];
+  let isBatchPlaying = false;
   let currentRequestedSong = null;
   let songHistory = [];
   const top30Songs = [
@@ -401,19 +402,9 @@ const transporter = nodemailer.createTransport({
   }
   __name(generateAutoSong, "generateAutoSong");
   function ensureAutoRadio() {
-    if (!currentLiveDJ && !currentRequestedSong && songQueue.length === 0) {
-      for (let i = 0; i < 5; i++) {
-        songQueue.push(generateAutoSong());
-      }
-      currentRequestedSong = songQueue.shift();
-      io.emit("queue_update", {
-        queue: songQueue,
-        current: currentRequestedSong,
-        history: songHistory,
-      });
-    }
-  }
-  __name(ensureAutoRadio, "ensureAutoRadio");
+    // Restablecido: la radio vuelve a su estado normal (stream por defecto) esperando nuevos pedidos.
+}
+__name(ensureAutoRadio, "ensureAutoRadio");
   let currentLiveDJ = null;
   let djStreamUrl = null;
   let djQueue = [];
@@ -1433,19 +1424,27 @@ socket.on("buy_decoration", async (data, callback) => {
           if (resJson.accepted) {
             song.status = "accepted";
             song.announcementUrl = "";
-            if (!currentRequestedSong) {
-              currentRequestedSong = song;
-              io.emit("queue_update", {
-                queue: songQueue,
-                current: currentRequestedSong,
-              });
+            if (!isBatchPlaying) {
+                songQueue.push(song);
+                if (songQueue.length === 20) {
+                    isBatchPlaying = true;
+                    currentRequestedSong = songQueue.shift();
+                    io.emit("receive_global", {
+                        id: Date.now().toString(),
+                        text: "¡Se han alcanzado los 20 pedidos! Comenzando la reproducción del bloque. 🎶",
+                        sender: 'Elizabeth',
+                        isAi: true
+                    });
+                }
             } else {
-              songQueue.push(song);
-              io.emit("queue_update", {
+                if (songQueue.length < 20) {
+                    songQueue.push(song);
+                }
+            }
+            io.emit("queue_update", {
                 queue: songQueue,
                 current: currentRequestedSong,
-              });
-            }
+            });
             if (activeUsers[currentUsername])
               io.to(activeUsers[currentUsername].socketId).emit(
                 "dj_request_status",
@@ -1472,18 +1471,31 @@ socket.on("buy_decoration", async (data, callback) => {
           title: song.title,
         });
       } else {
-        if (!currentRequestedSong) {
-          currentRequestedSong = song;
-          io.emit("queue_update", {
-            queue: songQueue,
-            current: currentRequestedSong,
-          });
+        if (!isBatchPlaying) {
+            songQueue.push(song);
+            if (songQueue.length === 20) {
+                isBatchPlaying = true;
+                currentRequestedSong = songQueue.shift();
+                io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+                io.emit("receive_global", {
+                    id: Date.now().toString(),
+                    text: "¡Se han alcanzado los 20 pedidos! Comenzando la reproducción del bloque de canciones. 🎶",
+                    sender: 'Elizabeth',
+                    isAi: true
+                });
+            } else {
+                io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
+            }
         } else {
-          songQueue.push(song);
-          io.emit("queue_update", {
-            queue: songQueue,
-            current: currentRequestedSong,
-          });
+            if (songQueue.length >= 20) {
+                return socket.emit("dj_request_status", {
+                  id: song.id,
+                  status: "rejected",
+                  title: "La cola está llena (límite de 20 canciones).",
+                });
+            }
+            songQueue.push(song);
+            io.emit("queue_update", { queue: songQueue, current: currentRequestedSong });
         }
         socket.emit("dj_request_status", {
           id: song.id,
@@ -1586,12 +1598,9 @@ socket.on("buy_decoration", async (data, callback) => {
         if (songQueue.length > 0) {
           currentRequestedSong = songQueue.shift();
         } else {
-          if (!currentLiveDJ) {
-            songQueue.push(generateAutoSong());
-            currentRequestedSong = songQueue.shift();
-          } else {
-            currentRequestedSong = null;
-          }
+          currentRequestedSong = null;
+          isBatchPlaying = false;
+          ensureAutoRadio(); // Se restablece al stream normal
         }
         io.emit("queue_update", {
           queue: songQueue,
