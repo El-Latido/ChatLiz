@@ -2,34 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Bot, X, CheckCircle } from 'lucide-react';
 import { socket } from '../socket';
 
-interface AdminConfigLizModalProps {
-  setAdminConfigLizOpen: React.Dispatch<React.SetStateAction<boolean>>;
+interface AdminConfigAiModalProps {
+  aiUsername: string;
+  setAdminConfigAiOpen: React.Dispatch<React.SetStateAction<boolean>>;
   aiProfileForm: { profilePic: string; statusMessage: string; systemInstruction?: string; };
   setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; }>>;
 }
 
-export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setAiProfileForm }: AdminConfigLizModalProps) {
+export function AdminConfigAiModal({ setAdminConfigAiOpen, aiProfileForm, setAiProfileForm, aiUsername }: AdminConfigAiModalProps) {
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
      if (successMsg) {
         const timer = setTimeout(() => {
            setSuccessMsg('');
-           setAdminConfigLizOpen(false);
+           setAdminConfigAiOpen(false);
         }, 3000);
         return () => clearTimeout(timer);
      }
-  }, [successMsg, setAdminConfigLizOpen]);
+  }, [successMsg, setAdminConfigAiOpen]);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
        <div className="bg-[#12141c] p-6 lg:p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-fuchsia-500/20 max-h-[90vh] overflow-y-auto scrollbar-thin">
-         <button onClick={() => setAdminConfigLizOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
+         <button onClick={() => setAdminConfigAiOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors">
             <X size={20} />
          </button>
          <h2 className="text-xl font-bold text-fuchsia-400 flex items-center gap-2 mb-6">
             <Bot size={22} />
-            Configurar HELIZABETH
+            Configurar {aiUsername}
          </h2>
 
          {successMsg && (
@@ -164,11 +165,11 @@ export function AdminConfigLizModal({ setAdminConfigLizOpen, aiProfileForm, setA
           }
       }, 4000);
 
-      socket.emit('update_ai_config', { profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
+      socket.emit("update_ai_config", { aiUsername, profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
           callbackCalled = true;
           clearTimeout(timeoutId);
           if (res.success || res.success === undefined) {
-              setSuccessMsg('¡Perfil de ELIZABETH actualizado con éxito!');
+              setSuccessMsg(`¡Perfil de ${aiUsername} actualizado con éxito!`);
           } else {
               alert("Error: " + res.error);
           }

@@ -3,13 +3,14 @@ import { Bot, X, Play, Coins } from 'lucide-react';
 import { AI_CHARACTERS } from '../aiCharacters';
 
 interface AiSelectorModalProps {
+  usersOnline?: any[];
   onClose: () => void;
   onSelect: (characterId: string) => void;
   userCoins: number;
   socket: any;
 }
 
-export function AiSelectorModal({ onClose, onSelect, userCoins, socket }: AiSelectorModalProps) {
+export function AiSelectorModal({ onClose, onSelect, userCoins, socket, usersOnline = [] }: AiSelectorModalProps) {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [adTimeLeft, setAdTimeLeft] = useState(0);
   const [rewardMessage, setRewardMessage] = useState('');
@@ -92,19 +93,21 @@ export function AiSelectorModal({ onClose, onSelect, userCoins, socket }: AiSele
 
               {/* Characters Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.values(AI_CHARACTERS).map((char) => (
+                {Object.values(AI_CHARACTERS).map((char) => {
+            const dynamicAi = usersOnline.find(u => u.username === char.id);
+            return (
                   <div key={char.id} className="bg-[#121B2A]/80 border border-white/5 rounded-xl p-4 flex flex-col gap-3 hover:border-[#D4AF37]/50 transition-colors group relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
                     <div className="flex items-center gap-4">
-                      <img src={char.avatar} alt={char.name} className="w-16 h-16 rounded-full border-2 border-[#D4AF37]/30 bg-white/5" />
+                      <img src={dynamicAi?.profilePic || char.avatar} alt={char.name} className="w-16 h-16 rounded-full border-2 border-[#D4AF37]/30 bg-white/5" />
                       <div>
-                        <h3 className="text-[#E8D9B0] font-bold text-lg">{char.name}</h3>
+                        <h3 className="text-[#E8D9B0] font-bold text-lg">{dynamicAi?.username || char.name}</h3>
                         <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">Inteligencia Artificial</span>
                       </div>
                     </div>
                     
-                    <p className="text-gray-300 text-sm flex-1">{char.description}</p>
+                    <p className="text-gray-300 text-sm flex-1">{dynamicAi?.statusMessage || char.description}</p>
                     
                     <button
                       onClick={() => onSelect(char.id)}
@@ -114,7 +117,7 @@ export function AiSelectorModal({ onClose, onSelect, userCoins, socket }: AiSele
                       Chatear con {char.name}
                     </button>
                   </div>
-                ))}
+                );})}
               </div>
             </>
           )}

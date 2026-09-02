@@ -1,25 +1,49 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/App.tsx', 'utf8');
-code = code.replace("import { Builder3D } from './components/Builder3D';\n", "");
 
-// Find and remove the Builder3D activeChat check
-const builderRegex = /if\s*\(activeChat\s*===\s*'builder'\)\s*\{\s*return\s*\(\s*<div[^>]*>\s*<Builder3D[^>]*\/>\s*<\/div>\s*\);\s*\}/g;
-code = code.replace(builderRegex, "");
+code = code.replace(/import \{ AdminConfigLizModal \} from '\.\/components\/AdminConfigLizModal';/g, "import { AdminConfigAiModal } from './components/AdminConfigAiModal';");
 
-// Find the Creador 3D button 1 (hidden sm:flex)
-const btn1 = /<button onClick=\{\(\) => \{ closeAllModals\(\); setActiveChat\('builder'\); \}\} className="hidden sm:flex[^>]*>\s*<Home[^>]*\/>\s*<span[^>]*>Creador 3D<\/span>\s*<\/button>/g;
-code = code.replace(btn1, "");
+code = code.replace(/const \[adminConfigLizOpen, setAdminConfigLizOpen\] = useState\(false\);/g, "const [adminConfigAiOpen, setAdminConfigAiOpen] = useState(false);\n  const [currentAdminAi, setCurrentAdminAi] = useState('Elizabeth');");
 
-// Find the Creador 3D button 2 (sm:hidden)
-const btn2 = /<button onClick=\{\(\) => \{ closeAllModals\(\); setActiveChat\('builder'\); \}\} className="sm:hidden[^>]*>\s*<Home[^>]*\/>\s*<\/button>/g;
-code = code.replace(btn2, "");
+code = code.replace(/setAdminConfigLizOpen={setAdminConfigLizOpen}/g, "setAdminConfigAiOpen={setAdminConfigAiOpen}");
+code = code.replace(/setAdminConfigLizOpen/g, "setAdminConfigAiOpen");
+code = code.replace(/adminConfigLizOpen/g, "adminConfigAiOpen");
+code = code.replace(/AdminConfigLizModal/g, "AdminConfigAiModal");
 
-// Find the Creador 3D button 3 (AXISS sidebar button)
-const btn3 = /<button className=\{`flex items-center justify-center gap-2 text-\[#D4AF37\] bg-\[#121B2A\]\/80 border \$\{activeChat === 'builder'[^\}]+\} px-3 py-2 rounded-2xl hover:bg-white\/5 hover:text-\[#E8D9B0\] transition-all text-sm font-medium shadow-sm`\} onClick=\{\(\) => \{ closeAllModals\(\); setIsSidebarOpen\(false\); setActiveChat\('builder'\); \}\}>\s*<Box[^>]*\/>\s*Creador 3D\s*<\/button>/g;
-code = code.replace(btn3, "");
+const profileClickOld = `                    if (selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss') {
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora', systemInstruction: selectedUserModal.systemInstruction || '' });
+                        setSelectedUserModal(null);
+                        closeAllModals(); setAdminConfigAiOpen(true);
+                    }`;
+const profileClickNew = `                    if (selectedUserModal.isAi && user.username.trim() === 'Axiss') {
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Inteligencia Artificial', systemInstruction: selectedUserModal.systemInstruction || '' });
+                        setCurrentAdminAi(selectedUserModal.username);
+                        setSelectedUserModal(null);
+                        closeAllModals(); setAdminConfigAiOpen(true);
+                    }`;
+code = code.replace(profileClickOld, profileClickNew);
 
-// Find the Creador 3D button 4 (AXISS floating button)
-const btn4 = /\{user\?.username\?.toUpperCase\(\) === 'AXISS' && \(\s*<button\s*onClick=\{\(\) => \{ closeAllModals\(\); setActiveChat\('builder'\); \}\}\s*className="fixed bottom-6 left-6 z-\[9000\][^>]*\s*title="Abrir Creador 3D"\s*>\s*<Box[^>]*\/>\s*<\/button>\s*\)\}/g;
-code = code.replace(btn4, "");
+const profileClassOld = `\${selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`;
+const profileClassNew = `\${selectedUserModal.isAi && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`;
+code = code.replace(profileClassOld, profileClassNew);
+
+const profileOverlayOld = `\{selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' && \(`;
+const profileOverlayNew = `\{selectedUserModal.isAi && user.username.trim() === 'Axiss' && \(`;
+code = code.replace(profileOverlayOld, profileOverlayNew);
+
+// Add aiUsername prop to AdminConfigAiModal
+const modalRenderOld = `<AdminConfigAiModal
+          setAdminConfigAiOpen={setAdminConfigAiOpen}
+          aiProfileForm={aiProfileForm}
+          setAiProfileForm={setAiProfileForm}
+        />`;
+const modalRenderNew = `<AdminConfigAiModal
+          aiUsername={currentAdminAi}
+          setAdminConfigAiOpen={setAdminConfigAiOpen}
+          aiProfileForm={aiProfileForm}
+          setAiProfileForm={setAiProfileForm}
+        />`;
+code = code.replace(modalRenderOld, modalRenderNew);
 
 fs.writeFileSync('src/App.tsx', code);
+console.log("Patched App.tsx");

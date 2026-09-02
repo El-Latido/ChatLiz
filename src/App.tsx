@@ -12,7 +12,7 @@ import {  UserObj, MessageObj } from './types';
 import {  Login } from './components/Login';
 import {  RecoveryModal } from './components/RecoveryModal';
 import {  ProfileConfigModal } from './components/ProfileConfigModal';
-import {  AdminConfigLizModal } from './components/AdminConfigLizModal';
+import {  AdminConfigAiModal } from './components/AdminConfigAiModal';
 import {  GamesMenuModal } from './components/GamesMenuModal';
 import {  EmojiGifPicker } from './components/EmojiGifPicker';
 
@@ -142,7 +142,8 @@ function MainApp() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isAiSelectorOpen, setIsAiSelectorOpen] = useState(false);
   const [selectedUserModal, setSelectedUserModal] = useState<UserObj | null>(null);
-  const [adminConfigLizOpen, setAdminConfigLizOpen] = useState(false);
+  const [adminConfigAiOpen, setAdminConfigAiOpen] = useState(false);
+  const [currentAdminAi, setCurrentAdminAi] = useState('Elizabeth');
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
   
   const [activeChat, setActiveChat] = useState('global');
@@ -460,10 +461,10 @@ function MainApp() {
     socket.emit('request_initial_state');
 
     socket.on('active_users', (usersList: UserObj[]) => {
-      const cleaned = usersList.filter(u => u.username !== 'Elizabeth' && u.username !== user.username);
-      const elizabeth = usersList.find(u => u.username === 'Elizabeth') || { username: 'Elizabeth', statusMessage: 'Administradora', role: 'admin' };
-      cleaned.unshift(elizabeth); 
-      setUsersOnline(cleaned);
+      const aiIds = ['Elizabeth', 'Sensei', 'Shadow', 'Neko'];
+      const ais = usersList.filter(u => aiIds.includes(u.username)).map(u => ({...u, isAi: true}));
+      const others = usersList.filter(u => !aiIds.includes(u.username) && u.username !== user.username);
+      setUsersOnline([...ais, ...others]);
       setUserCache(prev => {
           const newCache = { ...prev };
           usersList.forEach(u => {
@@ -646,7 +647,7 @@ function MainApp() {
     setIsConfigOpen(false);
     setIsAiSelectorOpen(false);
     setSelectedUserModal(null);
-    setAdminConfigLizOpen(false);
+    setAdminConfigAiOpen(false);
     setIsGamesMenuOpen(false);
     setIsStoreOpen(false);
     setIsSongRequestOpen(false); setIsDjPanelOpen(false);
@@ -939,7 +940,7 @@ function MainApp() {
               {/* Users List */}
               <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">
                  {usersOnline.map(u => {
-                    if (u.username === 'Elizabeth') return null;
+                    if (['Elizabeth', 'Sensei', 'Shadow', 'Neko'].includes(u.username)) return null;
                     return (
                         <div key={u.username} className="bg-[#1A2639]/80 border border-[#D4AF37]/30 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors" onClick={() => { closeAllModals(); setIsSidebarOpen(false); setActiveChat(u.username); }}>
                            <div className="flex items-center gap-3">
@@ -1249,15 +1250,16 @@ function MainApp() {
           user={user}
           setUser={setUser}
           setIsConfigOpen={setIsConfigOpen}
-          setAdminConfigLizOpen={setAdminConfigLizOpen}
+          setAdminConfigAiOpen={setAdminConfigAiOpen}
           usersOnline={usersOnline}
           setAiProfileForm={setAiProfileForm}
         />
       )}
 
-      {adminConfigLizOpen && (
-        <AdminConfigLizModal
-          setAdminConfigLizOpen={setAdminConfigLizOpen}
+      {adminConfigAiOpen && (
+        <AdminConfigAiModal
+          aiUsername={currentAdminAi}
+          setAdminConfigAiOpen={setAdminConfigAiOpen}
           aiProfileForm={aiProfileForm}
           setAiProfileForm={setAiProfileForm}
         />
@@ -1289,7 +1291,7 @@ function MainApp() {
       {/* Selected User Info Modal */}
        
       {isAiSelectorOpen && (
-        <AiSelectorModal
+        <AiSelectorModal usersOnline={usersOnline}
           onClose={() => setIsAiSelectorOpen(false)}
           userCoins={user.lizCoins || 0}
           socket={socket}
@@ -1308,12 +1310,13 @@ function MainApp() {
                 <X size={20} />
              </button>
              <div 
-                className={`w-24 h-24 mx-auto mb-4 rounded-full border border-white/10 overflow-visible relative ${selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`}
+                className={`w-24 h-24 mx-auto mb-4 rounded-full border border-white/10 overflow-visible relative ${selectedUserModal.isAi && user.username.trim() === 'Axiss' ? 'cursor-pointer group' : ''}`}
                 onClick={() => {
-                    if (selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss') {
-                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Administradora', systemInstruction: selectedUserModal.systemInstruction || '' });
+                    if (selectedUserModal.isAi && user.username.trim() === 'Axiss') {
+                        setAiProfileForm({ profilePic: selectedUserModal.profilePic || '', statusMessage: selectedUserModal.statusMessage || 'Inteligencia Artificial', systemInstruction: selectedUserModal.systemInstruction || '' });
+                        setCurrentAdminAi(selectedUserModal.username);
                         setSelectedUserModal(null);
-                        closeAllModals(); setAdminConfigLizOpen(true);
+                        closeAllModals(); setAdminConfigAiOpen(true);
                     }
                 }}
              >
@@ -1324,7 +1327,7 @@ function MainApp() {
                 )}
                 <div className="w-full h-full rounded-full overflow-hidden relative z-0">
                     <img referrerPolicy="no-referrer" src={selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`} className="w-full h-full object-cover" alt="Avatar" />
-                    {selectedUserModal.username === 'Elizabeth' && user.username.trim() === 'Axiss' && (
+                    {selectedUserModal.isAi && user.username.trim() === 'Axiss' && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="text-[10px] font-bold text-white uppercase text-center px-1">Cambiar Foto</span>
                         </div>
