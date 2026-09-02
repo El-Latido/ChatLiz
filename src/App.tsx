@@ -19,6 +19,7 @@ import {  EmojiGifPicker } from './components/EmojiGifPicker';
 import {  StoreModal } from './components/StoreModal';
 import { CallModal } from './components/CallModal';
 import { ActiveCallModal } from './components/ActiveCallModal';
+import { OutgoingCallModal } from './components/OutgoingCallModal';
 import { ChessGameModal } from './components/ChessGameModal';
 import {  ChessBotModal } from './components/ChessBotModal';
 import {  PremiumAudioPlayer } from './components/PremiumAudioPlayer';
@@ -148,8 +149,9 @@ function MainApp() {
   const [currentAdminAi, setCurrentAdminAi] = useState('Elizabeth');
   const [aiProfileForm, setAiProfileForm] = useState({ profilePic: '', statusMessage: 'Administradora', systemInstruction: '' });
   
-    const [incomingCall, setIncomingCall] = useState<string | null>(null);
-  const [activeCall, setActiveCall] = useState<string | null>(null);
+    const [incomingCall, setIncomingCall] = useState<{username: string, profilePic: string} | null>(null);
+  const [outgoingCall, setOutgoingCall] = useState<{username: string, profilePic: string} | null>(null);
+  const [activeCall, setActiveCall] = useState<{partner: {username: string, profilePic: string}, isInitiator: boolean} | null>(null);
   const [activeChat, setActiveChat] = useState("global");
   const activeChatRef = useRef(activeChat);
   useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
@@ -464,17 +466,28 @@ function MainApp() {
 
     socket.emit('request_initial_state');
 
-    socket.on('llamada_entrante', (caller: string) => {
+    socket.on('llamada_entrante', (caller: {username: string, profilePic: string}) => {
       setIncomingCall(caller);
     });
+    
+    socket.on('llamada_cancelada', () => {
+      setIncomingCall(null);
+    });
 
-    socket.on('respuesta_llamada', (data: { responder: string, accepted: boolean }) => {
+    socket.on('respuesta_llamada', (data: { responder: string, profilePic: string, accepted: boolean }) => {
       if (data.accepted) {
-          setActiveCall(data.responder);
+          setOutgoingCall(null);
+          setActiveCall({ partner: { username: data.responder, profilePic: data.profilePic }, isInitiator: true });
           showToast(`Llamada conectada con ${data.responder}`, 'success');
       } else {
+          setOutgoingCall(null);
           showToast(`${data.responder} rechazó la llamada`, 'error');
       }
+    });
+    
+    socket.on('call_ended', () => {
+        setActiveCall(null);
+        showToast('Llamada finalizada', 'info');
     });
 
     socket.on('active_users', (usersList: UserObj[]) => {
@@ -1312,20 +1325,31 @@ function MainApp() {
         <CallModal 
             caller={incomingCall}
             onAccept={() => {
-                socket.emit('responder_llamada', { targetUser: incomingCall, accepted: true });
-                setActiveCall(incomingCall);
+                socket.emit('responder_llamada', { targetUser: incomingCall.username, accepted: true });
+                setActiveCall({ partner: incomingCall, isInitiator: false });
                 setIncomingCall(null);
             }}
             onReject={() => {
-                socket.emit('responder_llamada', { targetUser: incomingCall, accepted: false });
+                socket.emit('responder_llamada', { targetUser: incomingCall.username, accepted: false });
                 setIncomingCall(null);
             }}
         />
       )}
 
+      {outgoingCall && (
+          <OutgoingCallModal
+              partner={outgoingCall}
+              onCancel={() => {
+                  socket.emit('cancelar_llamada', outgoingCall.username);
+                  setOutgoingCall(null);
+              }}
+          />
+      )}
+
       {activeCall && (
         <ActiveCallModal 
-            partner={activeCall}
+            partner={activeCall.partner}
+            isInitiator={activeCall.isInitiator}
             onEndCall={() => {
                 setActiveCall(null);
             }}
@@ -1474,6 +1498,7 @@ function MainApp() {
                              <button 
                                  onClick={() => {
                                      socket.emit('iniciar_llamada', selectedUserModal.username);
+                                     setOutgoingCall({ username: selectedUserModal.username, profilePic: selectedUserModal.profilePic || "" });
                                      setSelectedUserModal(null);
                                  }}
                                  className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-medium transition-colors border text-cyan-400 bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20"
