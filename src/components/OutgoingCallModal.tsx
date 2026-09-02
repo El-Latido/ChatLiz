@@ -18,7 +18,7 @@ export function OutgoingCallModal({ partner, onCancel }: OutgoingCallModalProps)
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2873/2873-preview.mp3" loop />
+            
             <div className="bg-[#12141c] p-8 rounded-3xl w-full max-w-sm shadow-[0_0_40px_rgba(6,182,212,0.3)] relative border border-cyan-500/30 text-center animate-in zoom-in duration-300">
                 <div className="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-cyan-500/50 mb-4 animate-pulse relative">
                     <img src={partner.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.username}`} alt={partner.username} className="w-full h-full object-cover" />

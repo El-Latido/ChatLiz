@@ -17,6 +17,7 @@ export interface UserObj {
   preferred_background?: string;
   preferred_theme?: string;
   isAi?: boolean;
+  replyTo?: { id: string, sender: string, text: string };
   reactions?: Record<string, string[]>;
   lizCoins?: number;
   activeDecoration?: string | null;
