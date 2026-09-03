@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PhoneOff, Mic, MicOff, Video, VideoOff, Camera } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import { socket } from '../socket';
 
 interface ActiveCallModalProps {
@@ -14,7 +14,7 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
     const [isVideoOn, setIsVideoOn] = useState(false);
     const [remoteStreamAvailable, setRemoteStreamAvailable] = useState(false);
     const [videoRequestState, setVideoRequestState] = useState<'idle' | 'pending' | 'incoming'>('idle');
-
+    
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const peerConnection = useRef<RTCPeerConnection | null>(null);
@@ -53,32 +53,35 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                 
                 pc.ontrack = (event) => {
                     if (remoteVideoRef.current && event.streams[0]) {
-                        remoteVideoRef.current.srcObject = event.streams[0];
-                        // Check if remote stream has video
-                        const hasVideo = event.streams[0].getVideoTracks().length > 0;
-                        if (hasVideo) {
-                            setRemoteStreamAvailable(true);
+                        if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+                            remoteVideoRef.current.srcObject = event.streams[0];
                         }
+                        const hasVideo = event.streams[0].getVideoTracks().length > 0;
+                        setRemoteStreamAvailable(hasVideo);
                     }
                 };
-                
+
                 if (isInitiator) {
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-                    socket.emit('webrtc_offer', {
-                        target: partner.username,
-                        sdp: offer
-                    });
+                    // Slight delay to ensure the other peer is ready to receive the offer
+                    setTimeout(async () => {
+                        try {
+                            const offer = await pc.createOffer();
+                            await pc.setLocalDescription(offer);
+                            socket.emit('webrtc_offer', {
+                                target: partner.username,
+                                sdp: offer
+                            });
+                        } catch(e) { console.error("Error creating offer", e); }
+                    }, 1000);
                 }
-                
-            } catch (err) {
-                console.error("Error accessing media devices.", err);
+            } catch (e) {
+                console.error("WebRTC Error:", e);
             }
         };
-        
+
         initWebRTC();
 
-        const handleOffer = async (data: { sender: string, sdp: any }) => {
+        const handleOffer = async (data: { sender: string, sdp: RTCSessionDescriptionInit }) => {
             if (data.sender !== partner.username || !peerConnection.current) return;
             const pc = peerConnection.current;
             await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -90,21 +93,19 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
             });
         };
 
-        const handleAnswer = async (data: { sender: string, sdp: any }) => {
+        const handleAnswer = async (data: { sender: string, sdp: RTCSessionDescriptionInit }) => {
             if (data.sender !== partner.username || !peerConnection.current) return;
             await peerConnection.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
         };
 
-        const handleIceCandidate = async (data: { sender: string, candidate: any }) => {
+        const handleIceCandidate = async (data: { sender: string, candidate: RTCIceCandidateInit }) => {
             if (data.sender !== partner.username || !peerConnection.current) return;
             await peerConnection.current.addIceCandidate(new RTCIceCandidate(data.candidate));
         };
 
-        const handleCallEnded = (sender: string) => {
-            if (sender === partner.username) {
-                cleanup();
-                onEndCall();
-            }
+        const handleCallEnded = () => {
+            cleanup();
+            onEndCall();
         };
 
         const handleVideoRequest = (sender: string) => {
@@ -148,7 +149,12 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
             
             if (localStream.current && peerConnection.current) {
                 localStream.current.addTrack(vTrack);
-                peerConnection.current.addTrack(vTrack, localStream.current);
+                const sender = peerConnection.current.getSenders().find(s => s.track?.kind === 'video');
+                if (sender) {
+                    sender.replaceTrack(vTrack);
+                } else {
+                    peerConnection.current.addTrack(vTrack, localStream.current);
+                }
                 setIsVideoOn(true);
                 
                 if (localVideoRef.current) {
@@ -208,25 +214,25 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
     };
 
     return (
-        <div className="fixed inset-0 bg-[#050505] z-[200] flex flex-col p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-[#0B1220] z-[200] flex flex-col p-4 animate-in fade-in duration-300">
             {videoRequestState === 'pending' && (
                 <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-cyan-900/80 text-cyan-100 px-6 py-3 rounded-full text-sm font-medium backdrop-blur-md whitespace-nowrap z-50 shadow-xl border border-cyan-500/30 animate-pulse">
                     Esperando que {partner.username} acepte la videollamada...
                 </div>
             )}
-
+            
             {videoRequestState === 'incoming' && (
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-[#12141c] border border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.3)] p-5 rounded-2xl backdrop-blur-md flex flex-col items-center gap-4 z-50 animate-in slide-in-from-top-4">
+                <div className="absolute top-8 left-1/2 -translate-x-1/2 bg-[#12141c] border border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.3)] p-5 rounded-3xl backdrop-blur-md flex flex-col items-center gap-5 z-50 animate-in slide-in-from-top-4 min-w-[280px]">
                     <p className="text-white text-sm text-center font-medium">
                         <span className="text-cyan-400 font-bold">{partner.username}</span> quiere iniciar videollamada
                     </p>
-                    <div className="flex gap-3 w-full">
+                    <div className="flex gap-4 w-full">
                         <button 
                             onClick={() => {
                                 socket.emit('video_response', { target: partner.username, accepted: false });
                                 setVideoRequestState('idle');
                             }}
-                            className="flex-1 bg-red-500/20 text-red-400 py-2.5 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors"
+                            className="flex-1 bg-red-500/10 text-red-400 py-3 rounded-2xl text-xs font-bold hover:bg-red-500 hover:text-white border border-red-500/20 transition-colors"
                         >
                             Rechazar
                         </button>
@@ -236,60 +242,60 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                                 setVideoRequestState('idle');
                                 await enableVideo();
                             }}
-                            className="flex-1 bg-green-500/20 text-green-400 py-2.5 rounded-xl text-xs font-bold hover:bg-green-500/30 transition-colors"
+                            className="flex-1 bg-cyan-500/10 text-cyan-400 py-3 rounded-2xl text-xs font-bold hover:bg-cyan-500 hover:text-white border border-cyan-500/20 transition-colors"
                         >
                             Aceptar
                         </button>
                     </div>
                 </div>
             )}
-
-            <div className="flex-1 relative flex items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a16] shadow-2xl">
-                {/* Remote Video */}
+            
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden rounded-[40px] border border-white/5 bg-black shadow-2xl">
+                {/* Remote Video/Audio */}
                 <video 
                     ref={remoteVideoRef} 
                     autoPlay 
                     playsInline 
-                    className={`w-full h-full object-cover transition-opacity duration-500 ${remoteStreamAvailable ? 'opacity-100' : 'opacity-0'}`}
+                    className={`w-full h-full object-cover transition-opacity duration-500 ${remoteStreamAvailable ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}`}
                 />
                 
-                {/* Placeholder if no remote video */}
+                {/* Placeholder if no remote video (but audio still plays via video tag) */}
                 {!remoteStreamAvailable && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a16]/80 backdrop-blur-sm">
-                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-cyan-500/50 mb-6 relative shadow-[0_0_50px_rgba(6,182,212,0.2)]">
-                            <img src={partner.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.username}`} alt={partner.username} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-cyan-500/20 animate-pulse"></div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#12141c] to-[#0B1220]">
+                        <div className="w-48 h-48 rounded-full overflow-hidden border-[6px] border-cyan-500/30 mb-8 relative shadow-[0_0_80px_rgba(6,182,212,0.15)] animate-in zoom-in-95 duration-700">
+                            <div className="absolute inset-0 bg-cyan-500/10 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+                            <img src={partner.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.username}`} alt={partner.username} className="w-full h-full object-cover bg-[#1A2639] relative z-10" />
                         </div>
-                        <h3 className="text-3xl font-bold text-white mb-2">{partner.username}</h3>
-                        <p className="text-cyan-400 font-mono text-xl tracking-wider">{formatTime(duration)}</p>
+                        <h3 className="text-4xl font-light text-white mb-3 tracking-wide">{partner.username}</h3>
+                        <p className="text-cyan-400 font-mono text-2xl tracking-widest bg-cyan-500/10 px-4 py-1.5 rounded-full border border-cyan-500/20">{formatTime(duration)}</p>
                     </div>
                 )}
 
                 {/* Local Video Picture-in-Picture */}
-                <div className={`absolute bottom-6 right-6 w-32 h-48 sm:w-48 sm:h-64 bg-[#12141c] rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl transition-all duration-300 ${isVideoOn ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                <div className={`absolute bottom-6 right-6 w-32 h-48 sm:w-48 sm:h-64 bg-[#12141c] rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl transition-all duration-500 ${isVideoOn ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
                     <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 </div>
             </div>
             
             {/* Controls */}
-            <div className="h-28 flex items-center justify-center gap-6 mt-4">
+            <div className="h-28 flex items-center justify-center gap-6 mt-6">
                 <button 
                     onClick={toggleMute}
-                    className={`p-5 rounded-full transition-all ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                    className={`p-5 rounded-[24px] transition-all duration-300 shadow-lg ${isMuted ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white' : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white'}`}
                 >
                     {isMuted ? <MicOff size={28} /> : <Mic size={28} />}
                 </button>
                 
                 <button 
                     onClick={handleEndCall}
-                    className="p-6 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-[0_0_30px_rgba(220,38,38,0.4)] transition-transform hover:scale-110"
+                    className="p-6 rounded-[28px] bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.3)] transition-all duration-300 hover:scale-110 hover:bg-red-600 hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] group"
                 >
-                    <PhoneOff size={36} />
+                    <PhoneOff size={36} className="group-hover:scale-95 transition-transform" />
                 </button>
                 
                 <button 
                     onClick={requestOrToggleVideo}
-                    className={`p-5 rounded-full transition-all ${!isVideoOn ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'}`}
+                    className={`p-5 rounded-[24px] transition-all duration-300 shadow-lg ${!isVideoOn ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500 hover:text-white'}`}
                 >
                     {!isVideoOn ? <VideoOff size={28} /> : <Video size={28} />}
                 </button>
