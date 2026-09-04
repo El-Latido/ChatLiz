@@ -25,6 +25,7 @@ export interface UserObj {
   elo?: number;
   uid?: string;
   profileLikes?: number;
+  profileComments?: { author: string, text: string, timestamp: number }[];
 }
 
 export interface TutiFruttiState {

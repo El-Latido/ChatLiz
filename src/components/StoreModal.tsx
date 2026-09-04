@@ -15,6 +15,8 @@ export function StoreModal({ onClose, user, decorations, initialCategory, onSele
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [chessBet, setChessBet] = useState(10);
+  const [isPlayingAd, setIsPlayingAd] = useState(false);
+  const [adTimeLeft, setAdTimeLeft] = useState(0);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(() => {
      if (initialCategory) {
          const cats = ['marcos', 'emblemas', 'mascotas', 'efectos'];

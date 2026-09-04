@@ -33,7 +33,10 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
         const initWebRTC = async () => {
             try {
                 // Initial connection is Audio Only
-                const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: false, 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                });
                 localStream.current = stream;
                 
                 const pc = new RTCPeerConnection({
@@ -86,19 +89,7 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                     }
                 };
 
-                if (isInitiator) {
-                    // Slight delay to ensure the other peer is ready to receive the offer
-                    setTimeout(async () => {
-                        try {
-                            const offer = await pc.createOffer();
-                            await pc.setLocalDescription(offer);
-                            socket.emit('webrtc_offer', {
-                                target: partner.username,
-                                sdp: offer
-                            });
-                        } catch(e) { console.error("Error creating offer", e); }
-                    }, 1000);
-                }
+                // Manual initial offer handled by negotiationneeded
             } catch (e) {
                 console.error("WebRTC Error:", e);
             }
@@ -109,13 +100,18 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
         const handleOffer = async (data: { sender: string, sdp: RTCSessionDescriptionInit }) => {
             if (data.sender !== partner.username || !peerConnection.current) return;
             const pc = peerConnection.current;
-            if (pc.signalingState !== "stable") {
-                // If we are initiator and we receive an offer while not stable, we ignore it (glare resolution - initiator wins)
-                if (isInitiator) return;
-                // If non-initiator, we should rollback, but standard WebRTC rollback is complex.
-                // We'll just try to set it.
+            // Glare resolution
+            const offerCollision = (pc.signalingState !== "stable");
+            const polite = !isInitiator;
+            
+            if (offerCollision && !polite) {
+                // We are impolite and there is a collision, ignore their offer
+                return;
             }
+            
             try {
+                // If we are polite and there's a collision, we rollback our offer by setting the remote one.
+                // Actually setRemoteDescription handles rollback implicitly in modern browsers if signalingState is have-local-offer
                 await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);

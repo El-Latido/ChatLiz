@@ -731,17 +731,20 @@ function MainApp() {
       },
     );
 
-    socket.on("message_reaction", (data: { msgId: string, docId?: string, emoji: string, activeChat: string }) => {
+    socket.on("message_reaction", (data: { msgId: string, docId?: string, emoji: string, activeChat: string, username: string }) => {
       setMessages(prev => prev.map(m => {
         if ((m.id && m.id === data.msgId) || (m.docId && m.docId === data.docId)) {
           const currentReactions = m.reactions || {};
-          return {
-            ...m,
-            reactions: {
-              ...currentReactions,
-              [data.emoji]: (currentReactions[data.emoji] || 0) + 1
-            }
-          };
+          const reactionUsers = Array.isArray(currentReactions[data.emoji]) ? currentReactions[data.emoji] : [];
+          if (!reactionUsers.includes(data.username)) {
+              return {
+                ...m,
+                reactions: {
+                  ...currentReactions,
+                  [data.emoji]: [...reactionUsers, data.username]
+                }
+              };
+          }
         }
         return m;
       }));
@@ -773,6 +776,7 @@ function MainApp() {
       playNotifySound();
       if (activeChatRef.current !== fromUser) {
         setUnreadPMs((prev) => ({ ...prev, [fromUser]: true }));
+        setNotifications((prev) => [`Nuevo mensaje de ${fromUser}`, ...prev]);
         setToasts((prev) => [
           ...prev,
           {
@@ -1100,25 +1104,28 @@ function MainApp() {
     setMessages(prev => prev.map(m => {
         if ((m.id && m.id === msgId) || (m.docId && m.docId === docId)) {
             const currentReactions = m.reactions || {};
-            return {
-                ...m,
-                reactions: {
-                    ...currentReactions,
-                    [emoji]: (currentReactions[emoji] || 0) + 1
-                }
-            };
+            const reactionUsers = Array.isArray(currentReactions[emoji]) ? currentReactions[emoji] : [];
+            if (!reactionUsers.includes(user.username)) {
+               return {
+                   ...m,
+                   reactions: {
+                       ...currentReactions,
+                       [emoji]: [...reactionUsers, user.username]
+                   }
+               };
+            }
         }
         return m;
     }));
 
     if (docId) {
-        import("firebase/firestore").then(async ({ doc, updateDoc, increment, getDoc }) => {
+        import("firebase/firestore").then(async ({ doc, updateDoc, arrayUnion, getDoc }) => {
             try {
                 const msgRef = doc(db, "globalMessages", docId);
                 const snap = await getDoc(msgRef);
                 if (snap.exists()) {
                     await updateDoc(msgRef, {
-                        [`reactions.${emoji}`]: increment(1)
+                        [`reactions.${emoji}`]: arrayUnion(user.username)
                     });
                 }
             } catch (e) {
@@ -1127,7 +1134,7 @@ function MainApp() {
         });
     }
     if (socket) {
-        socket.emit("message_reaction", { msgId, emoji, activeChat, docId });
+        socket.emit("message_reaction", { msgId, emoji, activeChat, docId, username: user.username });
     }
   };
   const handleSendMessage = () => {
@@ -1372,6 +1379,48 @@ function MainApp() {
 
         {/* Right: Avatar, Name, Settings */}
         <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
+          
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 rounded-full text-[#D4AF37] hover:bg-white/5 transition-colors relative"
+            >
+              <Bell size={24} strokeWidth={1.5} />
+              {notifications.length > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-72 bg-[#121B2A]/95 backdrop-blur-xl border border-[#D4AF37]/30 rounded-2xl shadow-2xl overflow-hidden z-50">
+                <div className="p-3 border-b border-[#D4AF37]/30 flex justify-between items-center">
+                  <h3 className="text-[#E8D9B0] font-bold">Notificaciones</h3>
+                  {notifications.length > 0 && (
+                    <button 
+                      onClick={() => setNotifications([])}
+                      className="text-xs text-gray-400 hover:text-white"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      No hay notificaciones
+                    </div>
+                  ) : (
+                    notifications.map((n, i) => (
+                      <div key={i} className="p-3 border-b border-white/5 hover:bg-white/5 transition-colors text-sm text-gray-300">
+                        {n}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <div
             className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors"
             onClick={() => {
@@ -1907,13 +1956,19 @@ function MainApp() {
                                 {m.reactions &&
                                   Object.keys(m.reactions).length > 0 && (
                                     <div className="flex flex-wrap gap-1 mt-1">
-                                      {Object.entries(m.reactions).map(([emoji, count]: any) => (
-                                        <span
+                                      {Object.entries(m.reactions).map(([emoji, users]: any) => (
+                                        <div
                                           key={emoji}
-                                          className="bg-white/10 text-xs px-1.5 py-0.5 rounded-full text-white"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const userList = Array.isArray(users) ? users : Array(users).fill("Usuario anónimo");
+                                            alert(`Reacciones ${emoji}: \n${userList.join(", ")}`);
+                                          }}
+                                          className="bg-white/10 text-xs px-1.5 py-0.5 rounded-full text-white cursor-pointer hover:bg-white/20 transition-colors flex items-center gap-1"
+                                          title={Array.isArray(users) ? users.join(", ") : ""}
                                         >
-                                          {emoji} {count}
-                                        </span>
+                                          {emoji} {Array.isArray(users) ? users.length : users}
+                                        </div>
                                       ))}
                                     </div>
                                   )}
@@ -2063,13 +2118,19 @@ function MainApp() {
                                 {m.reactions &&
                                   Object.keys(m.reactions).length > 0 && (
                                     <div className="flex flex-wrap gap-1 mt-1">
-                                      {Object.entries(m.reactions).map(([emoji, count]: any) => (
-                                        <span
+                                      {Object.entries(m.reactions).map(([emoji, users]: any) => (
+                                        <div
                                           key={emoji}
-                                          className="bg-black/10 text-xs px-1.5 py-0.5 rounded-full text-black"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const userList = Array.isArray(users) ? users : Array(users).fill("Usuario anónimo");
+                                            alert(`Reacciones ${emoji}: \n${userList.join(", ")}`);
+                                          }}
+                                          className="bg-black/10 text-xs px-1.5 py-0.5 rounded-full text-black cursor-pointer hover:bg-black/20 transition-colors flex items-center gap-1"
+                                          title={Array.isArray(users) ? users.join(", ") : ""}
                                         >
-                                          {emoji} {count}
-                                        </span>
+                                          {emoji} {Array.isArray(users) ? users.length : users}
+                                        </div>
                                       ))}
                                     </div>
                                   )}
@@ -2645,6 +2706,39 @@ function MainApp() {
                     Dar Like
                   </button>
                 </div>
+                {/* Comentarios de perfil */}
+                <div className="mt-4 bg-[#0a0a16] border border-white/5 p-4 rounded-2xl">
+                  <h4 className="text-sm font-bold text-gray-400 mb-3 border-b border-white/5 pb-2">Comentarios</h4>
+                  <div className="max-h-40 overflow-y-auto flex flex-col gap-2 mb-3">
+                    {(!selectedUserModal.profileComments || selectedUserModal.profileComments.length === 0) ? (
+                      <p className="text-xs text-gray-500 italic">No hay comentarios aún.</p>
+                    ) : (
+                      selectedUserModal.profileComments.map((c: any, i: number) => (
+                        <div key={i} className="bg-white/5 p-2 rounded-lg text-sm">
+                          <span className="font-bold text-cyan-400 mr-2">{c.author}:</span>
+                          <span className="text-gray-300">{c.text}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const input = e.currentTarget.elements.namedItem('comment') as HTMLInputElement;
+                    if (input.value.trim()) {
+                      socket.emit("add_profile_comment", { targetUser: selectedUserModal.username, comment: input.value });
+                      // Optimistic UI update
+                      setSelectedUserModal(prev => prev ? {
+                        ...prev,
+                        profileComments: [...(prev.profileComments || []), { author: user.username, text: input.value, timestamp: Date.now() }]
+                      } : null);
+                      input.value = '';
+                    }
+                  }} className="flex gap-2">
+                    <input name="comment" type="text" placeholder="Escribe un comentario..." className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" />
+                    <button type="submit" className="bg-cyan-500/20 text-cyan-400 px-3 py-2 rounded-xl text-sm font-bold hover:bg-cyan-500 hover:text-white transition-colors">Enviar</button>
+                  </form>
+                </div>
+
                 {selectedUserModal.username !== "Elizabeth" && (
                   <div className="flex gap-2">
                     <button
