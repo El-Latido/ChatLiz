@@ -12,6 +12,7 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
     const [duration, setDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOn, setIsVideoOn] = useState(false);
+    const [isSwapped, setIsSwapped] = useState(false);
     const [remoteStreamAvailable, setRemoteStreamAvailable] = useState(false);
     const [videoRequestState, setVideoRequestState] = useState<'idle' | 'pending' | 'incoming'>('idle');
     
@@ -42,6 +43,20 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                 
                 stream.getTracks().forEach(track => pc.addTrack(track, stream));
                 
+                pc.onnegotiationneeded = async () => {
+                    try {
+                        if (pc.signalingState !== "stable") return;
+                        const offer = await pc.createOffer();
+                        await pc.setLocalDescription(offer);
+                        socket.emit('webrtc_offer', {
+                            target: partner.username,
+                            sdp: offer
+                        });
+                    } catch (e) {
+                        console.error("negotiation error", e);
+                    }
+                };
+                
                 pc.onicecandidate = (event) => {
                     if (event.candidate) {
                         socket.emit('webrtc_ice_candidate', {
@@ -52,12 +67,22 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                 };
                 
                 pc.ontrack = (event) => {
-                    if (remoteVideoRef.current && event.streams[0]) {
-                        if (remoteVideoRef.current.srcObject !== event.streams[0]) {
-                            remoteVideoRef.current.srcObject = event.streams[0];
+                    if (remoteVideoRef.current) {
+                        let stream = remoteVideoRef.current.srcObject;
+                        if (!stream) {
+                            if (event.streams && event.streams[0]) {
+                                stream = event.streams[0];
+                            } else {
+                                stream = new MediaStream();
+                            }
+                            remoteVideoRef.current.srcObject = stream;
                         }
-                        const hasVideo = event.streams[0].getVideoTracks().length > 0;
+                        if (event.track && !(stream as MediaStream).getTracks().includes(event.track)) {
+                            (stream as MediaStream).addTrack(event.track);
+                        }
+                        const hasVideo = (stream as MediaStream).getVideoTracks().length > 0;
                         setRemoteStreamAvailable(hasVideo);
+                        remoteVideoRef.current.play().catch(e => console.error("Play error:", e));
                     }
                 };
 
@@ -84,13 +109,23 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
         const handleOffer = async (data: { sender: string, sdp: RTCSessionDescriptionInit }) => {
             if (data.sender !== partner.username || !peerConnection.current) return;
             const pc = peerConnection.current;
-            await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit('webrtc_answer', {
-                target: partner.username,
-                sdp: answer
-            });
+            if (pc.signalingState !== "stable") {
+                // If we are initiator and we receive an offer while not stable, we ignore it (glare resolution - initiator wins)
+                if (isInitiator) return;
+                // If non-initiator, we should rollback, but standard WebRTC rollback is complex.
+                // We'll just try to set it.
+            }
+            try {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                socket.emit('webrtc_answer', {
+                    target: partner.username,
+                    sdp: answer
+                });
+            } catch (e) {
+                console.error("Error handling offer", e);
+            }
         };
 
         const handleAnswer = async (data: { sender: string, sdp: RTCSessionDescriptionInit }) => {
@@ -161,10 +196,7 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                     localVideoRef.current.srcObject = localStream.current;
                 }
 
-                // Renegotiate connection with new track
-                const offer = await peerConnection.current.createOffer();
-                await peerConnection.current.setLocalDescription(offer);
-                socket.emit('webrtc_offer', { target: partner.username, sdp: offer });
+                // Let negotiationneeded handle it automatically
             }
         } catch (e) {
             console.error("Failed to enable video", e);

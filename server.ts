@@ -1701,7 +1701,11 @@ socket.on("buy_decoration", async (data, callback) => {
         });
       }
     });
-    socket.on("send_global", async (msg) => {
+        socket.on("message_reaction", (data) => {
+        socket.broadcast.emit("message_reaction", data);
+    });
+
+socket.on("send_global", async (msg) => {
       if (!currentUsername) return;
       if (
         bannedUsers[currentUsername] &&

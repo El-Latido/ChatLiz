@@ -1,34 +1,16 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/App_test.tsx', 'utf8');
+let lines = fs.readFileSync('src/App.tsx', 'utf8').split('\n');
 
-// The original `App_test.tsx` has the syntax errors. Let's fix them in a fresh string and write to `App.tsx`.
+// I know the issue is around line 1066 to 1070
+// Let's just find the `return (` at line 1050 and the `});` at line 1072.
 
-// 1. Fix the users list div
-content = content.replace(/<div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin"><\/div>\s*\{usersOnline.map/g, '<div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">\n                 {usersOnline.map');
+for (let i = 1065; i < 1070; i++) {
+    if (lines[i].includes('</div>')) {
+        lines[i] = '';
+    }
+}
+lines[1066] = '                        </div>';
+lines[1067] = '                    );';
+lines[1068] = '                 })}';
 
-// 2. We now have a div that wraps the map. It will naturally be closed by the `</div>` at line 936!
-
-// 3. Remove admin components
-content = content.replace(/import\s*\{\s*CloudAdminPanel\s*\}\s*from\s*'.\/components\/CloudAdminPanel';\s*/g, '');
-content = content.replace(/import\s*\{\s*MainIsland\s*\}\s*from\s*'.\/components\/MainIsland';\s*/g, '');
-content = content.replace(/if\s*\(activeChat === 'cloud_admin'\)\s*\{\s*return <CloudAdminPanel[^\>]*\/\>;\s*\}/g, '');
-content = content.replace(/if\s*\(activeChat === 'builder'\)\s*\{\s*return\s*<MainIsland\s*onClose=\{\(\) => setActiveChat\('global'\)\}\s*\/>;\s*\}/g, '');
-
-// 4. Remove AXISS header buttons (all of them inside the user check)
-const headerAxissRegex = /\{user\?.username\?.toUpperCase\(\) === 'AXISS' && \(\s*<>\s*<button[^>]*setActiveChat\('cloud_admin'\)[^>]*>[\s\S]*?<\/button>\s*<button[^>]*setActiveChat\('cloud_admin'\)[^>]*>[\s\S]*?<\/button>\s*<button[^>]*setActiveChat\('builder'\)[^>]*>[\s\S]*?<\/button>\s*<button[^>]*setActiveChat\('builder'\)[^>]*>[\s\S]*?<\/button>\s*<\/>\s*\)\}/g;
-content = content.replace(headerAxissRegex, '');
-
-// 5. Remove AXISS sidebar buttons
-content = content.replace(/\{user\?.username\?.toUpperCase\(\) === 'AXISS' && \(\s*<button[^>]*setActiveChat\('cloud_admin'\)[^>]*>[\s\S]*?<\/button>\s*\)\}/g, '');
-content = content.replace(/\{user\?.username\?.toUpperCase\(\) === 'AXISS' && \(\s*<button[^>]*setActiveChat\('builder'\)[^>]*>[\s\S]*?<\/button>\s*\)\}/g, '');
-
-// 6. Remove floating builder button
-content = content.replace(/\{user\?.username\?.toUpperCase\(\) === 'AXISS' && \(\s*<button[^>]*setActiveChat\('builder'\)[^>]*>[\s\S]*?<\/button>\s*\)\}/g, '');
-
-// Wait, what about the other syntax errors in App_test.tsx?
-// src/App_test.tsx(1188,7): error TS1128: Declaration or statement expected.
-// src/App_test.tsx(1190,24): error TS1005: ',' expected.
-// Let's check them.
-
-fs.writeFileSync('src/App.tsx', content);
-console.log('Fixed so far.');
+fs.writeFileSync('src/App.tsx', lines.join('\n'));
