@@ -1295,6 +1295,31 @@ socket.on("buy_decoration", async (data, callback) => {
       }
       return callback({ success: false });
     });
+    socket.on("add_profile_comment", async (data) => {
+      if (!currentUsername || !fdb) return;
+      try {
+          const commentObj = {
+              author: currentUsername,
+              text: data.comment,
+              timestamp: Date.now()
+          };
+          const uRef = doc(fdb, "users", data.targetUser);
+          const snap = await getDoc(uRef);
+          if (snap.exists()) {
+              await updateDoc(uRef, {
+                  profileComments: [...(snap.data().profileComments || []), commentObj]
+              });
+          }
+          // Notify the target user if online
+          const targetSocketId = activeUsers[data.targetUser]?.socketId;
+          if (targetSocketId) {
+              io.to(targetSocketId).emit("new_profile_comment", { fromUser: currentUsername, comment: commentObj });
+          }
+      } catch (e) {
+          console.error("Error adding profile comment", e);
+      }
+    });
+
     socket.on("like_user", async (targetUser) => {
       if (!currentUsername) return;
       if (fdb) {
@@ -1307,6 +1332,7 @@ socket.on("buy_decoration", async (data, callback) => {
             if (activeUsers[targetUser]) {
               activeUsers[targetUser].profileLikes = currentLikes + 1;
               emitActiveUsers();
+              io.to(activeUsers[targetUser].socketId).emit("user_liked", currentUsername);
             }
           }
         } catch (e) {}
