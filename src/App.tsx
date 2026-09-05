@@ -35,7 +35,7 @@ import {
   PhoneCall,
   Heart,
   Home,
-} from "lucide-react";
+Play, Coins} from "lucide-react";
 import {
   collection,
   onSnapshot,
@@ -391,6 +391,8 @@ function MainApp() {
     statusMessage: "Administradora",
     systemInstruction: "",
   });
+  const [outOfTokensAi, setOutOfTokensAi] = useState<string | null>(null);
+  const [isWatchingAd, setIsWatchingAd] = useState(false);
 
   const [incomingCall, setIncomingCall] = useState<{
     username: string;
@@ -794,6 +796,10 @@ function MainApp() {
             read: false,
             timestamp: Date.now()
         }, ...prev]);
+    });
+
+    socket.on("out_of_tokens", (data: { aiName: string }) => {
+        setOutOfTokensAi(data.aiName);
     });
 
     socket.on("receive_private", (msg: any, fromUser: string) => {
@@ -1429,7 +1435,16 @@ function MainApp() {
                   <h3 className="text-[#E8D9B0] font-bold">Notificaciones</h3>
                   {notifications.length > 0 && (
                     <button 
-                      onClick={() => setNotifications([])}
+                      onClick={async () => {
+                        const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 10);
+                        setNotifications([]);
+                        for (const n of firestoreNotifs) {
+                           try {
+                               // Assuming updateDoc and doc are imported from firebaseConfig
+                               await updateDoc(doc(db, "notifications", n.id), { isRead: true });
+                           } catch(e) {}
+                        }
+                      }}
                       className="text-xs text-gray-400 hover:text-white"
                     >
                       Limpiar
@@ -1448,10 +1463,19 @@ function MainApp() {
                       const fromUser = !isString ? (n.fromUser || n.senderName) : null;
                       const type = !isString ? (n.type === 'MESSAGE' ? 'private_message' : (n.type === 'LIKE' ? 'like' : n.type)) : 'system';
                       
+                      const fromUserObj = fromUser ? usersOnline.find(u => u.username === fromUser) : null;
+                      const avatarSrc = fromUserObj?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser}`;
+
                       return (
                       <div 
                         key={isString ? i : n.id || i} 
-                        onClick={() => {
+                        onClick={async () => {
+                            if (n.id && n.id.length > 10) {
+                                try { await updateDoc(doc(db, "notifications", n.id), { isRead: true }); } catch(e){}
+                            }
+                            // Optimistically remove from state
+                            setNotifications(prev => prev.filter((_, idx) => idx !== (isString ? i : prev.findIndex(p => p.id === n.id))));
+
                             if (type === 'private_message' && fromUser) {
                                 setActiveChat(fromUser);
                                 setShowNotifications(false);
@@ -1465,9 +1489,9 @@ function MainApp() {
                       >
                         {fromUser && (
                            <img 
-                             src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser}`} 
+                             src={avatarSrc} 
                              alt={fromUser}
-                             className="w-8 h-8 rounded-full bg-[#1A2639] group-hover:scale-105 transition-transform"
+                             className="w-8 h-8 object-cover rounded-full bg-[#1A2639] group-hover:scale-105 transition-transform"
                            />
                         )}
                         <div className="flex-1">

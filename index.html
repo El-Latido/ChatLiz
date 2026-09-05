@@ -30,7 +30,25 @@
 
       gtag('config', 'G-XXXXXXXXXX');
     </script>
-  </head>
+  
+    <!-- Datos Estructurados JSON-LD (SEO) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Chat Liz",
+      "description": "Una plataforma global de chat con IA en tiempo real.",
+      "applicationCategory": "SocialNetworkingApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": "Chat Global, Chat Privado con IA (Elizabeth), Minijuegos"
+    }
+    </script>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

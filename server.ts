@@ -1127,8 +1127,11 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       });
     });
         socket.on("watch_ad_reward", async (callback) => {
-      if (!currentUsername || !activeUsers[currentUsername]) return callback({ success: false });
-      const REWARD = 5;
+      if (!currentUsername || !activeUsers[currentUsername]) {
+          if (typeof callback === 'function') callback({ success: false });
+          return;
+      }
+      const REWARD = 100;
       activeUsers[currentUsername].lizCoins = (activeUsers[currentUsername].lizCoins || 0) + REWARD;
       if (fdb) {
          try {
@@ -1141,7 +1144,9 @@ __name(ensureAutoRadio, "ensureAutoRadio");
          }
       }
       io.to(activeUsers[currentUsername].socketId).emit("update_user_info", activeUsers[currentUsername]);
-      callback({ success: true, newCoins: activeUsers[currentUsername].lizCoins });
+      if (typeof callback === 'function') {
+          callback({ success: true, newCoins: activeUsers[currentUsername].lizCoins });
+      }
     });
 
 socket.on("buy_decoration", async (data, callback) => {
@@ -2471,11 +2476,9 @@ ${msg.text}`,
         // Tokens validation
         const userCoins = activeUsers[currentUsername]?.lizCoins || 0;
         if (userCoins < 1) {
-            io.to(activeUsers[currentUsername].socketId).emit("receive_private", {
-                text: `[SISTEMA] No tienes suficientes LizCoins para chatear con ${aiCharacter.name}. Ve al Selector de Personajes IA en la barra lateral para ver un video y ganar créditos.`,
-                sender: toUser,
-                id: Date.now().toString()
-            }, currentUsername);
+            io.to(activeUsers[currentUsername].socketId).emit("out_of_tokens", {
+                aiName: aiCharacter.name
+            });
             return;
         }
         
