@@ -3178,6 +3178,14 @@ function MainApp() {
 }
 
 export default function App() {
+  useEffect(() => {
+    if (!document.getElementById("tailwind-cdn")) {
+      const script = document.createElement("script");
+      script.id = "tailwind-cdn";
+      script.src = "https://cdn.tailwindcss.com";
+      document.head.appendChild(script);
+    }
+  }, []);
 
 
   return (
