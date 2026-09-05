@@ -28,15 +28,21 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
     };
 
     useEffect(() => {
-        const timer = setInterval(() => setDuration(prev => prev + 1), 1000);
+        let timer = setInterval(() => setDuration(prev => prev + 1), 1000);
         
         const initWebRTC = async () => {
             try {
                 // Initial connection is Audio Only
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: false, 
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
-                });
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: false, 
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                    });
+                } catch (err) {
+                    console.error("Microphone access denied or error", err);
+                    stream = new MediaStream(); // Fallback empty stream to prevent crash
+                }
                 localStream.current = stream;
                 
                 const pc = new RTCPeerConnection({

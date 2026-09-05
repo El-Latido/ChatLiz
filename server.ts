@@ -761,7 +761,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
     });
 
     
-    socket.on("iniciar_llamada", (targetUser) => {
+    socket.on("iniciar_llamada", async (targetUser) => {
         if (!currentUsername) return;
         const callerData = {
             username: currentUsername,
@@ -771,6 +771,22 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             io.to(activeUsers[targetUser].socketId).emit("llamada_entrante", callerData);
         } else {
             pendingCalls[targetUser] = callerData;
+            // Guardar notificación offline en Firebase para el usuario
+            if (fdb) {
+                try {
+                    await addDoc(collection(fdb, "notifications"), {
+                        recipientUid: targetUser,
+                        senderUid: currentUsername,
+                        senderName: currentUsername,
+                        type: "llamada_perdida",
+                        message: `Llamada perdida de ${currentUsername}`,
+                        isRead: false,
+                        timestamp: Date.now(),
+                    });
+                } catch(e) {
+                    console.log("Error guardando notif offline:", e);
+                }
+            }
         }
     });
 

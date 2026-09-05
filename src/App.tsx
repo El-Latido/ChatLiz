@@ -1436,12 +1436,11 @@ function MainApp() {
                   {notifications.length > 0 && (
                     <button 
                       onClick={async () => {
-                        const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 10);
+                        const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 13);
                         setNotifications([]);
                         for (const n of firestoreNotifs) {
                            try {
-                               // Assuming updateDoc and doc are imported from firebaseConfig
-                               await updateDoc(doc(db, "notifications", n.id), { isRead: true });
+                               await deleteDoc(doc(db, "notifications", n.id));
                            } catch(e) {}
                         }
                       }}
@@ -1463,15 +1462,15 @@ function MainApp() {
                       const fromUser = !isString ? (n.fromUser || n.senderName) : null;
                       const type = !isString ? (n.type === 'MESSAGE' ? 'private_message' : (n.type === 'LIKE' ? 'like' : n.type)) : 'system';
                       
-                      const fromUserObj = fromUser ? usersOnline.find(u => u.username === fromUser) : null;
-                      const avatarSrc = fromUserObj?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser}`;
+                      const fromUserObj = fromUser ? (usersOnline.find(u => u.username === fromUser) || userCache[fromUser]) : null;
+                      const avatarSrc = fromUserObj?.profilePic || (fromUser ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser}` : undefined);
 
                       return (
                       <div 
                         key={isString ? i : n.id || i} 
                         onClick={async () => {
-                            if (n.id && n.id.length > 10) {
-                                try { await updateDoc(doc(db, "notifications", n.id), { isRead: true }); } catch(e){}
+                            if (n.id && n.id.length > 13) {
+                                try { await deleteDoc(doc(db, "notifications", n.id)); } catch(e){}
                             }
                             // Optimistically remove from state
                             setNotifications(prev => prev.filter((_, idx) => idx !== (isString ? i : prev.findIndex(p => p.id === n.id))));
