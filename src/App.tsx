@@ -1413,7 +1413,7 @@ function MainApp() {
                   ) : (
                     notifications.map((n, i) => (
                       <div key={i} className="p-3 border-b border-white/5 hover:bg-white/5 transition-colors text-sm text-gray-300">
-                        {n}
+                        {typeof n === 'string' ? n : n.text || 'Notificación'}
                       </div>
                     ))
                   )}
