@@ -320,6 +320,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                        type="button"
                        onClick={() => setShowPassword(!showPassword)}
                        className="btn-eye"
+                       aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                      >
                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                      </button>
