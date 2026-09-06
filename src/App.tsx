@@ -887,7 +887,11 @@ function MainApp() {
       setUserCache((prev) => {
         const newCache = { ...prev };
         usersList.forEach((u) => {
-          newCache[u.username] = u;
+          newCache[u.username] = {
+            ...newCache[u.username],
+            ...u,
+            profilePic: u.profilePic || newCache[u.username]?.profilePic
+          };
         });
         return newCache;
       });
