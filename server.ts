@@ -1674,7 +1674,7 @@ socket.on("buy_decoration", async (data, callback) => {
       ensureAutoRadio();
     });
     socket.on("get_banned_users", (callback) => {
-      if (activeUsers[currentUsername]?.role !== "admin") return callback([]);
+      if (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS") return callback([]);
       const now = Date.now();
       const list = Object.keys(bannedUsers).filter(u => bannedUsers[u] > now).map(u => ({
           username: u,
@@ -1685,13 +1685,47 @@ socket.on("buy_decoration", async (data, callback) => {
     });
     
     socket.on("admin_unban_user", (targetUser, callback) => {
-      if (activeUsers[currentUsername]?.role !== "admin") return callback({success: false});
+      if (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS") return callback({success: false});
       delete bannedUsers[targetUser];
       if (activeUsers[targetUser]) {
           io.to(activeUsers[targetUser].socketId).emit("banned_status", { isBanned: false });
       }
       io.emit("system_message", { text: `El usuario ${targetUser} ha sido desbaneado por el administrador.` });
       callback({success: true});
+    });
+
+    socket.on("get_reports", async (callback) => {
+        if (!currentUsername || (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS")) return callback([]);
+        if (fdb) {
+            try {
+                const { collection, getDocs, orderBy, query } = require("firebase/firestore");
+                const q = query(collection(fdb, "reports"), orderBy("createdAt", "desc"));
+                const snapshot = await getDocs(q);
+                const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                callback(reports);
+            } catch(e) {
+                console.error("Error fetching reports", e);
+                callback([]);
+            }
+        } else {
+            callback([]);
+        }
+    });
+
+    socket.on("delete_report", async (id, callback) => {
+        if (!currentUsername || (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS")) return callback({success: false});
+        if (fdb) {
+            try {
+                const { doc, deleteDoc } = require("firebase/firestore");
+                await deleteDoc(doc(fdb, "reports", id));
+                callback({success: true});
+            } catch(e) {
+                console.error("Error deleting report", e);
+                callback({success: false});
+            }
+        } else {
+            callback({success: false});
+        }
     });
 
     socket.on("report_user", async (data) => {
@@ -1723,7 +1757,7 @@ socket.on("buy_decoration", async (data, callback) => {
     });
 
     socket.on("admin_ban_user", (targetUser, callback) => {
-      if (activeUsers[currentUsername]?.role !== "admin") return callback({success: false});
+      if (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS") return callback({success: false});
       bannedUsers[targetUser] = Date.now() + 15 * 60 * 1000;
       if (activeUsers[targetUser]) {
           io.to(activeUsers[targetUser].socketId).emit("banned_status", { isBanned: true });
@@ -1733,7 +1767,7 @@ socket.on("buy_decoration", async (data, callback) => {
     });
 
     socket.on("admin_cut_transmission", () => {
-      if (!currentUsername || activeUsers[currentUsername]?.role !== "admin")
+      if (!currentUsername || (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS"))
         return;
       currentLiveDJ = null;
       djStreamUrl = null;
@@ -1764,7 +1798,7 @@ socket.on("buy_decoration", async (data, callback) => {
       }
     });
     socket.on("admin_set_dj_schedule", async (data) => {
-      if (!currentUsername || activeUsers[currentUsername]?.role !== "admin")
+      if (!currentUsername || (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS"))
         return;
       const target = data.targetUser;
       if (fdb) {

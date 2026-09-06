@@ -671,7 +671,7 @@ function MainApp() {
       const q = query(
         collection(db, "global_chat"),
         orderBy("timestamp", "asc"),
-        limitToLast(30),
+        limitToLast(15),
       );
       unsubMessages = onSnapshot(q, (snapshot) => {
         const msgs = snapshot.docs.map((doc) => {
@@ -699,7 +699,7 @@ function MainApp() {
       const q = query(
         collection(db, "chats", convoId, "messages"),
         orderBy("timestamp", "asc"),
-        limitToLast(30),
+        limitToLast(15),
       );
       unsubMessages = onSnapshot(q, (snapshot) => {
         const msgs = snapshot.docs.map((doc) => {
@@ -773,7 +773,8 @@ function MainApp() {
       ) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
+          const next = [...prev, msg];
+          return next.slice(-15);
         });
         setTimeout(
           () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
@@ -1674,7 +1675,7 @@ function MainApp() {
             </button>
           </div>
 
-          {user?.role === "admin" && (
+          {(user?.role === "admin" || user?.username?.toUpperCase() === "AXISS") && (
             <div className="px-4 mt-2 grid grid-cols-2 gap-2">
               <button
                 className={`flex items-center justify-center gap-2 text-red-400 bg-red-500/10 border ${isBannedListOpen ? "border-red-500/50" : "border-red-500/20"} px-3 py-2 rounded-2xl hover:bg-red-500/20 transition-all text-sm font-medium`}
@@ -1760,8 +1761,7 @@ function MainApp() {
                   className="bg-[#1A2639]/80 border border-[#D4AF37]/30 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors"
                   onClick={() => {
                     closeAllModals();
-                    setIsSidebarOpen(false);
-                    setActiveChat(u.username);
+                    setSelectedUserModal(u as any);
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -3227,12 +3227,11 @@ function MainApp() {
                   >
                     <div
                       onClick={() => {
-                        setActiveChat(friendUsername);
-                        setUnreadPMs((prev) => ({
-                          ...prev,
-                          [friendUsername]: false,
-                        }));
-                        setIsFriendsSidebarOpen(false);
+                        closeAllModals();
+                        setSelectedUserModal((friendInfo || {
+                            username: friendUsername,
+                            profilePic: `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendUsername}`
+                        }) as any);
                       }}
                       className="flex-1 flex items-center gap-3 cursor-pointer min-w-0"
                     >
