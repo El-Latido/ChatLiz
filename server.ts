@@ -1125,6 +1125,9 @@ __name(ensureAutoRadio, "ensureAutoRadio");
         profileLikes,
       };
       emitActiveUsers();
+      if (bannedUsers[username] && bannedUsers[username] > Date.now()) {
+          socket.emit("banned_status", { isBanned: true });
+      }
       callback({
         success: true,
         username,
@@ -1670,6 +1673,65 @@ socket.on("buy_decoration", async (data, callback) => {
       });
       ensureAutoRadio();
     });
+    socket.on("get_banned_users", (callback) => {
+      if (activeUsers[currentUsername]?.role !== "admin") return callback([]);
+      const now = Date.now();
+      const list = Object.keys(bannedUsers).filter(u => bannedUsers[u] > now).map(u => ({
+          username: u,
+          expiresAt: bannedUsers[u],
+          profilePic: activeUsers[u]?.profilePic || ""
+      }));
+      callback(list);
+    });
+    
+    socket.on("admin_unban_user", (targetUser, callback) => {
+      if (activeUsers[currentUsername]?.role !== "admin") return callback({success: false});
+      delete bannedUsers[targetUser];
+      if (activeUsers[targetUser]) {
+          io.to(activeUsers[targetUser].socketId).emit("banned_status", { isBanned: false });
+      }
+      io.emit("system_message", { text: `El usuario ${targetUser} ha sido desbaneado por el administrador.` });
+      callback({success: true});
+    });
+
+    socket.on("report_user", async (data) => {
+      if (!currentUsername) return;
+      const { target, reason, proofBase64 } = data;
+      if (fdb) {
+          try {
+             const { collection, addDoc } = require("firebase/firestore");
+             await addDoc(collection(fdb, "reports"), {
+                 reporter: currentUsername,
+                 target,
+                 reason,
+                 proofBase64,
+                 createdAt: Date.now()
+             });
+          } catch(e) { console.error("Error saving report", e); }
+      }
+      
+      // Notify admins
+      for (const un in activeUsers) {
+          if (activeUsers[un].role === "admin") {
+              io.to(activeUsers[un].socketId).emit("receive_global", {
+                  sender: "Sistema",
+                  text: `🚨 NUEVO REPORTE: ${currentUsername} reportó a ${target}. Motivo: ${reason}`,
+                  id: Date.now().toString()
+              });
+          }
+      }
+    });
+
+    socket.on("admin_ban_user", (targetUser, callback) => {
+      if (activeUsers[currentUsername]?.role !== "admin") return callback({success: false});
+      bannedUsers[targetUser] = Date.now() + 15 * 60 * 1000;
+      if (activeUsers[targetUser]) {
+          io.to(activeUsers[targetUser].socketId).emit("banned_status", { isBanned: true });
+      }
+      io.emit("system_message", { text: `El usuario ${targetUser} ha sido baneado por el administrador.` });
+      callback({success: true});
+    });
+
     socket.on("admin_cut_transmission", () => {
       if (!currentUsername || activeUsers[currentUsername]?.role !== "admin")
         return;
@@ -1775,6 +1837,7 @@ socket.on("send_global", async (msg) => {
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
         bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1e3;
+        io.to(socket.id).emit("banned_status", { isBanned: true });
         const banMsg = {
           text: `\u{1F6A8} El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`,
           sender: "Elizabeth",
@@ -2339,6 +2402,7 @@ ${eliMsg.text}`,
       const modResult = await moderateMessage(msg, ai);
       if (modResult.banned) {
         bannedUsers[currentUsername] = Date.now() + 15 * 60 * 1e3;
+        io.to(socket.id).emit("banned_status", { isBanned: true });
         const banMsg = {
           text: `\u{1F6A8} El usuario ${currentUsername} ha sido baneado por 15 minutos debido a: ${modResult.reason}.`,
           sender: "Elizabeth",

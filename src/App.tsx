@@ -28,7 +28,7 @@ import {
   Smile,
   Globe,
   Box,
-  Users,
+  Users, ShieldAlert,
   UserPlus,
   AlertCircle,
   Bell,
@@ -392,6 +392,10 @@ function MainApp() {
     systemInstruction: "",
   });
   const [outOfTokensAi, setOutOfTokensAi] = useState<string | null>(null);
+  const [isBanned, setIsBanned] = useState(false);
+  const [isBannedListOpen, setIsBannedListOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [bannedList, setBannedList] = useState<any[]>([]);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
 
   const [incomingCall, setIncomingCall] = useState<{
@@ -872,6 +876,24 @@ function MainApp() {
     socket.on("call_ended", () => {
       setActiveCall(null);
       // showToast('Llamada finalizada', 'info');
+    });
+
+    socket.on("banned_status", (data: {isBanned: boolean}) => {
+      setIsBanned(data.isBanned);
+      if (data.isBanned) {
+         showToast("Has sido baneado. No podrás escribir.", "error");
+      } else {
+         showToast("Has sido desbaneado.", "success");
+      }
+    });
+    
+    socket.on("system_message", (data) => {
+        setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            text: data.text,
+            sender: "Sistema",
+            timestamp: new Date().toISOString()
+        }]);
     });
 
     socket.on("active_users", (usersList: UserObj[]) => {
@@ -2496,6 +2518,113 @@ function MainApp() {
           bet={activeChessGame.bet}
           isHost={activeChessGame.isHost}
         />
+      )}
+
+      {reportTarget && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-[#12141c] border border-red-500/30 w-full max-w-md rounded-2xl p-6 relative shadow-2xl">
+            <button
+              onClick={() => setReportTarget(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
+              <ShieldAlert size={24} /> Reportar a {reportTarget}
+            </h2>
+            <form onSubmit={(e) => {
+                e.preventDefault();
+                const reason = (e.currentTarget.elements.namedItem('reason') as HTMLTextAreaElement).value;
+                const proof = (e.currentTarget.elements.namedItem('proof') as HTMLInputElement).files?.[0];
+                if (!reason || !proof) {
+                    showToast("Por favor adjunta una captura y el motivo.", "error");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    socket.emit("report_user", { target: reportTarget, reason, proofBase64: reader.result });
+                    showToast("Reporte enviado al administrador. Evaluaremos el caso.", "success");
+                    setReportTarget(null);
+                    setSelectedUserModal(null);
+                };
+                reader.readAsDataURL(proof);
+            }} className="flex flex-col gap-4">
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">Motivo del reporte / Acusación</label>
+                    <textarea name="reason" rows={3} required placeholder="Explica detalladamente qué sucedió..." className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-red-500/50 outline-none" />
+                </div>
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">Captura de pantalla (Obligatorio)</label>
+                    <input type="file" name="proof" accept="image/*" required className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-500/10 file:text-red-400 hover:file:bg-red-500/20" />
+                </div>
+                <button type="submit" className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors shadow-lg shadow-red-500/20">
+                    Enviar Reporte
+                </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isBannedListOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#12141c] border border-red-500/30 w-full max-w-md rounded-2xl p-6 relative shadow-2xl">
+            <button
+              onClick={() => setIsBannedListOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-red-400 mb-6 flex items-center gap-2">
+              <ShieldAlert size={24} /> Usuarios Baneados
+            </h2>
+            {bannedList.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No hay usuarios baneados actualmente.</p>
+            ) : (
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                  {bannedList.map(bUser => (
+                     <div key={bUser.username} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-3">
+                           <img src={bUser.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${bUser.username}`} className="w-10 h-10 rounded-full bg-black/50" alt={bUser.username} />
+                           <div>
+                              <div className="text-white font-bold">{bUser.username}</div>
+                              <div className="text-xs text-red-300">Expira: {new Date(bUser.expiresAt).toLocaleTimeString()}</div>
+                           </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    socket.emit("admin_unban_user", bUser.username, (res) => {
+                                        if (res.success) {
+                                            setBannedList(prev => prev.filter(u => u.username !== bUser.username));
+                                            showToast(`${bUser.username} fue desbaneado.`, "success");
+                                        }
+                                    });
+                                }}
+                                className="px-3 py-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Desbanear
+                            </button>
+                            <button
+                                onClick={() => {
+                                    socket.emit("admin_ban_user", bUser.username, (res) => {
+                                        if (res.success) {
+                                            socket.emit("get_banned_users", (list) => setBannedList(list));
+                                            showToast(`${bUser.username} fue baneado (renovado).`, "success");
+                                        }
+                                    });
+                                }}
+                                className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                                title="Renovar Ban (15 min)"
+                            >
+                                Bloquear
+                            </button>
+                        </div>
+                     </div>
+                  ))}
+                </div>
+            )}
+          </div>
+        </div>
       )}
 
       {isConfigOpen && (

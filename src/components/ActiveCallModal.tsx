@@ -53,6 +53,7 @@ export function ActiveCallModal({ partner, isInitiator, onEndCall }: ActiveCallM
                 stream.getTracks().forEach(track => pc.addTrack(track, stream));
                 
                 pc.onnegotiationneeded = async () => {
+                    if (!isInitiator) return;
                     try {
                         if (pc.signalingState !== "stable") return;
                         const offer = await pc.createOffer();
