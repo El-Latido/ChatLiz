@@ -47,6 +47,7 @@ import {
   serverTimestamp,
   where,
   updateDoc,
+  deleteDoc 
 } from "firebase/firestore";
 import {
   signInAnonymously,
@@ -395,6 +396,7 @@ function MainApp() {
   const [isBanned, setIsBanned] = useState(false);
   const [isBannedListOpen, setIsBannedListOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [expandedAvatar, setExpandedAvatar] = useState<string | null>(null);
   const [isReportsListOpen, setIsReportsListOpen] = useState(false);
   const [reportsList, setReportsList] = useState<any[]>([]);
   const [bannedList, setBannedList] = useState<any[]>([]);
@@ -883,9 +885,9 @@ function MainApp() {
     socket.on("banned_status", (data: {isBanned: boolean}) => {
       setIsBanned(data.isBanned);
       if (data.isBanned) {
-         showToast("Has sido baneado. No podrás escribir.", "error");
+         alert("Has sido baneado. No podrás escribir.");
       } else {
-         showToast("Has sido desbaneado.", "success");
+         alert("Has sido desbaneado.");
       }
     });
     
@@ -1658,7 +1660,7 @@ function MainApp() {
               LizGram
             </button>
             <button
-              className={`${user?.username?.toUpperCase() === "AXISS" ? "col-span-2" : "col-span-1"} flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? "border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "border-[#D4AF37]/30"} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`}
+              className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? "border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "border-[#D4AF37]/30"} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`}
               onClick={() => {
                 closeAllModals();
                 setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
@@ -1671,6 +1673,33 @@ function MainApp() {
               )}
             </button>
           </div>
+
+          {user?.role === "admin" && (
+            <div className="px-4 mt-2 grid grid-cols-2 gap-2">
+              <button
+                className={`flex items-center justify-center gap-2 text-red-400 bg-red-500/10 border ${isBannedListOpen ? "border-red-500/50" : "border-red-500/20"} px-3 py-2 rounded-2xl hover:bg-red-500/20 transition-all text-sm font-medium`}
+                onClick={() => {
+                  closeAllModals();
+                  socket.emit("get_banned_users", (list: any) => setBannedList(list));
+                  setIsBannedListOpen(!isBannedListOpen);
+                }}
+              >
+                <ShieldAlert size={16} strokeWidth={1.5} />
+                Baneados
+              </button>
+              <button
+                className={`flex items-center justify-center gap-2 text-orange-400 bg-orange-500/10 border ${isReportsListOpen ? "border-orange-500/50" : "border-orange-500/20"} px-3 py-2 rounded-2xl hover:bg-orange-500/20 transition-all text-sm font-medium`}
+                onClick={() => {
+                  closeAllModals();
+                  socket.emit("get_reports", (list: any) => setReportsList(list));
+                  setIsReportsListOpen(!isReportsListOpen);
+                }}
+              >
+                <AlertTriangle size={16} strokeWidth={1.5} />
+                Reportes
+              </button>
+            </div>
+          )}
 
           <div className="w-full h-px bg-white/5 my-2"></div>
 
@@ -2565,7 +2594,7 @@ function MainApp() {
                                 onClick={() => {
                                     socket.emit("admin_ban_user", report.target, (res: any) => {
                                         if (res.success) {
-                                            showToast(`${report.target} ha sido baneado.`, "success");
+                                            alert(`${report.target} ha sido baneado.`);
                                         }
                                     });
                                 }}
@@ -2578,7 +2607,7 @@ function MainApp() {
                                     socket.emit("delete_report", report.id, (res: any) => {
                                         if (res.success) {
                                             setReportsList(prev => prev.filter(r => r.id !== report.id));
-                                            showToast("Reporte descartado y eliminado.", "success");
+                                            alert("Reporte descartado y eliminado.");
                                         }
                                     });
                                 }}
@@ -2592,6 +2621,28 @@ function MainApp() {
                 </div>
             )}
           </div>
+        </div>
+      )}
+
+      {expandedAvatar && (
+        <div 
+            className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setExpandedAvatar(null)}
+        >
+            <div className="relative max-w-3xl w-full flex items-center justify-center">
+                <button 
+                    onClick={() => setExpandedAvatar(null)}
+                    className="absolute -top-12 right-0 text-white/50 hover:text-white"
+                >
+                    <X size={32} />
+                </button>
+                <img 
+                    src={expandedAvatar} 
+                    alt="Expanded Avatar" 
+                    className="max-h-[80vh] w-auto max-w-full rounded-2xl shadow-2xl object-contain border border-white/10 bg-black/50"
+                    onClick={(e) => e.stopPropagation()} 
+                />
+            </div>
         </div>
       )}
 
@@ -2612,13 +2663,13 @@ function MainApp() {
                 const reason = (e.currentTarget.elements.namedItem('reason') as HTMLTextAreaElement).value;
                 const proof = (e.currentTarget.elements.namedItem('proof') as HTMLInputElement).files?.[0];
                 if (!reason || !proof) {
-                    showToast("Por favor adjunta una captura y el motivo.", "error");
+                    alert("Por favor adjunta una captura y el motivo.");
                     return;
                 }
                 const reader = new FileReader();
                 reader.onload = () => {
                     socket.emit("report_user", { target: reportTarget, reason, proofBase64: reader.result });
-                    showToast("Reporte enviado al administrador. Evaluaremos el caso.", "success");
+                    alert("Reporte enviado al administrador. Evaluaremos el caso.");
                     setReportTarget(null);
                     setSelectedUserModal(null);
                 };
@@ -2671,7 +2722,7 @@ function MainApp() {
                                     socket.emit("admin_unban_user", bUser.username, (res) => {
                                         if (res.success) {
                                             setBannedList(prev => prev.filter(u => u.username !== bUser.username));
-                                            showToast(`${bUser.username} fue desbaneado.`, "success");
+                                            alert(`${bUser.username} fue desbaneado.`);
                                         }
                                     });
                                 }}
@@ -2684,7 +2735,7 @@ function MainApp() {
                                     socket.emit("admin_ban_user", bUser.username, (res) => {
                                         if (res.success) {
                                             socket.emit("get_banned_users", (list) => setBannedList(list));
-                                            showToast(`${bUser.username} fue baneado (renovado).`, "success");
+                                            alert(`${bUser.username} fue baneado (renovado).`);
                                         }
                                     });
                                 }}
@@ -2869,7 +2920,11 @@ function MainApp() {
                   />
                 </div>
               )}
-              <div className="w-full h-full rounded-full overflow-hidden relative z-0">
+              <div 
+                  className="w-full h-full rounded-full overflow-hidden relative z-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setExpandedAvatar(selectedUserModal.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`)}
+                  title="Ampliar foto"
+              >
                 <img
                   referrerPolicy="no-referrer"
                   src={
@@ -3118,6 +3173,16 @@ function MainApp() {
                       </button>
                     )}
                   </div>
+                )}
+                
+                {selectedUserModal.username !== user.username && (
+                    <button
+                      onClick={() => setReportTarget(selectedUserModal.username)}
+                      className="w-full mt-3 flex items-center justify-center gap-2 p-3 rounded-xl font-medium transition-colors border text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                    >
+                      <ShieldAlert size={18} />
+                      Reportar Infracción
+                    </button>
                 )}
               </div>
             )}
