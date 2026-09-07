@@ -403,6 +403,8 @@ function MainApp() {
   const [expandedAvatar, setExpandedAvatar] = useState<string | null>(null);
   const [isReportsListOpen, setIsReportsListOpen] = useState(false);
   const [isFriendReqOpen, setIsFriendReqOpen] = useState(false);
+  const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
+  const [monetizationStats, setMonetizationStats] = useState({ adViews: 0, revenuePending: 0, lifetimeRevenue: 0 });
   const [reportsList, setReportsList] = useState<any[]>([]);
   const [bannedList, setBannedList] = useState<any[]>([]);
 
@@ -912,6 +914,12 @@ function MainApp() {
             sender: "Sistema",
             timestamp: new Date().toISOString()
         }]);
+    });
+
+    socket.on("update_user_info", (updatedUser: UserObj) => {
+        if (updatedUser.username === user.username) {
+            setUser(prev => ({ ...prev, ...updatedUser }));
+        }
     });
 
     socket.on("active_users", (usersList: UserObj[]) => {
@@ -1705,6 +1713,7 @@ function MainApp() {
           </div>
 
           {(user?.role === "admin" || user?.username?.toUpperCase() === "AXISS") && (
+            <>
             <div className="px-4 mt-2 grid grid-cols-2 gap-2">
               <button
                 className={`flex items-center justify-center gap-2 text-red-400 bg-red-500/10 border ${isBannedListOpen ? "border-red-500/50" : "border-red-500/20"} px-3 py-2 rounded-2xl hover:bg-red-500/20 transition-all text-sm font-medium`}
@@ -1729,6 +1738,20 @@ function MainApp() {
                 Reportes
               </button>
             </div>
+            <div className="px-4 mt-2">
+              <button
+                className={`w-full flex items-center justify-center gap-2 text-green-400 bg-green-500/10 border ${isMonetizationOpen ? "border-green-500/50" : "border-green-500/20"} px-3 py-2 rounded-2xl hover:bg-green-500/20 transition-all text-sm font-medium`}
+                onClick={() => {
+                  closeAllModals();
+                  socket.emit("get_monetization_stats", (stats: any) => setMonetizationStats(stats));
+                  setIsMonetizationOpen(!isMonetizationOpen);
+                }}
+              >
+                <DollarSign size={16} strokeWidth={1.5} />
+                Ingresos SDK
+              </button>
+            </div>
+            </>
           )}
 
           <div className="w-full h-px bg-white/5 my-2"></div>
@@ -2581,6 +2604,65 @@ function MainApp() {
         />
       )}
 
+      {/* Monetization Panel */}
+      {isMonetizationOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-[#12141c] p-6 rounded-3xl w-full max-w-md shadow-2xl relative border border-green-500/30">
+            <button
+              onClick={() => setIsMonetizationOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-green-400 mb-6 flex items-center gap-2">
+              <DollarSign size={24} /> Panel de Ingresos (Ads)
+            </h2>
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center">
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Vistas de Anuncios</p>
+                        <p className="text-2xl font-black text-white">{monetizationStats.adViews}</p>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center">
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ingresos de por Vida</p>
+                        <p className="text-2xl font-black text-green-400">${(monetizationStats.lifetimeRevenue || 0).toFixed(2)}</p>
+                    </div>
+                </div>
+                
+                <div className="bg-green-500/10 p-5 rounded-2xl border border-green-500/30">
+                    <div className="flex justify-between items-center mb-2">
+                        <p className="text-gray-300 font-bold">Saldo Pendiente:</p>
+                        <p className="text-3xl font-black text-green-400">${(monetizationStats.revenuePending || 0).toFixed(2)}</p>
+                    </div>
+                    <div className="w-full bg-black/50 rounded-full h-3 mb-4 overflow-hidden border border-white/5">
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-400 h-3 rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, ((monetizationStats.revenuePending || 0) / 100) * 100)}%` }}></div>
+                    </div>
+                    <button
+                        onClick={() => {
+                            socket.emit("withdraw_revenue", (res: any) => {
+                                if (res.success) {
+                                    alert("Transferencia bancaria iniciada con éxito. Los fondos llegarán en 2-3 días hábiles.");
+                                    setMonetizationStats(res.stats);
+                                } else {
+                                    alert(res.message || "Error al retirar fondos.");
+                                }
+                            });
+                        }}
+                        disabled={monetizationStats.revenuePending < 100}
+                        className={`w-full flex justify-center items-center gap-2 py-3 rounded-xl font-bold transition-all ${monetizationStats.revenuePending >= 100 ? "bg-green-500 hover:bg-green-400 text-black shadow-[0_0_15px_rgba(34,197,94,0.4)]" : "bg-gray-800 text-gray-500 cursor-not-allowed"}`}
+                    >
+                        <DollarSign size={18} />
+                        {monetizationStats.revenuePending >= 100 ? "Retirar a Cuenta Bancaria" : "Se requieren $100 para retirar"}
+                    </button>
+                </div>
+                <p className="text-xs text-gray-500 text-center">
+                    Los ingresos son calculados a través del SDK publicitario de videos recompensados.
+                </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isReportsListOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-[#12141c] border border-orange-500/30 w-full max-w-2xl rounded-2xl p-6 relative shadow-2xl">
@@ -2925,6 +3007,7 @@ function MainApp() {
                              clearInterval(interval);
                              socket.emit("watch_ad_reward", (res: any) => {
                                  if (res.success) {
+                                     setUser(prev => ({ ...prev, lizCoins: res.newCoins }));
                                      alert(`¡Felicidades! Has ganado 100 Liz-Moneditas.`);
                                      setOutOfTokensAi(null);
                                      setIsWatchingAd(false);
@@ -2967,9 +3050,12 @@ function MainApp() {
           <div className="w-full max-w-3xl aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl relative flex items-center justify-center border border-white/10">
              {/* Simulated Ad Video */}
              <video 
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" 
                 autoPlay 
                 muted
+                playsInline
+                loop
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover opacity-80"
              />
              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
