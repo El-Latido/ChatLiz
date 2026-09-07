@@ -30,8 +30,8 @@ import {
   Globe,
   Box,
   Users,
-  UserPlus, ShieldAlert, AlertTriangle,
-  UserPlus,
+  UserPlus, DollarSign, ShieldAlert, AlertTriangle,
+  UserPlus, DollarSign,
   AlertCircle,
   Bell,
   PhoneCall,
@@ -514,7 +514,7 @@ function MainApp() {
     if (bottomRef.current?.parentElement) {
       bottomRef.current.parentElement.scrollTo({
         top: bottomRef.current.parentElement.scrollHeight,
-        behavior: 'smooth'
+        behavior: 'auto'
       });
     }
   };
@@ -540,27 +540,7 @@ function MainApp() {
     }
   }, [isMusicPlaying]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMessages((prev) => {
-        const twelveMinAgo = Date.now() - 12 * 60 * 1000;
-        const filtered = prev.filter((m) => {
-          const time = m.timestamp?.seconds
-            ? m.timestamp.seconds * 1000
-            : m.createdAt?.seconds
-              ? m.createdAt.seconds * 1000
-              : typeof m.timestamp === "number"
-                ? m.timestamp
-                : typeof m.createdAt === "number"
-                  ? m.createdAt
-                  : Date.now();
-          return time > twelveMinAgo;
-        });
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-    }, 30000); // Check every 30s
-    return () => clearInterval(interval);
-  }, []);
+
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
