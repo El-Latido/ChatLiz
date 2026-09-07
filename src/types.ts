@@ -21,11 +21,15 @@ export interface UserObj {
   reactions?: Record<string, string[]>;
   lizCoins?: number;
   activeDecoration?: string | null;
-  ownedDecorations?: string[];
+    ownedDecorations?: string[];
   elo?: number;
   uid?: string;
   profileLikes?: number;
   profileComments?: { author: string, text: string, timestamp: number }[];
+  bubbleColor?: string;
+  bubbleBorder?: string;
+  bubbleShape?: string;
+  bubbleTexture?: string;
 }
 
 export interface TutiFruttiState {
