@@ -29,7 +29,8 @@ import {
   Smile,
   Globe,
   Box,
-  Users, ShieldAlert, AlertTriangle,
+  Users,
+  UserPlus, ShieldAlert, AlertTriangle,
   UserPlus,
   AlertCircle,
   Bell,
@@ -401,6 +402,7 @@ function MainApp() {
   const [reportTarget, setReportTarget] = useState<string | null>(null);
   const [expandedAvatar, setExpandedAvatar] = useState<string | null>(null);
   const [isReportsListOpen, setIsReportsListOpen] = useState(false);
+  const [isFriendReqOpen, setIsFriendReqOpen] = useState(false);
   const [reportsList, setReportsList] = useState<any[]>([]);
   const [bannedList, setBannedList] = useState<any[]>([]);
 
@@ -505,6 +507,15 @@ function MainApp() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioChunks = useRef<BlobPart[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (bottomRef.current?.parentElement) {
+      bottomRef.current.parentElement.scrollTo({
+        top: bottomRef.current.parentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const micTimeoutRef = useRef<any>(null);
   const [isMicHeld, setIsMicHeld] = useState(false);
@@ -691,7 +702,7 @@ function MainApp() {
         });
         setMessages(filteredMsgs);
         setTimeout(
-          () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+          scrollToBottom,
           100,
         );
       });
@@ -710,7 +721,7 @@ function MainApp() {
         });
         setMessages(msgs);
         setTimeout(
-          () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+          scrollToBottom,
           100,
         );
       });
@@ -779,7 +790,7 @@ function MainApp() {
           return next.slice(-15);
         });
         setTimeout(
-          () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+          scrollToBottom,
           100,
         );
       }
@@ -840,7 +851,7 @@ function MainApp() {
           return [...prev, msg];
         });
         setTimeout(
-          () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+          scrollToBottom,
           100,
         );
       }
@@ -1152,6 +1163,7 @@ function MainApp() {
     setShowNotifications(false);
     setIsSidebarOpen(false);
     setIsFriendsSidebarOpen(false);
+    setIsFriendReqOpen(false);
     setIsConfigOpen(false);
     setIsAiSelectorOpen(false);
     setSelectedUserModal(null);
@@ -1235,7 +1247,7 @@ function MainApp() {
     if (activeChat === "global") {
       setMessages((prev) => [...prev, msgData]);
       setTimeout(
-        () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+        scrollToBottom,
         100,
       );
       socket.emit("send_global", payload);
@@ -1244,7 +1256,7 @@ function MainApp() {
       // Optimistic UI for private messages
       setMessages((prev) => [...prev, msgData]);
       setTimeout(
-        () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+        scrollToBottom,
         100,
       );
       socket.emit("send_private", payload, activeChat, (res: any) => {
@@ -1669,10 +1681,25 @@ function MainApp() {
                 setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
               }}
             >
-              <Users size={16} strokeWidth={1.5} />
-              Inbox / Amigos
+              <MessageSquare size={16} strokeWidth={1.5} />
+              Buzón
               {Object.values(unreadPMs).some((v) => v) && (
                 <div className="w-2 h-2 bg-cyan-500 rounded-full ml-1"></div>
+              )}
+            </button>
+          </div>
+          <div className="px-4 mt-2">
+            <button
+              className={`w-full flex items-center justify-center gap-2 text-cyan-400 bg-cyan-500/10 border ${isFriendReqOpen ? "border-cyan-500/50" : "border-cyan-500/20"} px-3 py-2 rounded-2xl hover:bg-cyan-500/20 transition-all text-sm font-medium`}
+              onClick={() => {
+                closeAllModals();
+                setIsFriendReqOpen(!isFriendReqOpen);
+              }}
+            >
+              <UserPlus size={16} strokeWidth={1.5} />
+              Solicitudes de Amistad
+              {(user?.friend_requests && user.friend_requests.length > 0) && (
+                <span className="bg-cyan-500 text-black text-xs font-bold px-2 py-0.5 rounded-full ml-1">{user.friend_requests.length}</span>
               )}
             </button>
           </div>
@@ -1827,6 +1854,7 @@ function MainApp() {
               <>
                 {activeChat !== "global" &&
                   (() => {
+                    const serverAiInfo = usersOnline.find((u) => u.username === activeChat);
                     const aiChar = [
                       "Elizabeth",
                       "Sensei",
@@ -1835,8 +1863,8 @@ function MainApp() {
                     ].includes(activeChat)
                       ? {
                           username: activeChat,
-                          profilePic: `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`,
-                          statusMessage: "Inteligencia Artificial",
+                          profilePic: serverAiInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`,
+                          statusMessage: serverAiInfo?.statusMessage || "Inteligencia Artificial",
                           isAi: true,
                         }
                       : null;
@@ -2957,6 +2985,46 @@ function MainApp() {
         </div>
       )}
 
+
+      {/* Friend Requests Modal */}
+      {isFriendReqOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-[#12141c] p-6 rounded-3xl w-full max-w-sm shadow-2xl relative border border-cyan-500/30">
+            <button
+              onClick={() => setIsFriendReqOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-center gap-2">
+              <UserPlus className="text-cyan-400" /> Solicitudes
+            </h2>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+               {(!user.friend_requests || user.friend_requests.length === 0) ? (
+                   <p className="text-center text-gray-500 py-4">No tienes solicitudes pendientes.</p>
+               ) : (
+                   user.friend_requests.map((reqUsername) => {
+                       const reqInfo = usersOnline.find(u => u.username === reqUsername) || userCache[reqUsername];
+                       const pic = reqInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reqUsername}`;
+                       return (
+                           <div key={reqUsername} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                               <div className="flex items-center gap-3">
+                                  <img src={pic} className="w-10 h-10 rounded-full border border-cyan-500/30" />
+                                  <span className="text-white font-medium">{reqUsername}</span>
+                               </div>
+                               <div className="flex gap-2">
+                                  <button onClick={() => socket.emit("accept_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/40 font-bold">✓</button>
+                                  <button onClick={() => socket.emit("reject_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/40 font-bold">✕</button>
+                               </div>
+                           </div>
+                       );
+                   })
+               )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedUserModal && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4"
@@ -3316,15 +3384,16 @@ function MainApp() {
                   >
                     <div
                       onClick={() => {
-                        closeAllModals();
-                        setSelectedUserModal((friendInfo || {
-                            username: friendUsername,
-                            profilePic: `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendUsername}`
-                        }) as any);
+                        setActiveChat(friendUsername);
+                        setUnreadPMs((prev) => ({
+                          ...prev,
+                          [friendUsername]: false,
+                        }));
+                        setIsFriendsSidebarOpen(false);
                       }}
                       className="flex-1 flex items-center gap-3 cursor-pointer min-w-0"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/10 overflow-hidden relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-[#D4AF37]/30 overflow-hidden relative flex-shrink-0">
                         <img
                           referrerPolicy="no-referrer"
                           src={
@@ -3346,7 +3415,7 @@ function MainApp() {
                             <div className="w-2 h-2 rounded-full bg-cyan-500 ml-2"></div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className={`text-sm truncate ${unreadPMs[friendUsername] ? "text-white font-semibold" : "text-gray-400"}`}>
                           {chatInfo.lastMessage || "Conversación"}
                         </p>
                       </div>
@@ -3420,7 +3489,7 @@ function MainApp() {
               setActiveChat("global");
               setMessages((prev) => [...prev, msgData]);
               setTimeout(
-                () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+                scrollToBottom,
                 100,
               );
             } else if (gameId.startsWith("chessbot_")) {
@@ -3501,7 +3570,7 @@ function MainApp() {
               setActiveChat("global");
               setMessages((prev) => [...prev, msgData]);
               setTimeout(
-                () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+                scrollToBottom,
                 100,
               );
             } else if (gameId.startsWith("chessbot_")) {
