@@ -1538,7 +1538,7 @@ socket.on("buy_decoration", async (data, callback) => {
           }
           const prompt = `Como Elizabeth, analiza esta solicitud de canci\xF3n. Canci\xF3n: ${song.title}. Genera un anuncio. Responde en JSON con { "accepted": true/false, "announcement": "..." }`;
           const resp = await safeGenerateContent(ai, {
-            model: "gemini-1.5-flash",
+            model: "gemini-3.6-flash",
             contents: prompt,
             config: { responseMimeType: "application/json", temperature: 0.7 },
           });
@@ -2039,7 +2039,7 @@ socket.on("send_global", async (msg) => {
           } else {
             try {
               const resp = await safeGenerateContent(ai, {
-                model: "gemini-1.5-flash",
+                model: "gemini-3.6-flash",
                 contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/pa\xEDs: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducci\xF3n directa, sin comillas adicionales.
 
 Texto:
@@ -2098,7 +2098,7 @@ ${msg.text}`,
                       `[${new Date(m.createdAt?.seconds ? m.createdAt.seconds * 1e3 : typeof m.createdAt === "number" ? m.createdAt : Date.now()).toLocaleTimeString()}] ${m.sender}: ${m.text}`,
                   )
                   .join("\n") +
-                    `\n\nNUEVO MENSAJE DE ${currentUsername}: "${msg.text}"` + (msg.replyTo ? `\n(Este mensaje responde al mensaje de ${msg.replyTo.sender}: "${msg.replyTo.text}")` : "") + `\nResponde de forma privada como ${"Elizabeth"}.` + (msg.replyTo ? `\n(Este mensaje responde al mensaje de ${msg.replyTo.sender}: "${msg.replyTo.text}")` : "") + `\nResponde directamente como Elizabeth.` + (msg.replyTo ? `\n(Este mensaje responde al mensaje de ${msg.replyTo.sender}: "${msg.replyTo.text}")` : "") + `\nResponde directamente como Elizabeth.`,
+                    `\n\nNUEVO MENSAJE DE ${currentUsername}: "${msg.text}"` + (msg.replyTo ? `\n(Este mensaje responde al mensaje de ${msg.replyTo.sender}: "${msg.replyTo.text}")` : "") + `\nResponde directamente como Elizabeth.`,
             },
           ];
           if (msg.image && msg.image.startsWith("data:image")) {
@@ -2130,7 +2130,7 @@ ${msg.text}`,
             response = await safeGenerateContent(
               ai,
               {
-                model: "gemini-1.5-flash",
+                model: "gemini-3.6-flash",
                 contents: parts,
                 config: { systemInstruction: sysInstruction },
               },
@@ -2200,7 +2200,7 @@ ${msg.text}`,
               } else {
                 try {
                   const resp = await safeGenerateContent(ai, {
-                    model: "gemini-1.5-flash",
+                    model: "gemini-3.6-flash",
                     contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/pa\xEDs: ${eliSenderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducci\xF3n directa, sin comillas adicionales.
 
 Texto:
@@ -2620,7 +2620,7 @@ ${eliMsg.text}`,
           } else {
             try {
               const resp = await safeGenerateContent(ai, {
-                model: "gemini-1.5-flash",
+                model: "gemini-3.6-flash",
                 contents: `Traduce el siguiente texto de un chat (escrito originalmente en el idioma/pa\xEDs: ${senderLanguage}) al idioma correspondiente de: ${receiverLanguage}. Solo devuelve la traducci\xF3n directa, sin comillas adicionales.
 
 Texto:
@@ -2740,7 +2740,7 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
             response = await safeGenerateContent(
               ai,
               {
-                model: "gemini-1.5-flash",
+                model: "gemini-3.6-flash",
                 contents: parts,
                 config: { systemInstruction: sysInstruction },
               },
