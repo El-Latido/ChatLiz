@@ -398,6 +398,20 @@ function MainApp() {
   useEffect(() => {
     activeChatRef.current = activeChat;
   }, [activeChat]);
+  
+  const DICT: Record<string, Record<string, string>> = {
+    es: { chatGlobal: "Chat Global", online: "En línea", type: "Escribe un mensaje...", send: "Enviar", friends: "Amigos", settings: "Ajustes", search: "Buscar...", profile: "Perfil", unread: "Nuevos" },
+    en: { chatGlobal: "Global Chat", online: "Online", type: "Type a message...", send: "Send", friends: "Friends", settings: "Settings", search: "Search...", profile: "Profile", unread: "New" },
+    pt: { chatGlobal: "Chat Global", online: "Online", type: "Digite uma mensagem...", send: "Enviar", friends: "Amigos", settings: "Configurações", search: "Procurar...", profile: "Perfil", unread: "Novo" },
+    fr: { chatGlobal: "Chat Mondial", online: "En ligne", type: "Tapez un message...", send: "Envoyer", friends: "Amis", settings: "Paramètres", search: "Rechercher...", profile: "Profil", unread: "Nouveau" },
+    de: { chatGlobal: "Globaler Chat", online: "Online", type: "Nachricht eingeben...", send: "Senden", friends: "Freunde", settings: "Einstellungen", search: "Suchen...", profile: "Profil", unread: "Neu" },
+    it: { chatGlobal: "Chat Globale", online: "In linea", type: "Scrivi un messaggio...", send: "Invia", friends: "Amici", settings: "Impostazioni", search: "Cerca...", profile: "Profil", unread: "Nuovo" }
+  };
+  const t = (key: string) => {
+     const lang = user.pais_idioma || 'es';
+     return DICT[lang]?.[key] || DICT['es'][key] || key;
+  };
+
   const [messages, setMessages] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);

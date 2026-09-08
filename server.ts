@@ -3,7 +3,15 @@ import nodemailer from "nodemailer";
 var __defProp = Object.defineProperty;
 var __name = (target, value) =>
   __defProp(target, "name", { value, configurable: true });
-import express from "express";
+import express from 'express';
+
+const fsLog = require('fs');
+const originalConsoleError = console.error;
+console.error = (...args) => {
+    fsLog.appendFileSync('server_error.log', args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '\n');
+    originalConsoleError(...args);
+};
+
 import ytdl from "ytdl-core";
 import http from "http";
 import path from "path";

@@ -132,15 +132,15 @@ export function ProfileConfigModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" 
+        className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity pointer-events-auto" 
         onClick={() => setIsConfigOpen(false)}
       />
       
       {/* Modal Container */}
-      <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#12141c] to-[#0a0a0f] rounded-3xl shadow-2xl border border-white/10 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#12141c] to-[#0a0a0f] rounded-3xl shadow-2xl border border-white/10 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in-95 duration-300 mt-10 sm:mt-0 mb-10 sm:mb-0">
         
         {/* Sidebar Tabs */}
         <div className="w-full md:w-64 bg-black/40 border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible">
