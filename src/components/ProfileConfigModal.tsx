@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { Settings, X, LogOut, Bot } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, X, LogOut, Bot, Palette, Lock, User, Globe, MessageSquare } from 'lucide-react';
 import { socket } from '../socket';
 import { UserObj } from '../types';
 import { doc, setDoc } from 'firebase/firestore';
-import { db, storage } from '../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
+import { db } from '../firebaseConfig';
 
 interface ProfileConfigModalProps {
   user: UserObj & { password?: string };
@@ -18,328 +17,419 @@ interface ProfileConfigModalProps {
 export function ProfileConfigModal({
   user, setUser, setIsConfigOpen, setAdminConfigAiOpen, usersOnline, setAiProfileForm
 }: ProfileConfigModalProps) {
-  // Local states as requested
-  const [nombre, setNombre] = useState(user.username || '');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'apariencia' | 'idioma' | 'cuenta'>('perfil');
   const [comentario, setComentario] = useState(user.statusMessage || '');
-  const [pais, setPais] = useState(user.countryLanguage || 'es');
+  const [pais, setPais] = useState(user.pais_idioma || 'es');
   const [password, setPassword] = useState(user.password || '');
   const [fotoURL, setFotoURL] = useState(user.profilePic || '');
   const [isFriendsPublic, setIsFriendsPublic] = useState(user.is_friends_public || false);
   const [backgroundBase64, setBackgroundBase64] = useState(user.preferred_background || '');
-  const [selectedBgFile, setSelectedBgFile] = useState<File | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [bubbleColor, setBubbleColor] = useState(user.bubbleColor || '#121B2A');
+  const [bubbleBorder, setBubbleBorder] = useState(user.bubbleBorder || 'border-[#5A52A5]/30');
+  const [bubbleShape, setBubbleShape] = useState(user.bubbleShape || 'rounded-2xl rounded-tr-sm');
+  const [bubbleTexture, setBubbleTexture] = useState(user.bubbleTexture || 'none');
+
+  useEffect(() => {
+    const match = (user.bubbleColor || "").match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]).toString(16).padStart(2, '0');
+        const g = parseInt(match[2]).toString(16).padStart(2, '0');
+        const b = parseInt(match[3]).toString(16).padStart(2, '0');
+        setBubbleColor(`#${r}${g}${b}`);
+    }
+  }, [user.bubbleColor]);
 
   const handleSaveProfile = async () => {
     try {
       setSaveStatus("Guardando...");
-      let finalPhotoURL = fotoURL;
-      let finalBgURL = backgroundBase64;
       
-      
+      const r = parseInt(bubbleColor.slice(1,3), 16) || 18;
+      const g = parseInt(bubbleColor.slice(3,5), 16) || 27;
+      const b = parseInt(bubbleColor.slice(5,7), 16) || 42;
+      const finalBubbleColor = `rgba(${r}, ${g}, ${b}, 0.95)`;
+
       const savePromise = setDoc(doc(db, "users", user.username!), {
         password: password,
-        profilePic: finalPhotoURL,
+        profilePic: fotoURL,
         statusMessage: comentario,
         pais_idioma: pais,
         is_friends_public: isFriendsPublic,
-        preferred_background: finalBgURL,
+        preferred_background: backgroundBase64,
+        bubbleColor: finalBubbleColor,
+        bubbleBorder: bubbleBorder,
+        bubbleShape: bubbleShape,
+        bubbleTexture: bubbleTexture,
         updatedAt: new Date()
       }, { merge: true });
 
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 10000));
-      
       await Promise.race([savePromise, timeoutPromise]);
-
+      
       setUser(prev => ({
-        ...prev,
-        password: password,
-        profilePic: finalPhotoURL,
-        statusMessage: comentario,
-        countryLanguage: pais,
-        is_friends_public: isFriendsPublic,
-        preferred_background: finalBgURL
+          ...prev,
+          password,
+          profilePic: fotoURL,
+          statusMessage: comentario,
+          pais_idioma: pais,
+          is_friends_public: isFriendsPublic,
+          preferred_background: backgroundBase64,
+          bubbleColor: finalBubbleColor,
+          bubbleBorder,
+          bubbleShape,
+          bubbleTexture
       }));
 
-      socket.emit('broadcast_profile_change', { username: user.username, profilePic: finalPhotoURL, statusMessage: comentario });
+      socket.emit("update_profile", {
+        statusMessage: comentario,
+        profilePic: fotoURL,
+        pais_idioma: pais,
+        is_friends_public: isFriendsPublic,
+      });
 
-      setSaveStatus("Guardado correctamente");
+      setSaveStatus("¡Guardado correctamente!");
       setTimeout(() => setSaveStatus(null), 3000);
-      alert("¡Perfil guardado correctamente!");
-    } catch (error: any) {
-      console.error("Error detallado al guardar en Firebase:", error);
-      setSaveStatus("Error al guardar");
+    } catch (e) {
+      console.error(e);
+      setSaveStatus("Error al guardar.");
       setTimeout(() => setSaveStatus(null), 3000);
-      alert("No se pudo guardar: " + error.message);
-    } finally {
-      // OBLIGATORIO: Apaga el "Guardando..." pase lo que pase
-      setSaveStatus(prev => prev === "Guardando..." ? null : prev);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          setter(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in">
-      <div className="bg-[#12141c] text-[#ffffff] p-6 lg:p-8 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl relative border-t border-x sm:border-b border-[rgba(255,255,255,0.1)] max-h-[85vh] overflow-y-auto scrollbar-thin animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10">
-        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden"></div>
-        <button onClick={() => setIsConfigOpen(false)} className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#ffffff] bg-[rgba(255,255,255,0.1)] hover:opacity-80 p-2 rounded-full transition-all">
-           <X size={20} />
-        </button>
-        <h2 className="text-2xl font-bold text-[#ffffff] flex items-center gap-2 mb-6">
-           <Settings size={22} className="text-[#D4AF37]" />
-           Ajustes de Perfil
-        </h2>
-        <div className="space-y-4">
-          <div className="flex flex-col items-center mb-4">
-            <div className="w-24 h-24 rounded-full border-2 border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center overflow-hidden bg-[#1a1d27] relative">
-               <img referrerPolicy="no-referrer" src={fotoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} alt="avatar" className="w-full h-full object-cover" />
-               <input type="file" title="Subir foto de perfil" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      const img = new Image();
-                      img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const MAX_SIZE = 150; // Resize to max 150px for fast fallback to Base64 in Firestore (< 50KB)
-
-                        if (width > height) {
-                          if (width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
-                            width = MAX_SIZE;
-                          }
-                        } else {
-                          if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
-                            height = MAX_SIZE;
-                          }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx?.drawImage(img, 0, 0, width, height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                        setFotoURL(dataUrl);
-                        setSelectedFile(file);
-                      };
-                      img.src = event.target?.result as string;
-                    };
-                    reader.readAsDataURL(file);
-                  }
-               }} />
-            </div>
-            <span className="text-xs text-gray-500 mt-2">Haz clic para cambiar foto</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" 
+        onClick={() => setIsConfigOpen(false)}
+      />
+      
+      {/* Modal Container */}
+      <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#12141c] to-[#0a0a0f] rounded-3xl shadow-2xl border border-white/10 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+        
+        {/* Sidebar Tabs */}
+        <div className="w-full md:w-64 bg-black/40 border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible">
+          <div className="hidden md:flex items-center gap-3 px-3 py-4 mb-2">
+             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+               <Settings className="text-white" size={20} />
+             </div>
+             <div>
+               <h2 className="text-white font-bold text-lg leading-none">Ajustes</h2>
+               <p className="text-xs text-gray-400 mt-1">Configura tu experiencia</p>
+             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-semibold text-[#9ca3af]">Usuario</label>
-              <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                 <span className="text-amber-500 font-bold text-xs">{user.lizCoins || 0}</span>
-                 <span className="text-[10px] text-amber-500/70">Liz-Moneditas</span>
-              </div>
-            </div>
-            <input 
-               disabled
-               value={nombre}
-               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none text-[#9ca3af] opacity-70 cursor-not-allowed" 
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#9ca3af]">Estado / Comentario</label>
-            <input 
-               value={comentario}
-               onChange={e => setComentario(e.target.value)}
-               maxLength={60}
-               placeholder="Ej: Hola a todos!"
-               type="text"
-               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#9ca3af]">Contraseña</label>
-            <input 
-               value={password}
-               onChange={e => setPassword(e.target.value)}
-               type="password"
-               className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
-            />
-          </div>
+          <TabButton active={activeTab === 'perfil'} onClick={() => setActiveTab('perfil')} icon={<User size={18} />} label="Perfil" />
+          <TabButton active={activeTab === 'idioma'} onClick={() => setActiveTab('idioma')} icon={<Globe size={18} />} label="Idioma y Sala" />
+          <TabButton active={activeTab === 'apariencia'} onClick={() => setActiveTab('apariencia')} icon={<Palette size={18} />} label="Apariencia" />
+          <TabButton active={activeTab === 'cuenta'} onClick={() => setActiveTab('cuenta')} icon={<Lock size={18} />} label="Privacidad y Cuenta" />
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#9ca3af]">País / Idioma</label>
-            <div className="relative">
-              <select
-                 value={pais}
-                 onChange={e => setPais(e.target.value)}
-                 className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff] appearance-none"
-              >
-                 <option value="es">Español</option>
-                 <option value="en">English</option>
-                 <option value="pt">Português</option>
-                 <option value="fr">Français</option>
-                 <option value="de">Deutsch</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9ca3af]">
-                 ▼
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between py-2 border-b border-[rgba(255,255,255,0.1)]">
-             <label className="text-sm font-semibold text-[#9ca3af]">Mostrar mi lista de amigos públicamente</label>
-             <button
-               onClick={() => setIsFriendsPublic(!isFriendsPublic)}
-               className={`w-12 h-6 rounded-full relative transition-colors ${isFriendsPublic ? 'bg-cyan-500' : 'bg-gray-600'}`}
-             >
-               <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isFriendsPublic ? 'translate-x-6' : ''}`} />
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col h-[70vh] md:h-[600px]">
+          <div className="p-4 flex justify-end md:hidden border-b border-white/5">
+             <button onClick={() => setIsConfigOpen(false)} className="text-gray-400 hover:text-white bg-white/5 p-2 rounded-full">
+               <X size={20} />
              </button>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#9ca3af]">Fondo del Chat</label>
-            <div className="flex gap-2">
-               <input 
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        const img = new Image();
-                        img.onload = () => {
-                          const canvas = document.createElement('canvas');
-                          let width = img.width;
-                          let height = img.height;
-                          const MAX_SIZE = 800; // Resize to max 800px to save space in Firestore
-
-                          if (width > height) {
-                            if (width > MAX_SIZE) {
-                              height *= MAX_SIZE / width;
-                              width = MAX_SIZE;
-                            }
-                          } else {
-                            if (height > MAX_SIZE) {
-                              width *= MAX_SIZE / height;
-                              height = MAX_SIZE;
-                            }
-                          }
-
-                          canvas.width = width;
-                          canvas.height = height;
-                          const ctx = canvas.getContext('2d');
-                          ctx?.drawImage(img, 0, 0, width, height);
-                          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                          setBackgroundBase64(dataUrl);
-                          setSelectedBgFile(file);
-                        };
-                        img.src = event.target?.result as string;
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none focus:border-[#D4AF37] transition-all text-[#ffffff]" 
-               />
-               <button onClick={() => setBackgroundBase64('')} className="bg-[#0f111a] hover:opacity-80 px-4 rounded-xl border border-[rgba(255,255,255,0.1)] text-[#9ca3af] text-xs">
-                  Restaurar
-               </button>
-            </div>
-            {backgroundBase64 && <img referrerPolicy="no-referrer" src={backgroundBase64} className="h-16 w-16 rounded-lg object-cover mt-2" alt="Background preview" />}
-          </div>
           
-          
-          <div className="space-y-4 pt-4 border-t border-[rgba(255,255,255,0.1)]">
-             <h4 className="text-sm font-bold text-gray-300 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#D4AF37]"></div> Personalizar Mi Burbuja de Chat</h4>
-             
-             <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Color de Fondo</label>
-                <div className="flex gap-2">
-                    <input type="color" value={(() => {
-                        const match = (user.bubbleColor || "").match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-                        if (match) {
-                            const r = parseInt(match[1]).toString(16).padStart(2, '0');
-                            const g = parseInt(match[2]).toString(16).padStart(2, '0');
-                            const b = parseInt(match[3]).toString(16).padStart(2, '0');
-                            return `#${r}${g}${b}`;
-                        }
-                        return "#121B2A";
-                    })()} onChange={(e) => {
-                        const hex = e.target.value;
-                        const r = parseInt(hex.slice(1,3), 16);
-                        const g = parseInt(hex.slice(3,5), 16);
-                        const b = parseInt(hex.slice(5,7), 16);
-                        setUser({...user, bubbleColor: `rgba(${r}, ${g}, ${b}, 0.95)`});
-                    }} className="h-10 w-16 bg-transparent border-0 rounded cursor-pointer" />
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {activeTab === 'perfil' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex flex-col items-center justify-center gap-4">
+                   <div className="relative group cursor-pointer">
+                      <div className="w-28 h-28 rounded-full border-4 border-cyan-500/30 overflow-hidden relative">
+                         <img 
+                           referrerPolicy="no-referrer" 
+                           src={fotoURL || `https://api.dicebear.com/7.x/notionists/svg?seed=${user.username}`} 
+                           className="w-full h-full object-cover" 
+                           alt="Profile" 
+                         />
+                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-xs font-bold text-white tracking-wider">CAMBIAR</span>
+                         </div>
+                      </div>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => handleImageUpload(e, setFotoURL)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                   </div>
+                   <h3 className="text-2xl font-bold text-white">{user.username}</h3>
                 </div>
-             </div>
 
-             <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Borde</label>
-                <select value={user.bubbleBorder || "border-[#5A52A5]/30"} onChange={e => setUser({...user, bubbleBorder: e.target.value})} className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none text-sm text-[#ffffff]">
-                    <option value="border-transparent">Sin Borde</option>
-                    <option value="border-[#5A52A5]/30">Morado Suave</option>
-                    <option value="border-[#D4AF37]">Dorado Imperial</option>
-                    <option value="border-cyan-500">Cyan Neón</option>
-                    <option value="border-pink-500">Rosa Neón</option>
-                    <option value="border-green-500">Verde Esmeralda</option>
-                </select>
-             </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-400 ml-1">Estado o Biografía</label>
+                  <input
+                    type="text"
+                    value={comentario}
+                    onChange={e => setComentario(e.target.value)}
+                    placeholder="Escribe algo sobre ti..."
+                    className="w-full bg-black/30 p-4 rounded-2xl border border-white/10 focus:border-cyan-400 outline-none text-white transition-colors"
+                  />
+                </div>
+              </div>
+            )}
 
-             <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Forma</label>
-                <select value={user.bubbleShape || "rounded-2xl rounded-tr-sm"} onChange={e => setUser({...user, bubbleShape: e.target.value})} className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none text-sm text-[#ffffff]">
-                    <option value="rounded-2xl rounded-tr-sm">Clásico Chat</option>
-                    <option value="rounded-2xl">Suave (2xl)</option>
-                    <option value="rounded-md">Cuadrado (md)</option>
-                    <option value="rounded-full">Píldora (full)</option>
-                    <option value="rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm">Hoja</option>
-                </select>
-             </div>
+            {activeTab === 'idioma' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-2xl">
+                  <h4 className="text-cyan-400 font-bold mb-2 flex items-center gap-2">
+                    <Globe size={18} /> Traducción Automática de Sala
+                  </h4>
+                  <p className="text-sm text-gray-300 leading-relaxed">
+                    Al seleccionar un idioma, todos los mensajes de la sala se traducirán automáticamente a tu idioma preferido. Los demás usuarios verán tus mensajes en el idioma que ellos hayan elegido.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-400 ml-1">Mi Idioma Principal</label>
+                  <select 
+                    value={pais} 
+                    onChange={e => setPais(e.target.value)} 
+                    className="w-full bg-black/30 p-4 rounded-2xl border border-white/10 focus:border-cyan-400 outline-none text-white transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="es">Español 🇪🇸</option>
+                    <option value="en">English 🇺🇸</option>
+                    <option value="pt">Português 🇧🇷</option>
+                    <option value="fr">Français 🇫🇷</option>
+                    <option value="de">Deutsch 🇩🇪</option>
+                    <option value="it">Italiano 🇮🇹</option>
+                    <option value="ru">Русский 🇷🇺</option>
+                    <option value="ja">日本語 🇯🇵</option>
+                    <option value="ko">한국어 🇰🇷</option>
+                    <option value="zh">中文 🇨🇳</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
-             <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400">Textura / Efecto</label>
-                <select value={user.bubbleTexture || "none"} onChange={e => setUser({...user, bubbleTexture: e.target.value})} className="w-full bg-[#0f111a] p-3 rounded-xl border border-[rgba(255,255,255,0.1)] outline-none text-sm text-[#ffffff]">
-                    <option value="none">Liso</option>
-                    <option value="glass">Cristal (Glassmorphism)</option>
-                    <option value="glow">Resplandor Exterior (Glow)</option>
-                </select>
-             </div>
+            {activeTab === 'apariencia' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Background */}
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-gray-400 flex items-center gap-2">Fondo General de la Sala</label>
+                  <div className="flex gap-3 items-center bg-black/20 p-3 rounded-2xl border border-white/5">
+                    {backgroundBase64 ? (
+                       <img referrerPolicy="no-referrer" src={backgroundBase64} className="h-16 w-16 rounded-xl object-cover shadow-lg" alt="Fondo" />
+                    ) : (
+                       <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center text-xs text-gray-500">Por defecto</div>
+                    )}
+                    <div className="flex-1 relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, setBackgroundBase64)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-white">
+                        Subir Imagen
+                      </button>
+                    </div>
+                    {backgroundBase64 && (
+                      <button onClick={() => setBackgroundBase64('')} className="py-2 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-medium transition-colors">
+                         Borrar
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <hr className="border-white/5" />
+
+                {/* Bubble Settings */}
+                <div className="space-y-6">
+                  <h4 className="text-sm font-bold text-gray-300 flex items-center gap-2">
+                    <MessageSquare size={16} className="text-cyan-400" />
+                    Personalizar Mi Burbuja de Chat
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400">Color de Fondo</label>
+                        <div className="flex items-center gap-3 bg-black/20 p-2 rounded-xl border border-white/5">
+                           <input 
+                             type="color" 
+                             value={bubbleColor} 
+                             onChange={(e) => setBubbleColor(e.target.value)} 
+                             className="h-8 w-12 bg-transparent border-0 rounded cursor-pointer" 
+                           />
+                           <span className="text-xs text-gray-300 font-mono">{bubbleColor}</span>
+                        </div>
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400">Borde</label>
+                        <select 
+                          value={bubbleBorder} 
+                          onChange={e => setBubbleBorder(e.target.value)} 
+                          className="w-full bg-black/30 p-3 rounded-xl border border-white/10 outline-none text-sm text-white"
+                        >
+                            <option value="border-transparent">Sin Borde</option>
+                            <option value="border-white/10">Sutil Claro</option>
+                            <option value="border-[#5A52A5]/30">Morado Suave</option>
+                            <option value="border-cyan-500">Cyan Neón</option>
+                            <option value="border-pink-500">Rosa Neón</option>
+                            <option value="border-green-500">Verde Esmeralda</option>
+                        </select>
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400">Forma de Esquinas</label>
+                        <select 
+                          value={bubbleShape} 
+                          onChange={e => setBubbleShape(e.target.value)} 
+                          className="w-full bg-black/30 p-3 rounded-xl border border-white/10 outline-none text-sm text-white"
+                        >
+                            <option value="rounded-2xl rounded-tr-sm">Clásico Chat</option>
+                            <option value="rounded-2xl">Suave (2xl)</option>
+                            <option value="rounded-md">Cuadrado (md)</option>
+                            <option value="rounded-full">Píldora (full)</option>
+                            <option value="rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-sm">Hoja</option>
+                        </select>
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400">Efecto Visual</label>
+                        <select 
+                          value={bubbleTexture} 
+                          onChange={e => setBubbleTexture(e.target.value)} 
+                          className="w-full bg-black/30 p-3 rounded-xl border border-white/10 outline-none text-sm text-white"
+                        >
+                            <option value="none">Sólido (Liso)</option>
+                            <option value="glass">Cristal (Glassmorphism)</option>
+                            <option value="glow">Resplandor Exterior (Glow)</option>
+                        </select>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'cuenta' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                       <h4 className="text-sm font-bold text-white mb-1">Amigos Públicos</h4>
+                       <p className="text-xs text-gray-400">Permite que otros vean tu lista de amigos.</p>
+                     </div>
+                     <button 
+                       onClick={() => setIsFriendsPublic(!isFriendsPublic)} 
+                       className={`relative w-12 h-6 rounded-full transition-colors ${isFriendsPublic ? 'bg-cyan-500' : 'bg-gray-600'}`}
+                     >
+                       <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isFriendsPublic ? 'translate-x-6' : ''}`} />
+                     </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                   <h4 className="text-sm font-bold text-white flex items-center gap-2">Cambiar Contraseña</h4>
+                   <input
+                     type="password"
+                     value={password}
+                     onChange={e => setPassword(e.target.value)}
+                     placeholder="Nueva contraseña..."
+                     className="w-full bg-black/30 p-4 rounded-2xl border border-white/10 focus:border-cyan-400 outline-none text-white transition-colors"
+                   />
+                </div>
+
+                {user.username === 'Axiss' && (
+                   <div className="pt-4 border-t border-white/5">
+                     <button onClick={() => {
+                         const aiUser = usersOnline.find(u => u.username === 'Elizabeth');
+                         setAiProfileForm({ profilePic: aiUser?.profilePic || '', statusMessage: aiUser?.statusMessage || 'IA Asistente virtual', systemInstruction: aiUser?.systemInstruction || '' });
+                         setIsConfigOpen(false);
+                         setAdminConfigAiOpen(true);
+                      }} className="w-full flex items-center justify-center gap-2 text-fuchsia-400 border border-fuchsia-500/30 bg-fuchsia-500/10 p-4 rounded-2xl font-bold hover:bg-fuchsia-500/20 transition-all shadow-[0_0_20px_rgba(217,70,239,0.15)]">
+                        <Bot size={18} /> Configuración Avanzada de Elizabeth
+                     </button>
+                   </div>
+                )}
+                
+                <div className="pt-4">
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="w-full flex items-center justify-center gap-2 text-red-400 bg-red-500/10 hover:bg-red-500/20 p-4 rounded-2xl font-bold transition-colors border border-red-500/20"
+                  >
+                    <LogOut size={18} />
+                    Cerrar Sesión Segura
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {user.username === 'Axiss' && (
-             <button onClick={() => { 
-                const aiUser = usersOnline.find(u => u.username === 'Elizabeth');
-                setAiProfileForm({ profilePic: aiUser?.profilePic || '', statusMessage: aiUser?.statusMessage || 'IA Asistente virtual', systemInstruction: aiUser?.systemInstruction || '' });
-                setIsConfigOpen(false); 
-                setAdminConfigAiOpen(true); 
-             }} className="w-full flex items-center justify-center gap-2 text-fuchsia-400 border border-fuchsia-400 bg-fuchsia-500/10 p-3 rounded-xl font-bold mt-2 hover:bg-fuchsia-500/20 transition-all">
-                <Bot size={18} /> Configurar a HELIZABETH
+          {/* Footer Save Button */}
+          <div className="p-4 md:p-6 border-t border-white/5 bg-black/20 flex flex-col items-center">
+             <button 
+               onClick={handleSaveProfile}
+               className="w-full md:w-auto md:px-12 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(8,145,178,0.4)] hover:shadow-[0_0_30px_rgba(8,145,178,0.6)] hover:scale-[1.02]"
+             >
+               Guardar Cambios
              </button>
-          )}
+             {saveStatus && (
+                <div className="mt-3 text-sm font-bold text-cyan-400 animate-in fade-in slide-in-from-bottom-2">
+                  {saveStatus}
+                </div>
+             )}
+          </div>
+        </div>
+        
+        {/* Absolute close button for desktop */}
+        <button onClick={() => setIsConfigOpen(false)} className="hidden md:flex absolute top-4 right-4 text-gray-400 hover:text-white bg-black/20 hover:bg-white/10 p-2 rounded-full backdrop-blur-md transition-colors z-10">
+          <X size={20} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
-          {saveStatus && <div className="text-center text-sm font-bold text-[#D4AF37] mt-2">{saveStatus}</div>}
-
-          <button 
-            onClick={handleSaveProfile}
-            className="w-full mt-4 bg-[#D4AF37] hover:opacity-80 text-white p-3 rounded-xl font-bold transition-all shadow-lg"
-           >
-             Guardar Cambios
-           </button>
-         </div>
-         
-         <div className="mt-8 pt-6 border-t border-[rgba(255,255,255,0.1)]">
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full flex items-center justify-center gap-2 text-red-400 bg-red-400/10 hover:bg-red-400/20 p-3 rounded-xl font-medium transition-colors border border-red-400/20"
-            >
-              <LogOut size={18} />
-              Cerrar Sesión
-            </button>
-         </div>
-       </div>
-     </div>
+function TabButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-sm whitespace-nowrap md:whitespace-normal
+        ${active 
+          ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+        }
+      `}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

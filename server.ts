@@ -1918,6 +1918,7 @@ socket.on("send_global", async (msg) => {
       }
       msg.sender = currentUsername;
       msg.senderId = currentUsername;
+      msg.senderLanguage = activeUsers[currentUsername]?.pais_idioma || "es";
       msg.profilePic = activeUsers[currentUsername]?.profilePic || "";
       msg.id = msg.id || Date.now().toString();
       const modResult = await moderateMessage(msg, ai);
@@ -2492,6 +2493,8 @@ ${eliMsg.text}`,
       }
       msg.sender = currentUsername;
       msg.senderId = currentUsername;
+      msg.senderLanguage = activeUsers[currentUsername]?.pais_idioma || "es";
+      msg.senderLanguage = activeUsers[currentUsername]?.pais_idioma || "es";
       msg.profilePic = activeUsers[currentUsername]?.profilePic || "";
       msg.id = msg.id || Date.now().toString();
       const modResult = await moderateMessage(msg, ai);
@@ -3073,6 +3076,25 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
         currentUsername = "";
       }
     });
+    socket.on("request_translation", async ({ text, targetLang }, callback) => {
+    if (!text || !targetLang) return callback({ translatedText: text });
+    const cacheKey = `trans_${targetLang}_${text}`;
+    if (translationCache.has(cacheKey)) {
+        return callback({ translatedText: translationCache.get(cacheKey) });
+    }
+    try {
+        const resp = await safeGenerateContent(ai, {
+            model: "gemini-3.6-flash",
+            contents: `Traduce esto al idioma/país: ${targetLang}. Solo devuelve la traducción directa, sin comillas, sin explicaciones.\nTexto: ${text}`
+        });
+        let translatedText = resp.text ? resp.text.trim() : text;
+        translationCache.set(cacheKey, translatedText);
+        callback({ translatedText });
+    } catch (e) {
+        callback({ translatedText: text });
+    }
+});
+
     socket.on("disconnect", () => {
       if (currentUsername) {
         for (const gId in chessGames) {

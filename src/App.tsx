@@ -1888,7 +1888,7 @@ function MainApp() {
                             </span>
                             <span className="text-[#8B98B0] text-xs font-medium">
                               {isOnline ? (
-                                <span className="text-green-400">En línea</span>
+                                <span className="text-green-400">{t('online')}</span>
                               ) : (
                                 "Desconectado"
                               )}{" "}
@@ -2049,7 +2049,7 @@ function MainApp() {
                                     {m.replyTo && (
                                       <div className={`bg-black/10 border-l-2 border-[#5A52A5]/50 px-2 py-1 mb-1 rounded text-xs italic flex flex-col ${textColor}`}>
                                         <span className="font-bold opacity-80">{m.replyTo.sender}</span>
-                                        <span className="truncate opacity-70">{m.replyTo.text}</span>
+                                        <span className="truncate opacity-70"><TranslatedText originalText={m.replyTo.text} senderLanguage={m.replyTo.senderLanguage} userLanguage={user.pais_idioma || 'es'} /></span>
                                       </div>
                                     )}
                                     <div className="flex flex-wrap items-end justify-between gap-2">
@@ -2057,7 +2057,7 @@ function MainApp() {
                                         className={`${textColor} text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
                                         onClick={() => setReplyingTo(m)}
                                       >
-                                        {m.text}
+                                        <TranslatedText originalText={m.text} senderLanguage={m.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
                                       </span>
                                       <button
                                         onClick={() => setReplyingTo(m)}
@@ -3063,7 +3063,7 @@ function MainApp() {
                 <div className="bg-[#1a1d2d] rounded-2xl overflow-hidden mb-6 border border-white/5 text-left">
                    <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
                        <Users size={16} className="text-cyan-400" />
-                       <h4 className="font-bold text-white text-sm">Amigos</h4>
+                       <h4 className="font-bold text-white text-sm">{t('friends')}</h4>
                    </div>
                    <div className="p-4 max-h-40 overflow-y-auto space-y-3">
                        {selectedUserModal.username === user.username || selectedUserModal.is_friends_public ? (
