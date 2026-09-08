@@ -1,21 +1,14 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/App.tsx', 'utf8');
+let code = fs.readFileSync('server.ts', 'utf8');
 
-const search = `                )}
-              </div>
-            )}
+// I accidentally broke the ternary syntax when inserting sysInstruction
+const target = `const sysInstruction = (modResult.insultedElizabeth ? "El usuario acaba de faltarte el respeto o usar malas palabras contigo. TIENES PERMISO ABSOLUTO DE INSULTARLO DE VUELTA y ser ruda, sarcástica o agresiva para defenderte. " : "") + (aiUserTempCache["Elizabeth"]?.systemInstruction
+            ? \`\${baseSysInstruction}\\nInstrucciones adicionales del Administrador:\\n\${aiUserTempCache["Elizabeth"].systemInstruction}\`
+            : baseSysInstruction;`;
+            
+// Wait, the regex replacement was:
+// code = code.replace(/const sysInstruction = aiUserTempCache/g, `const sysInstruction = (modResult.insultedElizabeth ? "El usuario acaba de faltarte el respeto o usar malas palabras contigo. TIENES PERMISO ABSOLUTO DE INSULTARLO DE VUELTA y ser ruda, sarcástica o agresiva para defenderte. " : "") + (aiUserTempCache`);
 
-              </div>
-            )}
-          </div>
-        </div>
-      )}`;
-
-const replace = `              </div>
-            )}
-          </div>
-        </div>
-      )}`;
-
-code = code.replace(search, replace);
-fs.writeFileSync('src/App.tsx', code);
+// Let's just fix it manually.
+let fixed = code.replace(/: baseSysInstruction;/g, ': baseSysInstruction);');
+fs.writeFileSync('server.ts', fixed);

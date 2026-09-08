@@ -5,7 +5,7 @@ import React, {
   ErrorInfo,
   Component,
 } from "react";
-import { Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins } from "lucide-react";
+import { Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, Layers, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins } from "lucide-react";
 import {
   collection,
   onSnapshot,
@@ -32,6 +32,7 @@ import { Login } from "./components/Login";
 import { RecoveryModal } from "./components/RecoveryModal";
 import { ProfileConfigModal } from "./components/ProfileConfigModal";
 import { AdminConfigAiModal } from "./components/AdminConfigAiModal";
+import { AdminShadersModal } from "./components/AdminShadersModal";
 import { GamesMenuModal } from "./components/GamesMenuModal";
 import { EmojiGifPicker } from "./components/EmojiGifPicker";
 
@@ -356,6 +357,9 @@ function MainApp() {
     null,
   );
   const [adminConfigAiOpen, setAdminConfigAiOpen] = useState(false);
+  const [adminShadersOpen, setAdminShadersOpen] = useState(false);
+  const [globalShaders, setGlobalShaders] = useState<string[]>([]);
+  const [previewShaders, setPreviewShaders] = useState<string[] | null>(null);
   const [currentAdminAi, setCurrentAdminAi] = useState("Elizabeth");
   const [aiProfileForm, setAiProfileForm] = useState({
     profilePic: "",
@@ -2650,6 +2654,18 @@ function MainApp() {
         />
       )}
 
+      {adminShadersOpen && (
+        <AdminShadersModal
+          setOpen={setAdminShadersOpen}
+          currentShaders={globalShaders}
+          onPreview={(shaders) => setPreviewShaders(shaders)}
+          onSave={(shaders) => {
+             setPreviewShaders(null);
+             socket.emit("update_shaders", shaders);
+          }}
+        />
+      )}
+      
       {adminConfigAiOpen && (
         <AdminConfigAiModal
           aiUsername={currentAdminAi}

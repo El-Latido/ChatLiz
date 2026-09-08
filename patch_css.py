@@ -1,51 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --animate-slideDown: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -20px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-body {
-  font-family: var(--font-sans);
-  background-color: #000;
-  color: #fff;
-}
-
-/* Scroll e Historial Dinámico de Radio */
-.song-history-container {
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 10px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 8px;
-  padding: 8px;
-}
-
-.song-history-container::-webkit-scrollbar {
-  width: 8px;
-}
-.song-history-container::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 4px;
-}
-@keyframes progress {
-  0% { width: 0%; }
-  100% { width: 100%; }
-}
-
+with open('src/index.css', 'a') as f:
+    f.write("""
 /* Shader Effects */
 .shader-crt::before {
     content: " ";
@@ -96,3 +50,5 @@ body {
     image-rendering: pixelated;
     filter: contrast(1.2) saturate(1.5);
 }
+""")
+print("Patched index.css")
