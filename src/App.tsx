@@ -1,3 +1,4 @@
+import { TranslatedText } from './components/TranslatedText';
 import React, {
   useState,
   useEffect,

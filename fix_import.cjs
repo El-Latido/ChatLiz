@@ -1,6 +1,8 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-code = code.replace('Menu,', 'Menu, Layers,');
-
-fs.writeFileSync('src/App.tsx', code);
+if (!code.includes('import { TranslatedText }')) {
+    code = code.replace(/import React, \{/, "import { TranslatedText } from './components/TranslatedText';\nimport React, {");
+    fs.writeFileSync('src/App.tsx', code);
+    console.log("Fixed TranslatedText import.");
+}
