@@ -165,7 +165,7 @@ export function AdminConfigAiModal({ setAdminConfigAiOpen, aiProfileForm, setAiP
           }
       }, 4000);
 
-      socket.emit("update_ai_config", { aiUsername, profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction }, (res: any) => {
+      socket.emit("update_ai_config", { aiUsername, profilePic: aiProfileForm.profilePic, statusMessage: aiProfileForm.statusMessage, systemInstruction: aiProfileForm.systemInstruction, bubbleColor: aiProfileForm.bubbleColor, bubbleBorder: aiProfileForm.bubbleBorder, bubbleShape: aiProfileForm.bubbleShape, bubbleTexture: aiProfileForm.bubbleTexture }, (res: any) => {
           callbackCalled = true;
           clearTimeout(timeoutId);
           if (res.success || res.success === undefined) {

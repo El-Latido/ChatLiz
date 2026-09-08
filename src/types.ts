@@ -25,7 +25,7 @@ export interface UserObj {
   elo?: number;
   uid?: string;
   profileLikes?: number;
-  profileComments?: { author: string, text: string, timestamp: number }[];
+  profileComments?: { author: string, text: string, timestamp: number, stars?: number }[];
   bubbleColor?: string;
   bubbleBorder?: string;
   bubbleShape?: string;

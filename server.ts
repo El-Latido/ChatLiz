@@ -1318,7 +1318,8 @@ socket.on("buy_decoration", async (data, callback) => {
           const commentObj = {
               author: currentUsername,
               text: data.comment,
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              stars: data.stars || null
           };
           const uRef = doc(fdb, "users", data.targetUser);
           const snap = await getDoc(uRef);
@@ -1937,6 +1938,26 @@ socket.on("send_global", async (msg) => {
         }
         io.emit("receive_global", banMsg);
         return;
+      } else if (modResult.isWarning) {
+        const warnMsg = {
+          text: `⚠️ ${currentUsername}, ${modResult.reason}`,
+          sender: "Elizabeth",
+          profilePic: "",
+          isAi: true,
+          id: Date.now().toString(),
+          createdAt: Date.now(),
+        };
+        if (fdb) {
+          addDoc(collection(fdb, "global_chat"), {
+            ...warnMsg,
+            timestamp: serverTimestamp(),
+          }).catch(e => console.error(e));
+        } else {
+          fallbackState.globalMessages.push(warnMsg);
+          saveFallbackDB();
+        }
+        io.emit("receive_global", warnMsg);
+        return; // BLOCK THE MESSAGE!
       }
       if (msg.audio && msg.audio.startsWith("data:audio")) {
         let uploadedToStorage = false;
@@ -2484,6 +2505,11 @@ ${eliMsg.text}`,
         return callback({
           success: false,
           error: `Has sido baneado por contenido inapropiado: ${modResult.reason}`,
+        });
+      } else if (modResult.isWarning) {
+        return callback({
+          success: false,
+          error: `⚠️ ${modResult.reason}`,
         });
       }
       if (msg.audio && msg.audio.startsWith("data:audio")) {
