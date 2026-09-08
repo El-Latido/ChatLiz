@@ -5,7 +5,7 @@ import React, {
   ErrorInfo,
   Component,
 } from "react";
-import { Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, Layers, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins } from "lucide-react";
+import {  Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, Layers, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins , Star } from "lucide-react";
 import {
   collection,
   onSnapshot,
