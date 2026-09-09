@@ -395,6 +395,13 @@ function MainApp() {
     isInitiator: boolean;
   } | null>(null);
   const [activeChat, setActiveChat] = useState("global");
+  const [previousChat, setPreviousChat] = useState("global");
+  const changeChat = (newChat: string) => {
+    if (newChat !== activeChat) {
+      setPreviousChat(activeChat);
+      setActiveChat(newChat);
+    }
+  };
   const activeChatRef = useRef(activeChat);
   useEffect(() => {
     activeChatRef.current = activeChat;
@@ -675,6 +682,20 @@ function MainApp() {
           scrollToBottom,
           100,
         );
+      });
+    } else if (activeChat.startsWith("room_")) {
+      const q = query(
+        collection(db, "custom_rooms_msgs", activeChat, "messages"),
+        orderBy("timestamp", "asc"),
+        limitToLast(500)
+      );
+      unsubMessages = onSnapshot(q, (snapshot) => {
+        const msgs = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return { ...data, id: data.id || doc.id, docId: doc.id };
+        });
+        setMessages(msgs);
+        setTimeout(scrollToBottom, 100);
       });
     } else {
       const participants = [user.username, activeChat].sort();
@@ -1724,6 +1745,50 @@ function MainApp() {
 
           <div className="w-full h-px bg-white/5 my-2"></div>
 
+          {/* Salas */}
+          <div className="px-4 py-2 flex flex-col gap-2">
+            <button
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "global" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(false);
+                setActiveChat("global");
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Globe size={18} className={activeChat === "global" ? "animate-pulse" : ""} />
+                Sala Global
+              </div>
+            </button>
+            <button
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "friends_webcam" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(false);
+                setActiveChat("friends_webcam");
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Webcam size={18} className={activeChat === "friends_webcam" ? "animate-pulse" : ""} />
+                Friends Webcam
+              </div>
+            </button>
+            <button
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "custom_rooms" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(false);
+                setActiveChat("custom_rooms");
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Hash size={18} />
+                Salas Creadas
+              </div>
+            </button>
+          </div>
+
+
           {/* AI Characters Button */}
           <div className="px-4 py-2">
             <button
@@ -1849,6 +1914,45 @@ function MainApp() {
               <>
                 {activeChat !== "global" &&
                   (() => {
+                    if (activeChat.startsWith("room_")) {
+                        return (
+                          <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => {
+                                    socket.emit("leave_custom_room", activeChat);
+                                    setActiveChat("custom_rooms");
+                                }} 
+                                className="text-[#D4AF37] hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
+                                title="Volver a Salas"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                              </button>
+                              <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center shadow-sm">
+                                <Hash className="text-[#D4AF37]" size={20} />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[#E8D9B0] font-bold text-lg leading-tight flex items-center gap-1.5">
+                                  Sala Privada
+                                  <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/30 uppercase tracking-wider">
+                                    COMUNIDAD
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                socket.emit("leave_custom_room", activeChat);
+                                setActiveChat("global");
+                              }}
+                              className="text-sm font-bold text-[#D4AF37] hover:text-[#E8D9B0] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
+                            >
+                              <Globe size={16} /> Volver al Mundo
+                            </button>
+                          </div>
+                        );
+                    }
+
                     const serverAiInfo = usersOnline.find((u) => u.username === activeChat);
                     const aiChar = [
                       "Elizabeth",
@@ -1876,8 +1980,15 @@ function MainApp() {
                       `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
 
                     return (
-                      <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                      <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                         <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setActiveChat(previousChat)} 
+                            className="text-[#D4AF37] hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
+                            title="Volver Atrás"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                          </button>
                           <div
                             className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center overflow-hidden shadow-sm relative cursor-pointer"
                             onClick={() =>
@@ -3004,7 +3115,7 @@ function MainApp() {
                     <button
                       onClick={() => {
                         window.history.pushState({}, "", "/chat/" + encodeURIComponent(selectedUserModal.username));
-                        setActiveChat(selectedUserModal.username);
+                        changeChat(selectedUserModal.username);
                         setSelectedUserModal(null);
                         setIsSidebarOpen(false);
                         notifyOwner(selectedUserModal.username, "CHAT", user.username);

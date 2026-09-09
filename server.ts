@@ -1762,6 +1762,96 @@ socket.on("buy_decoration", async (data, callback) => {
       callback({success: true});
     });
 
+    
+    socket.on("get_custom_rooms", (callback) => {
+        callback(Object.keys(customRooms).map(id => ({
+            id,
+            name: customRooms[id].name,
+            owner: customRooms[id].owner,
+            rules: customRooms[id].rules,
+            usersCount: customRooms[id].users.length
+        })));
+    });
+
+    socket.on("create_custom_room", (data, callback) => {
+        if (!currentUsername) return callback({success: false, error: "No logueado"});
+        const roomId = "room_" + Date.now();
+        customRooms[roomId] = {
+            id: roomId,
+            name: data.name,
+            owner: currentUsername,
+            rules: data.rules,
+            banned: [],
+            users: []
+        };
+        io.emit("custom_rooms_updated");
+        callback({success: true, roomId});
+    });
+
+    socket.on("join_custom_room", (roomId, callback) => {
+        if (!currentUsername || !customRooms[roomId]) return callback({success: false});
+        if (customRooms[roomId].banned.includes(currentUsername)) return callback({success: false, error: "Estás baneado de esta sala"});
+        
+        socket.join(roomId);
+        if (!customRooms[roomId].users.includes(currentUsername)) {
+            customRooms[roomId].users.push(currentUsername);
+        }
+        callback({success: true, room: customRooms[roomId]});
+    });
+
+    socket.on("leave_custom_room", (roomId) => {
+        if (!currentUsername || !customRooms[roomId]) return;
+        socket.leave(roomId);
+        customRooms[roomId].users = customRooms[roomId].users.filter(u => u !== currentUsername);
+        if (customRooms[roomId].users.length === 0 && customRooms[roomId].owner !== currentUsername) {
+            // we could auto-delete, but let's keep it until owner deletes or server restart
+        }
+    });
+
+    socket.on("send_custom_room", async (data) => {
+        if (!currentUsername || !customRooms[data.roomId]) return;
+        if (customRooms[data.roomId].banned.includes(currentUsername)) return;
+        
+        const msgObj = {
+            ...data.msg,
+            id: Date.now().toString(),
+            sender: currentUsername,
+            timestamp: new Date().toISOString()
+        };
+        io.to(data.roomId).emit("receive_custom_room", { roomId: data.roomId, msg: msgObj });
+        
+        if (fdb) {
+            try {
+                await setDoc(doc(fdb, "custom_rooms_msgs", data.roomId, "messages", msgObj.id), msgObj);
+            } catch (e) {
+                console.error("Error saving room msg:", e);
+            }
+        }
+    });
+
+    socket.on("ban_from_custom_room", (data, callback) => {
+        if (!currentUsername || !customRooms[data.roomId]) return;
+        if (customRooms[data.roomId].owner !== currentUsername) return callback({success: false, error: "No eres el dueño"});
+        
+        customRooms[data.roomId].banned.push(data.targetUser);
+        if (activeUsers[data.targetUser]) {
+             io.to(activeUsers[data.targetUser].socketId).emit("kicked_from_room", data.roomId);
+             const targetSocket = io.sockets.sockets.get(activeUsers[data.targetUser].socketId);
+             if (targetSocket) targetSocket.leave(data.roomId);
+        }
+        customRooms[data.roomId].users = customRooms[data.roomId].users.filter(u => u !== data.targetUser);
+        callback({success: true});
+    });
+
+    socket.on("delete_custom_room", (roomId, callback) => {
+        if (!currentUsername || !customRooms[roomId]) return;
+        if (customRooms[roomId].owner !== currentUsername) return callback({success: false});
+        io.to(roomId).emit("room_deleted", roomId);
+        delete customRooms[roomId];
+        io.emit("custom_rooms_updated");
+        callback({success: true});
+    });
+
     socket.on("get_reports", async (callback) => {
         if (!currentUsername || (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS")) return callback([]);
         if (fdb) {
