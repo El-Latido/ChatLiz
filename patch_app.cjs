@@ -1,115 +1,54 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-// 1. Notification Clear bug
-const notifSearch = `                  {notifications.length > 0 && (
-                    <button 
-                      onClick={() => setNotifications([])}
-                      className="text-xs text-gray-400 hover:text-white"
-                    >
-                      Limpiar
-                    </button>
-                  )}`;
-                  
-const notifReplace = `                  {notifications.length > 0 && (
-                    <button 
-                      onClick={async () => {
-                        const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 10);
-                        setNotifications([]);
-                        for (const n of firestoreNotifs) {
-                           try {
-                               // Assuming updateDoc and doc are imported from firebaseConfig
-                               await updateDoc(doc(db, "notifications", n.id), { isRead: true });
-                           } catch(e) {}
-                        }
-                      }}
-                      className="text-xs text-gray-400 hover:text-white"
-                    >
-                      Limpiar
-                    </button>
-                  )}`;
-                  
-code = code.replace(notifSearch, notifReplace);
+// Modifying the query for private messages to load up to 200 messages instead of 15
+code = code.replace(
+    /limitToLast\(15\)/g,
+    `limitToLast(200)`
+);
 
+// Modifying message render timestamp: 
+// The regex finds: const timeStr = isNaN(date.getTime()) ... minute: "2-digit", ... });
+const timeStrRegex = /const timeStr = isNaN\(date\.getTime\(\)\)\s*\?\s*`10:0\$\{idx % 10\}`\s*:\s*date\.toLocaleTimeString\(\[\],\s*\{\s*hour:\s*"2-digit",\s*minute:\s*"2-digit",?\s*\}\);/g;
 
-// 2. Out of tokens state
-const stateSearch = `  const [aiProfileForm, setAiProfileForm] = useState({
-    profilePic: "",
-    statusMessage: "Administradora",
-    systemInstruction: "",
-  });`;
+const timeStrReplacement = `const timeStr = isNaN(date.getTime())
+                        ? \`10:0\${idx % 10}\`
+                        : activeChat === "global" 
+                            ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) 
+                            : date.toLocaleDateString([], { day: '2-digit', month: '2-digit' }) + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });`;
 
-const stateReplace = `  const [aiProfileForm, setAiProfileForm] = useState({
-    profilePic: "",
-    statusMessage: "Administradora",
-    systemInstruction: "",
-  });
-  const [outOfTokensAi, setOutOfTokensAi] = useState<string | null>(null);
-  const [isWatchingAd, setIsWatchingAd] = useState(false);`;
+code = code.replace(timeStrRegex, timeStrReplacement);
 
-code = code.replace(stateSearch, stateReplace);
-
-
-// 3. Socket event for out_of_tokens
-const socketSearch = `    socket.on("receive_private", (msg: any, fromUser: string) => {`;
-const socketReplace = `    socket.on("out_of_tokens", (data: { aiName: string }) => {
-        setOutOfTokensAi(data.aiName);
+// Handle "account_deleted" disconnect
+const initSocketRegex = /socket\.on\("banned_status", \(\{ isBanned \}\) => \{/g;
+const newInitSocket = `
+    socket.on("account_deleted", () => {
+        alert("Tu cuenta ha sido eliminada por un administrador.");
+        window.location.reload();
     });
+    socket.on("banned_status", ({ isBanned }) => {`;
+code = code.replace(initSocketRegex, newInitSocket);
 
-    socket.on("receive_private", (msg: any, fromUser: string) => {`;
+// Adding Friends Webcam to the Sidebar / Rooms
+const webcamRoomIcon = `import { Webcam, EyeOff } from "lucide-react";`;
+code = code.replace(/import \{  Send, User/, `import { Webcam, EyeOff, Send, User`);
 
-code = code.replace(socketSearch, socketReplace);
-
-
-// 4. Render out_of_tokens modal inside the chat area
-const chatRenderSearch = `                  {/* Input Area */}`;
-const chatRenderReplace = `                  {/* Out of Tokens AI Prompt */}
-                  {outOfTokensAi && activeChat === outOfTokensAi && (
-                      <div className="absolute bottom-20 left-4 right-4 bg-[#121B2A]/95 backdrop-blur-xl border border-amber-500/50 rounded-2xl p-4 shadow-[0_0_30px_rgba(245,158,11,0.2)] z-10 animate-in slide-in-from-bottom-4">
-                          <h4 className="text-amber-400 font-bold mb-2 flex items-center gap-2">
-                             <Coins size={18} /> ¡Te has quedado sin tokens!
-                          </h4>
-                          <p className="text-sm text-gray-300 mb-4">
-                             No tienes suficientes LizCoins para seguir hablando con {outOfTokensAi}. ¿Quieres ver un video publicitario corto para recargar 100 LizCoins gratis?
-                             <br/><span className="text-[10px] text-gray-500 mt-1 block">*Los anuncios ayudan a mantener la plataforma gratuita y permiten a los creadores monetizar.</span>
-                          </p>
-                          <div className="flex gap-3">
-                              <button 
-                                onClick={() => {
-                                    setIsWatchingAd(true);
-                                    setTimeout(() => {
-                                        socket.emit("watch_ad_reward");
-                                        setIsWatchingAd(false);
-                                        setOutOfTokensAi(null);
-                                    }, 15000);
-                                }}
-                                disabled={isWatchingAd}
-                                className="flex-1 bg-amber-500/20 text-amber-400 py-2 rounded-xl text-sm font-bold border border-amber-500/30 hover:bg-amber-500 hover:text-white transition-colors flex items-center justify-center gap-2"
-                              >
-                                  {isWatchingAd ? <span className="animate-pulse">Reproduciendo video (15s)...</span> : <><Play size={16} /> Ver Video Publicitario</>}
-                              </button>
-                              <button 
-                                onClick={() => setOutOfTokensAi(null)}
-                                className="px-4 py-2 bg-white/5 text-gray-400 rounded-xl hover:bg-white/10 transition-colors text-sm"
-                              >
-                                  Cancelar
-                              </button>
-                          </div>
-                          {isWatchingAd && (
-                              <div className="mt-3 relative w-full h-32 bg-black rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
-                                  <div className="text-white text-xs opacity-50 absolute top-2 right-2">Ad</div>
-                                  <Play className="text-white/20 animate-ping" size={32} />
-                                  <div className="absolute bottom-0 left-0 h-1 bg-amber-500 animate-[progress_15s_linear]" style={{width: '100%'}}></div>
-                              </div>
-                          )}
-                      </div>
-                  )}
-
-                  {/* Input Area */}`;
-
-code = code.replace(chatRenderSearch, chatRenderReplace);
-
-// We need to add 'Play' to imports from lucide-react if not present, and 'Coins'
-// Let's check imports
+const webcamSidebarBtn = `<div className="mt-8">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 px-2">{t('salas')}</h3>`;
+const webcamSidebarReplacement = `<div className="mt-8">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 px-2">{t('salas')}</h3>
+              <button 
+                onClick={() => { setActiveChat("friends_webcam"); setIsMobileMenuOpen(false); }}
+                className={\`w-full flex items-center justify-between p-3 rounded-2xl transition-all duration-300 \${activeChat === "friends_webcam" ? "bg-purple-500/20 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)] border border-purple-500/30" : "hover:bg-white/5 text-gray-300 border border-transparent"}\`}
+              >
+                 <div className="flex items-center gap-3">
+                     <div className={\`w-10 h-10 rounded-xl flex items-center justify-center \${activeChat === "friends_webcam" ? "bg-purple-500/20" : "bg-[#1A2639]"}\`}>
+                         <Webcam size={20} className={activeChat === "friends_webcam" ? "animate-pulse" : ""} />
+                     </div>
+                     <span className="font-bold">Friends Webcam</span>
+                 </div>
+              </button>`;
+code = code.replace(webcamSidebarBtn, webcamSidebarReplacement);
 
 fs.writeFileSync('src/App.tsx', code);
+console.log("Patched App.tsx successfully");

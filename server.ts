@@ -454,7 +454,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
     setupUsersListener();
   }
   const emitActiveUsers = __name(() => {
-    const usersList = Object.values(activeUsers).map((u) => ({
+    const usersList = Object.values(activeUsers).filter(u => !u.incognito).map((u) => ({
       username: u.username,
       profilePic: u.profilePic,
       statusMessage: u.statusMessage,
@@ -547,7 +547,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
     socket.on("request_initial_state", () => {
       if (currentUsername) {
         // Send active users
-        const usersList = Object.values(activeUsers).map((u) => ({
+        const usersList = Object.values(activeUsers).filter(u => !u.incognito).map((u) => ({
           username: u.username,
           profilePic: u.profilePic,
           statusMessage: u.statusMessage,
@@ -615,8 +615,10 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             if (activeUsers[username]) {
                activeUsers[username].socketId = socket.id;
                activeUsers[username].status = user.statusMessage || "Disponible";
+               activeUsers[username].incognito = incognito;
             } else {
                activeUsers[username] = {
+                  incognito: incognito,
                   socketId: socket.id,
                   status: "online",
                   username: username,
@@ -864,6 +866,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       let elo = 0;
       let uid = "";
       let profileLikes = 0;
+      let incognito = false;
 
       if (fdb) {
         try {
@@ -884,6 +887,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             elo = user?.elo || 0;
             uid = user?.uid || "";
             profileLikes = user?.profileLikes || 0;
+            incognito = !!user?.incognito;
           }
         } catch(e) {}
       }
@@ -893,6 +897,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
          activeUsers[username].socketId = socket.id;
       } else {
          activeUsers[username] = {
+                  incognito: incognito,
             socketId: socket.id,
             status: "online",
             username,
@@ -945,6 +950,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       let elo = 0;
       let uid = "";
       let profileLikes = 0;
+      let incognito = false;
       if (username === "Axiss" && password === "2@$3fabian18") {
         role = "admin";
       }
@@ -977,6 +983,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             elo = user?.elo || 0;
             uid = user?.uid || "";
             profileLikes = user?.profileLikes || 0;
+            incognito = !!user?.incognito;
             if (!uid) {
               uid = Math.random().toString(36).substring(2, 8).toUpperCase();
               await setDoc(
@@ -1084,6 +1091,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       }
       currentUsername = username;
       activeUsers[username] = {
+                  incognito: incognito,
         socketId: socket.id,
         status: "online",
         username,
@@ -1816,6 +1824,62 @@ socket.on("buy_decoration", async (data, callback) => {
       }
     });
 
+    
+    socket.on("admin_delete_user", async (targetUser, callback) => {
+      if (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS") return callback({success: false});
+      
+      try {
+         let targetEmail = "";
+         if (fdb) {
+             const d = await getDoc(doc(fdb, "users", targetUser));
+             if (d.exists()) {
+                 targetEmail = d.data().securityEmail;
+                 await deleteDoc(doc(fdb, "users", targetUser));
+             }
+         } else {
+             targetEmail = fallbackState.users[targetUser]?.securityEmail;
+             delete fallbackState.users[targetUser];
+         }
+         
+         if (targetEmail) {
+             const mailOptions = {
+                from: process.env.ADMIN_GMAIL,
+                to: targetEmail,
+                subject: "Tu cuenta de ChatLiz ha sido eliminada",
+                text: "Hola, te informamos que tu cuenta en ChatLiz ha sido eliminada permanentemente por un administrador por incumplimiento de nuestras normas."
+             };
+             transporter.sendMail(mailOptions, (err) => {
+                if (err) console.error("Error sending deletion email", err);
+             });
+         }
+         
+         if (activeUsers[targetUser]) {
+             io.to(activeUsers[targetUser].socketId).emit("account_deleted");
+             io.sockets.sockets.get(activeUsers[targetUser].socketId)?.disconnect();
+             delete activeUsers[targetUser];
+             emitActiveUsers();
+         }
+         
+         callback({success: true});
+      } catch (e) {
+         callback({success: false, error: e.message});
+      }
+    });
+
+    socket.on("update_incognito", async (isIncognito, callback) => {
+        if (!currentUsername) return;
+        if (activeUsers[currentUsername]) {
+            activeUsers[currentUsername].incognito = isIncognito;
+        }
+        if (fdb) {
+            await setDoc(doc(fdb, "users", currentUsername), { incognito: isIncognito }, { merge: true });
+        } else {
+            if(fallbackState.users[currentUsername]) fallbackState.users[currentUsername].incognito = isIncognito;
+        }
+        callback && callback({ success: true });
+        emitActiveUsers();
+    });
+
     socket.on("admin_ban_user", (targetUser, callback) => {
       if (activeUsers[currentUsername]?.role !== "admin" && currentUsername.toUpperCase() !== "AXISS") return callback({success: false});
       bannedUsers[targetUser] = Date.now() + 15 * 60 * 1000;
@@ -1909,6 +1973,9 @@ socket.on("buy_decoration", async (data, callback) => {
     });
 
 socket.on("send_global", async (msg) => {
+      if (activeUsers[currentUsername]?.incognito) {
+          return socket.emit("system_message", { text: "No puedes enviar mensajes globales en modo incógnito." });
+      }
       if (!currentUsername) return;
       if (
         bannedUsers[currentUsername] &&
@@ -3103,7 +3170,33 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
     }
 });
 
+    
+    let webcamQueue = [];
+    socket.on("join_webcam_queue", () => {
+        if (!currentUsername) return;
+        if (!webcamQueue.includes(socket.id)) {
+            webcamQueue.push(socket.id);
+        }
+        if (webcamQueue.length >= 2) {
+            const peer1 = webcamQueue.shift();
+            const peer2 = webcamQueue.shift();
+            io.to(peer1).emit("webcam_matched", { initiator: true, partnerSocket: peer2 });
+            io.to(peer2).emit("webcam_matched", { initiator: false, partnerSocket: peer1 });
+        }
+    });
+    socket.on("leave_webcam_queue", () => {
+        webcamQueue = webcamQueue.filter(id => id !== socket.id);
+    });
+    socket.on("webcam_signal", (data) => {
+        io.to(data.to).emit("webcam_signal", { signal: data.signal, from: socket.id });
+    });
+    socket.on("webcam_disconnect", (data) => {
+        io.to(data.to).emit("webcam_peer_disconnected");
+    });
+    
     socket.on("disconnect", () => {
+        webcamQueue = webcamQueue.filter(id => id !== socket.id);
+
       if (currentUsername) {
         for (const gId in chessGames) {
           const g = chessGames[gId];
