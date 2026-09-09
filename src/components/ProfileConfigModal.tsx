@@ -18,6 +18,7 @@ export function ProfileConfigModal({
   user, setUser, setIsConfigOpen, setAdminConfigAiOpen, usersOnline, setAiProfileForm
 }: ProfileConfigModalProps) {
   const [activeTab, setActiveTab] = useState<'perfil' | 'apariencia' | 'idioma' | 'cuenta'>('perfil');
+  const [incognito, setIncognito] = useState((user as any).incognito || false);
   const [comentario, setComentario] = useState(user.statusMessage || '');
   const [pais, setPais] = useState(user.pais_idioma || 'es');
   const [password, setPassword] = useState(user.password || '');
@@ -40,6 +41,15 @@ export function ProfileConfigModal({
         setBubbleColor(`#${r}${g}${b}`);
     }
   }, [user.bubbleColor]);
+
+
+  const toggleIncognito = () => {
+     const nextVal = !incognito;
+     setIncognito(nextVal);
+     import('../socket').then(({ socket }) => {
+         socket.emit("update_incognito", nextVal);
+     });
+  };
 
   const handleSaveProfile = async () => {
     try {

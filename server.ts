@@ -3172,20 +3172,22 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
 
     
     let webcamQueue = [];
-    socket.on("join_webcam_queue", () => {
+    socket.on("join_webcam_queue", (data) => {
         if (!currentUsername) return;
-        if (!webcamQueue.includes(socket.id)) {
-            webcamQueue.push(socket.id);
-        }
+        const customName = data?.name || currentUsername;
+        
+        webcamQueue = webcamQueue.filter(p => p.id !== socket.id); // remove if exists
+        webcamQueue.push({ id: socket.id, name: customName });
+        
         if (webcamQueue.length >= 2) {
             const peer1 = webcamQueue.shift();
             const peer2 = webcamQueue.shift();
-            io.to(peer1).emit("webcam_matched", { initiator: true, partnerSocket: peer2 });
-            io.to(peer2).emit("webcam_matched", { initiator: false, partnerSocket: peer1 });
+            io.to(peer1.id).emit("webcam_matched", { initiator: true, partnerSocket: peer2.id, partnerName: peer2.name });
+            io.to(peer2.id).emit("webcam_matched", { initiator: false, partnerSocket: peer1.id, partnerName: peer1.name });
         }
     });
     socket.on("leave_webcam_queue", () => {
-        webcamQueue = webcamQueue.filter(id => id !== socket.id);
+        webcamQueue = webcamQueue.filter(p => p.id !== socket.id);
     });
     socket.on("webcam_signal", (data) => {
         io.to(data.to).emit("webcam_signal", { signal: data.signal, from: socket.id });
@@ -3195,7 +3197,7 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
     });
     
     socket.on("disconnect", () => {
-        webcamQueue = webcamQueue.filter(id => id !== socket.id);
+        webcamQueue = webcamQueue.filter(p => p.id !== socket.id);
 
       if (currentUsername) {
         for (const gId in chessGames) {

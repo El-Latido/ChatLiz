@@ -7,6 +7,8 @@ export function FriendsWebcam({ user, onClose }: { user: any, onClose: () => voi
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [partnerDisconnected, setPartnerDisconnected] = useState(false);
+    const [webcamName, setWebcamName] = useState(user.username);
+    const [partnerName, setPartnerName] = useState("");
 
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -45,11 +47,12 @@ export function FriendsWebcam({ user, onClose }: { user: any, onClose: () => voi
         }
         setPartnerDisconnected(false);
         setState('searching');
-        socket.emit("join_webcam_queue");
+        socket.emit("join_webcam_queue", { name: webcamName });
     };
 
     useEffect(() => {
-        socket.on("webcam_matched", async ({ initiator, partnerSocket }) => {
+        socket.on("webcam_matched", async ({ initiator, partnerSocket, partnerName }) => {
+            setPartnerName(partnerName);
             setState('matched');
             partnerSocketId.current = partnerSocket;
             setPartnerDisconnected(false);
@@ -144,12 +147,27 @@ export function FriendsWebcam({ user, onClose }: { user: any, onClose: () => voi
             <div className="relative w-full max-w-5xl aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl border border-white/5 mt-16">
                 {/* Remote Video */}
                 <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+                {state === 'matched' && !partnerDisconnected && partnerName && (
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 z-10">
+                        <p className="text-white font-bold">{partnerName}</p>
+                    </div>
+                )}
                 
                 {/* Overlays */}
                 {state === 'idle' && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
                         <Webcam size={64} className="text-purple-500/50 mb-6" />
-                        <h3 className="text-white text-2xl font-light mb-8">Conoce gente nueva al instante</h3>
+                        <h3 className="text-white text-2xl font-light mb-4">Conoce gente nueva al instante</h3>
+                        <div className="flex flex-col items-center mb-8">
+                            <label className="text-purple-300 text-sm mb-2 font-mono">TU NOMBRE EN WEBCAM (Anónimo)</label>
+                            <input 
+                                type="text" 
+                                value={webcamName} 
+                                onChange={(e) => setWebcamName(e.target.value)} 
+                                className="bg-black/50 border border-purple-500/50 text-white text-center px-4 py-2 rounded-xl focus:outline-none focus:border-purple-400"
+                                maxLength={20}
+                            />
+                        </div>
                         <button 
                             onClick={nextPartner}
                             className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.6)] transition-all hover:scale-105"

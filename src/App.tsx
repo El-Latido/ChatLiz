@@ -2074,12 +2074,12 @@ function MainApp() {
                                     <div className="flex flex-wrap items-end justify-between gap-2">
                                       <span
                                         className={`${textColor} text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
-                                        onClick={() => setReplyingTo(m)}
+                                        onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
                                       >
                                         <TranslatedText originalText={m.text} senderLanguage={m.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
                                       </span>
                                       <button
-                                        onClick={() => setReplyingTo(m)}
+                                        onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
                                         className={`opacity-0 group-hover:opacity-100 transition-opacity ${nameColor} hover:opacity-80 p-1`}
                                         title="Responder"
                                       >
@@ -2098,7 +2098,7 @@ function MainApp() {
                                           referrerPolicy="no-referrer"
                                           src={m.image}
                                           className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover cursor-pointer hover:opacity-80"
-                                          onClick={() => setReplyingTo(m)}
+                                          onClick={() => setExpandedImage(m.image)}
                                           alt="adjunto"
                                         />
                                       </div>
@@ -2135,53 +2135,37 @@ function MainApp() {
                       );
                     })}
 
-                  {/* Typing Indicator */}
-                  {typingUsers[activeChat] &&
-                    typingUsers[activeChat].length > 0 && (
-                      <div className="flex flex-col gap-1 mb-4 px-2 md:px-6">
-                        {typingUsers[activeChat].includes("Elizabeth") && (
-                          <div className="text-[#D4AF37] text-sm font-medium italic flex items-center">
-                            ELIZABETH está escribiendo
-                            <span className="ml-1 flex gap-1">
-                              <span className="animate-bounce">.</span>
-                              <span
-                                className="animate-bounce"
-                                style={{ animationDelay: "0.2s" }}
-                              >
-                                .
-                              </span>
-                              <span
-                                className="animate-bounce"
-                                style={{ animationDelay: "0.4s" }}
-                              >
-                                .
-                              </span>
-                            </span>
-                          </div>
-                        )}
-                        {typingUsers[activeChat].filter(
-                          (u) => u !== "Elizabeth",
-                        ).length > 0 && (
-                          <div className="text-[#8B98B0] text-sm font-medium italic">
-                            {typingUsers[activeChat]
-                              .filter((u) => u !== "Elizabeth")
-                              .join(", ")}{" "}
-                            {typingUsers[activeChat].filter(
-                              (u) => u !== "Elizabeth",
-                            ).length > 1
-                              ? "están"
-                              : "está"}{" "}
-                            escribiendo...
-                          </div>
-                        )}
-                      </div>
-                    )}
+
 
                   <div ref={bottomRef} className="h-2" />
                 </div>
 
                 {/* Input Area */}
                 <div className="px-2 pb-2 pt-1 shrink-0 bg-transparent relative z-10 max-w-5xl w-full mx-auto flex flex-col gap-2">
+                  {/* Typing Indicator (Moved out of scroll area to prevent bouncing) */}
+                  {typingUsers[activeChat] &&
+                    typingUsers[activeChat].length > 0 && (
+                      <div className="flex flex-col gap-1 px-4 -mt-2">
+                        {typingUsers[activeChat].includes("Elizabeth") && (
+                          <div className="text-[#D4AF37] text-sm font-medium italic flex items-center">
+                            ELIZABETH está escribiendo
+                            <span className="ml-1 flex gap-1">
+                              <span className="animate-bounce">.</span>
+                              <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>.</span>
+                              <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>.</span>
+                            </span>
+                          </div>
+                        )}
+                        {typingUsers[activeChat].filter(u => u !== "Elizabeth").length > 0 && (
+                          <div className="text-[#8B98B0] text-sm font-medium italic">
+                            {typingUsers[activeChat].filter((u) => u !== "Elizabeth").join(", ")}{" "}
+                            {typingUsers[activeChat].filter((u) => u !== "Elizabeth").length > 1 ? "están" : "está"}{" "}
+                            escribiendo...
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                   {replyingTo && (
                     <div className="bg-[#121B2A]/80 border border-[#D4AF37]/50 rounded-xl p-2 flex items-center justify-between shadow-lg mx-2">
                       <div className="flex flex-col">
