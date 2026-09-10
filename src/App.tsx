@@ -1442,7 +1442,7 @@ function MainApp() {
 
   return (
     <div
-      className="text-black flex flex-col font-sans relative overflow-hidden"
+      className="text-white flex flex-col font-sans relative overflow-hidden"
       style={{
         width: "100%",
         height: "100%",
@@ -1450,7 +1450,7 @@ function MainApp() {
         position: "fixed",
         top: 0,
         left: 0,
-        backgroundColor: "#f5f5f7", // Robotic White
+        backgroundColor: "#030014", // Cyberpunk Dark
         "--neon-color": isRainbowNeon ? undefined : neonColor,
       } as React.CSSProperties}
     >
@@ -1465,116 +1465,112 @@ function MainApp() {
             83% { --neon-color: #ffff00; }
             100% { --neon-color: #ff0000; }
           }
-          .robotic-neon {
+          .cyberpunk-neon {
             animation: rainbow-neon 5s linear infinite;
           }
         `}</style>
       )}
       
-      {/* High-Tech Robotic Background Accents */}
+      {/* Cyberpunk Animated Glowing Accents */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ backgroundColor: 'var(--neon-color, #00f3ff)', opacity: 0.15 }}></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s', backgroundColor: 'var(--neon-color, #ff00ff)', opacity: 0.15 }}></div>
+      
+      {/* Cyberpunk Grid Background */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{
         backgroundImage: `
-          radial-gradient(circle at 10% 20%, rgba(0,0,0,0.03) 0%, transparent 20%),
-          radial-gradient(circle at 90% 80%, rgba(0,0,0,0.03) 0%, transparent 20%),
-          linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
-          linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
         `,
-        backgroundSize: '100% 100%, 100% 100%, 40px 40px, 40px 40px'
+        backgroundSize: '30px 30px',
+        transform: 'perspective(500px) rotateX(60deg) scale(2) translateY(-100px)',
+        transformOrigin: 'top',
+        opacity: 0.3
       }}></div>
       
-      {/* Dark robotic panels on sides */}
-      <div className="absolute left-0 top-0 w-[5%] h-full bg-gradient-to-r from-black/5 to-transparent pointer-events-none"></div>
-      <div className="absolute right-0 top-0 w-[5%] h-full bg-gradient-to-l from-black/5 to-transparent pointer-events-none"></div>
+      {/* Glassmorphism background filter overlay */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none z-0"></div>
 
 
       {/* Top Navigation Bar (Floating/Overlay style) */}
-      <div className="flex justify-center px-4 py-2 shrink-0 z-[100] relative w-full pointer-events-none mt-2">
-        <nav 
-          className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 rounded-full pointer-events-auto shadow-[0_4px_30px_rgba(0,0,0,0.1)] robotic-neon"
-          style={{
-            background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
-            border: "2px solid var(--neon-color, #00f3ff)",
-            boxShadow: "0 0 15px var(--neon-color, #00f3ff), inset 0 0 10px rgba(0,0,0,0.05)",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          {/* Hamburger (Mobile) */}
+            {/* Top Navigation Bar (Floating/Overlay style) */}
+      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-black/40 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]" style={{ borderBottomColor: "var(--neon-color, #00f3ff)22" }}>
+        <div className="flex-1 flex items-center justify-start">
           <button
             onClick={() => {
               closeAllModals();
               setIsSidebarOpen(!isSidebarOpen);
             }}
-            className="md:hidden p-2 rounded-full transition-all group"
-            style={{ color: "black" }}
+            className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
           >
-            <Menu size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+            <Menu size={24} strokeWidth={1.5} />
           </button>
+        </div>
 
-          {/* LizGram */}
+        <div className="flex-1 flex justify-center">
+           {/* Empty space for balance if needed */}
+        </div>
+
+        {/* Right: Actions and Settings */}
+        <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
+          
+          {/* LizGram Button */}
           <button
             onClick={() => {
               closeAllModals();
               setIsSidebarOpen(false);
               setActiveChat("lizgram");
             }}
-            className="p-2 rounded-full transition-all relative group"
+            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+            style={{ backgroundColor: activeChat === "lizgram" ? "var(--neon-color, #00f3ff)33" : "transparent" }}
             title="LizGram"
-            style={{ color: activeChat === "lizgram" ? "var(--neon-color, #00f3ff)" : "black" }}
           >
-            <ImageIcon size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-            {activeChat === "lizgram" && (
-                <div className="absolute inset-0 rounded-full bg-black/5 animate-pulse pointer-events-none"></div>
-            )}
+            <ImageIcon size={24} strokeWidth={1.5} />
           </button>
 
-          {/* Divider */}
-          <div className="w-[1px] h-6 bg-black/10 mx-1"></div>
-
-          {/* Buzón (Private messages) */}
+          {/* Buzón (Private messages/Friends) */}
           <button
             onClick={() => {
               closeAllModals();
               setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
             }}
-            className="p-2 rounded-full transition-all relative group"
+            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+            style={{ backgroundColor: isFriendsSidebarOpen ? "var(--neon-color, #00f3ff)33" : "transparent" }}
             title="Buzón"
-            style={{ color: isFriendsSidebarOpen ? "var(--neon-color, #00f3ff)" : "black" }}
           >
-            <MessageSquare size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+            <MessageSquare size={24} strokeWidth={1.5} />
             {Object.values(unreadPMs).some((v) => v) && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--neon-color, #00f3ff)", boxShadow: "0 0 5px var(--neon-color, #00f3ff)" }}></span>
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-[#0B1220]" style={{ backgroundColor: "var(--neon-color, #00f3ff)" }}></span>
             )}
           </button>
 
-          {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full transition-all relative group"
-              style={{ color: showNotifications ? "var(--neon-color, #00f3ff)" : "black" }}
+              className="p-2 rounded-full text-white/80 hover:bg-white/5 transition-colors relative"
             >
-              <Bell size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+              <Bell size={24} strokeWidth={1.5} />
               {notifications.length > 0 && (
-                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
                   {notifications.length}
                 </span>
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 mt-3 w-72 bg-white border shadow-2xl overflow-hidden z-50 rounded-2xl"
-                   style={{ borderColor: "var(--neon-color, #00f3ff)", boxShadow: "0 10px 40px rgba(0,0,0,0.1), 0 0 15px var(--neon-color, #00f3ff) inset" }}>
-                <div className="p-3 border-b border-black/5 flex justify-between items-center bg-gray-50">
-                  <h3 className="text-black font-bold">Notificaciones</h3>
+              <div className="absolute right-0 mt-2 w-72 bg-[#0a0a0c]/90 backdrop-blur-2xl border-r border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-white/5 rounded-2xl overflow-hidden z-50">
+                <div className="p-3 border-b border-white/5 flex justify-between items-center" style={{ borderBottomColor: "var(--neon-color, #00f3ff)44" }}>
+                  <h3 className="text-white font-bold" style={{ color: "var(--neon-color, #00f3ff)" }}>Notificaciones</h3>
                   {notifications.length > 0 && (
                     <button 
                        onClick={async () => {
                         const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 13);
                         setNotifications([]);
                         for (const n of firestoreNotifs) { 
-                           try { await deleteDoc(doc(db, "notifications", n.id)); } catch(e) {}
+                           try {
+                               await deleteDoc(doc(db, "notifications", n.id));
+                           } catch(e) {}
                         }
                       }}
-                      className="text-xs text-gray-500 hover:text-black font-semibold"
+                      className="text-xs text-gray-400 hover:text-white"
                     >
                       Limpiar
                     </button>
@@ -1582,7 +1578,7 @@ function MainApp() {
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-gray-400 text-sm font-medium">
+                    <div className="p-6 text-center text-gray-500 text-sm">
                       No hay notificaciones
                     </div>
                   ) : (
@@ -1607,18 +1603,18 @@ function MainApp() {
                                if (window.innerWidth < 768) setIsSidebarOpen(false);
                             }
                          }}
-                         className="p-3 hover:bg-gray-50 border-b border-black/5 cursor-pointer transition-colors flex items-start gap-3 group"
+                         className="p-3 hover:bg-white/5 border-b border-white/5 cursor-pointer transition-colors flex items-start gap-3 group"
                       >
                          {avatarSrc ? (
-                            <img src={avatarSrc} alt={fromUser} className="w-8 h-8 rounded-full border border-gray-200" />
+                            <img src={avatarSrc} alt={fromUser} className="w-8 h-8 rounded-full border border-white/10" />
                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                              <Bell size={14} className="text-gray-400" />
+                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                              <Bell size={14} className="text-white/50" />
                             </div>
                          )}
                          <div className="flex flex-col min-w-0">
-                           <span className="text-black text-sm break-words group-hover:text-black">{text}</span>
-                           <span className="text-gray-400 text-xs mt-0.5">{type === 'system' ? 'Sistema' : fromUser}</span>
+                           <span className="text-white/90 text-sm break-words group-hover:text-white">{text}</span>
+                           <span className="text-white/40 text-xs mt-0.5">{type === 'system' ? 'Sistema' : fromUser}</span>
                          </div>
                       </div>
                     )})
@@ -1628,17 +1624,13 @@ function MainApp() {
             )}
           </div>
 
-          {/* Divider */}
-          <div className="w-[1px] h-6 bg-black/10 mx-1"></div>
-
-          {/* Profile / User Menu */}
-          <div className="relative group/profile">
+          <div className="relative group/profile ml-1">
             <button
               onClick={() => {
                 closeAllModals();
                 setIsProfileModalOpen(true);
               }}
-              className="w-8 h-8 rounded-full overflow-hidden border-2 transition-transform hover:scale-105 ml-1"
+              className="w-8 h-8 rounded-full overflow-hidden border-2 transition-transform hover:scale-105 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
               style={{ borderColor: "var(--neon-color, #00f3ff)" }}
             >
               <img
@@ -1649,8 +1641,8 @@ function MainApp() {
               />
             </button>
           </div>
-        </nav>
-      </div>
+        </div>
+      </nav>
 
       <div className="flex flex-1 h-0 relative">
         {/* Sidebar Principal */}
@@ -1953,22 +1945,13 @@ function MainApp() {
                               </div>
                               <div className="flex flex-col">
                                 <span className="text-white font-bold text-lg leading-tight flex items-center gap-1.5">
-                                  Sala Privada
+                                  Sala Personalizada
                                   <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/30 uppercase tracking-wider">
                                     COMUNIDAD
                                   </span>
                                 </span>
                               </div>
                             </div>
-                            <button
-                              onClick={() => {
-                                socket.emit("leave_custom_room", activeChat);
-                                setActiveChat("global");
-                              }}
-                              className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
-                            >
-                              <Globe size={16} /> Volver al Mundo
-                            </button>
                           </div>
                         );
                     }
@@ -2049,9 +2032,10 @@ function MainApp() {
                         </div>
                         <button
                           onClick={() => setActiveChat("global")}
-                          className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
+                          className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors border border-white/20 flex items-center justify-center"
+                          title="Chat Global"
                         >
-                          <Globe size={16} /> Volver al Mundo
+                          <Globe size={20} />
                         </button>
                       </div>
                     );

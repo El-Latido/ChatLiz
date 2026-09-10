@@ -434,7 +434,7 @@ export function ProfileConfigModal({
                    />
                 </div>
 
-                {user.username === 'Axiss' && (
+                {user?.username?.toUpperCase() === 'AXISS' && (
                    <div className="pt-4 border-t border-white/5">
                      <button onClick={() => {
                          const aiUser = usersOnline.find(u => u.username === 'Elizabeth');
