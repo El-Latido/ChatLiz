@@ -1432,8 +1432,17 @@ function MainApp() {
         top: 0,
         left: 0,
       }}
-      className="bg-[#050505] text-white flex flex-col font-sans relative overflow-hidden"
+      className="bg-[#030014] text-white flex flex-col font-sans relative overflow-hidden"
     >
+      {/* Premium Animated Glowing Blobs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/30 blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-cyan-600/20 blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+      <div className="absolute top-[20%] left-[30%] w-[40%] h-[40%] bg-pink-500/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '3s' }}></div>
+      <div className="absolute bottom-[30%] left-[-10%] w-[35%] h-[35%] bg-blue-600/20 blur-[140px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '2s' }}></div>
+      
+      {/* Glassmorphism background filter overlay */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none z-0"></div>
+
       {/* Top Navigation Bar (Floating/Overlay style) */}
       <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="flex-1 flex items-center justify-start">
@@ -2263,7 +2272,7 @@ function MainApp() {
                 </div>
 
                 {/* Input Area */}
-                <div className="px-2 pb-2 pt-1 shrink-0 bg-transparent relative z-10 max-w-5xl w-full mx-auto flex flex-col gap-2">
+                <div className="px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shrink-0 bg-white/[0.03] backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] relative z-10 max-w-5xl w-full mx-auto flex flex-col gap-2">
                   {/* Typing Indicator (Moved out of scroll area to prevent bouncing) */}
                   {typingUsers[activeChat] &&
                     typingUsers[activeChat].length > 0 && (

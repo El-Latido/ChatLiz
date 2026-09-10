@@ -184,6 +184,8 @@ const transporter = nodemailer.createTransport({
   });
   let activeUsers = {};
   const chessGames = {};
+  let customRooms = {};
+  let webcamQueue = [];
   const pendingCalls = {};
   let songQueue = [];
   let isBatchPlaying = false;
