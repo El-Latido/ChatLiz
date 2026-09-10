@@ -40,6 +40,7 @@ import { EmojiGifPicker } from "./components/EmojiGifPicker";
 import { StoreModal } from "./components/StoreModal";
 import { CallModal } from "./components/CallModal";
 import { FriendsWebcam } from "./components/FriendsWebcam";
+import { CustomRooms } from "./components/CustomRooms";
 import { ActiveCallModal } from "./components/ActiveCallModal";
 import { OutgoingCallModal } from "./components/OutgoingCallModal";
 import { ChessGameModal } from "./components/ChessGameModal";
@@ -816,8 +817,8 @@ function MainApp() {
     });
 
     socket.on("receive_private", (msg: any, fromUser: string) => {
-      playNotifySound();
       if (activeChatRef.current !== fromUser) {
+        playNotifySound();
         setUnreadPMs((prev) => ({ ...prev, [fromUser]: true }));
         setNotifications((prev) => [{
             id: Date.now().toString(),
@@ -1447,18 +1448,42 @@ function MainApp() {
           </button>
         </div>
 
-        {/* Center: Chat-Liz pill */}
+        {/* Center/Right alignment for top icons (Removed Chat-Liz text to save space as requested) */}
         <div className="flex-1 flex justify-center">
-          <div className="bg-[#121B2A]/60 backdrop-blur-md border border-[#D4AF37]/30 rounded-full px-6 py-1.5 shadow-[0_0_15px_rgba(212,175,55,0.1)] flex items-center justify-center">
-            <h1 className="text-[16px] font-bold text-[#E8D9B0] tracking-wide">
-              Chat-Liz
-            </h1>
-          </div>
+           {/* Empty space for balance if needed */}
         </div>
 
-        {/* Right: Avatar, Name, Settings */}
+        {/* Right: Actions and Settings */}
         <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
           
+          {/* LizGram Button */}
+          <button
+            onClick={() => {
+              closeAllModals();
+              setIsSidebarOpen(false);
+              setActiveChat("lizgram");
+            }}
+            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-cyan-400 bg-cyan-500/20" : "text-[#D4AF37] hover:bg-white/5"}`}
+            title="LizGram"
+          >
+            <ImageIcon size={24} strokeWidth={1.5} />
+          </button>
+
+          {/* Buzón (Private messages/Friends) */}
+          <button
+            onClick={() => {
+              closeAllModals();
+              setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
+            }}
+            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-pink-400 bg-pink-500/20" : "text-[#D4AF37] hover:bg-white/5"}`}
+            title="Buzón"
+          >
+            <MessageSquare size={24} strokeWidth={1.5} />
+            {Object.values(unreadPMs).some((v) => v) && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-cyan-500 rounded-full border border-[#0B1220]"></span>
+            )}
+          </button>
+
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -1659,32 +1684,7 @@ function MainApp() {
             <p className="text-[#8B98B0] text-xs">Conectado(a)</p>
           </div>
 
-          <div className="px-4 mt-4 grid grid-cols-2 gap-2">
-            <button
-              className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${activeChat === "lizgram" ? "border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "border-[#D4AF37]/30"} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`}
-              onClick={() => {
-                closeAllModals();
-                setIsSidebarOpen(false);
-                setActiveChat("lizgram");
-              }}
-            >
-              <ImageIcon size={16} strokeWidth={1.5} />
-              LizGram
-            </button>
-            <button
-              className={`flex items-center justify-center gap-2 text-[#D4AF37] bg-[#121B2A]/80 border ${isFriendsSidebarOpen ? "border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "border-[#D4AF37]/30"} px-3 py-2 rounded-2xl hover:bg-white/5 hover:text-[#E8D9B0] transition-all text-sm font-medium shadow-sm`}
-              onClick={() => {
-                closeAllModals();
-                setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
-              }}
-            >
-              <MessageSquare size={16} strokeWidth={1.5} />
-              Buzón
-              {Object.values(unreadPMs).some((v) => v) && (
-                <div className="w-2 h-2 bg-cyan-500 rounded-full ml-1"></div>
-              )}
-            </button>
-          </div>
+
           <div className="px-4 mt-2">
             <button
               className={`w-full flex items-center justify-center gap-2 text-cyan-400 bg-cyan-500/10 border ${isFriendReqOpen ? "border-cyan-500/50" : "border-cyan-500/20"} px-3 py-2 rounded-2xl hover:bg-cyan-500/20 transition-all text-sm font-medium`}
@@ -1783,7 +1783,7 @@ function MainApp() {
             >
               <div className="flex items-center gap-2">
                 <Hash size={18} />
-                Salas Creadas
+                Crear Sala
               </div>
             </button>
           </div>
@@ -1890,7 +1890,6 @@ function MainApp() {
             })}
           </div>
         </aside>
-
         {/* Main Chat Container */}
         <main
           className="flex-1 min-w-0 min-h-0 relative flex flex-col bg-transparent overflow-hidden"
@@ -1907,6 +1906,10 @@ function MainApp() {
             
             {activeChat === "friends_webcam" ? (
                 <FriendsWebcam user={user} onClose={() => setActiveChat("global")} />
+            ) : activeChat === "custom_rooms" ? (
+                <CustomRooms user={user} onJoinRoom={(roomId, roomData) => {
+                    setActiveChat("room_" + roomId);
+                }} />
             ) : activeChat === "lizgram" ? (
 
               <SocialFeed user={user} onClose={() => setActiveChat("global")} />
@@ -2208,8 +2211,8 @@ function MainApp() {
                                         <img
                                           referrerPolicy="no-referrer"
                                           src={m.image}
-                                          className="rounded-xl border border-black/10 max-w-full shadow-md h-28 object-cover cursor-pointer hover:opacity-80"
-                                          onClick={() => setExpandedImage(m.image)}
+                                          className="rounded-xl border border-black/10 max-w-full shadow-md h-auto max-h-48 object-contain cursor-pointer hover:opacity-80 relative z-20"
+                                          onClick={(e) => { e.stopPropagation(); setExpandedImage(m.image); }}
                                           alt="adjunto"
                                         />
                                       </div>
@@ -3018,20 +3021,21 @@ function MainApp() {
 
       {selectedUserModal && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[120] flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[120] flex items-center justify-center p-4 overflow-y-auto overscroll-none"
           onClick={() => setSelectedUserModal(null)}
+          style={{ overscrollBehavior: 'none' }}
         >
           <div
-            className="bg-[#0f111a] rounded-[32px] w-full max-w-md shadow-2xl relative overflow-hidden border border-white/10"
+            className="bg-[#0f111a] rounded-[32px] w-full max-w-md shadow-2xl relative overflow-hidden border border-white/10 my-8 mt-16"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Cover Photo Area */}
             <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative">
                <button
                  onClick={() => setSelectedUserModal(null)}
-                 className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 p-2 rounded-full transition-all"
+                 className="absolute top-4 right-4 text-white hover:text-white bg-black/50 hover:bg-black/70 p-3 rounded-full transition-all shadow-lg z-50 border border-white/20"
                >
-                 <X size={20} />
+                 <X size={24} strokeWidth={3} />
                </button>
             </div>
             

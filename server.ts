@@ -3261,7 +3261,6 @@ NUEVO MENSAJE DE ${currentUsername}: "${msg.text}"\nResponde de forma privada co
 });
 
     
-    let webcamQueue = [];
     socket.on("join_webcam_queue", (data) => {
         if (!currentUsername) return;
         const customName = data?.name || currentUsername;
