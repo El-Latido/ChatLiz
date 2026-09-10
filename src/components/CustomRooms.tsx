@@ -50,8 +50,8 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
     };
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#0B0B0C] overflow-hidden">
-            <div className="p-6 bg-[#0F1012]/90 backdrop-blur-md border-b border-white/5 flex justify-between items-center shrink-0">
+        <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden">
+            <div className="p-6 bg-white/[0.03] backdrop-blur-xl shadow-lg border-b border-white/5 flex justify-between items-center shrink-0">
                 <div>
                     <h2 className="text-white text-2xl font-bold flex items-center gap-2">
                         <Hash className="text-white/80" />
@@ -61,7 +61,7 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                 </div>
                 <button 
                     onClick={() => setIsCreating(true)}
-                    className="bg-white text-black hover:bg-white/90 text-[#121B2A] font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-400 hover:to-blue-400 shadow-[0_0_15px_rgba(6,182,212,0.4)] text-[#121B2A] font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all"
                 >
                     <Plus size={18} />
                     Crear Sala
@@ -77,7 +77,7 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {rooms.map(r => (
-                            <div key={r.id} className="bg-black/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between hover:border-white/10 transition-colors">
+                            <div key={r.id} className="bg-white/[0.03] border border-white/10 backdrop-blur-md hover:border-cyan-500/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] rounded-2xl p-5 flex flex-col justify-between hover:border-white/10 transition-colors">
                                 <div>
                                     <div className="flex justify-between items-start mb-2">
                                         <h3 className="text-white font-bold text-lg">{r.name}</h3>
@@ -109,7 +109,7 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
 
             {isCreating && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <form onSubmit={handleCreate} className="bg-[#0F1012] border border-white/10 rounded-2xl w-full max-w-md p-6 relative">
+                    <form onSubmit={handleCreate} className="bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-2xl w-full max-w-md p-6 relative">
                         <button 
                             type="button" 
                             onClick={() => setIsCreating(false)}
@@ -149,7 +149,7 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                                 />
                             </div>
                         </div>
-                        <button type="submit" className="w-full bg-gradient-to-r from-white to-gray-200 hover:opacity-90 text-black font-bold py-3 rounded-xl shadow-lg transition-all">
+                        <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:opacity-90 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] font-bold py-3 rounded-xl shadow-lg transition-all">
                             Crear y Unirse
                         </button>
                     </form>

@@ -16,9 +16,11 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
   const [showPassword, setShowPassword] = useState(false);
 
     return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0B0B0C] relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#050505] relative overflow-hidden font-sans">
       {/* Subtle background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/[0.02] rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/30 blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse"></div>
+     <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-cyan-600/20 blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '2s' }}></div>
+     <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] bg-pink-500/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '4s' }}></div>
       
       <div className="z-10 w-full max-w-md px-6">
         <div className="text-center mb-10">
@@ -30,14 +32,14 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
           </p>
         </div>
 
-        <div className="bg-[#121316]/80 backdrop-blur-2xl border border-white/5 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <div className="space-y-4">
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
                 <User size={18} />
               </div>
               <input
-                className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all text-sm"
+                className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all text-sm"
                 placeholder="Nombre de usuario"
                 value={user.username}
                 onChange={e => setUser({...user, username: e.target.value})}
@@ -50,7 +52,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 </div>
                 <input
-                  className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all text-sm"
                   type="email"
                   placeholder="Email de recuperación"
                   value={user.securityEmail || ''}
@@ -64,7 +66,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
                 <Lock size={18} />
               </div>
               <input
-                className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-12 text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all text-sm"
+                className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-12 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all text-sm"
                 type={showPassword ? "text" : "password"}
                 placeholder="Contraseña"
                 value={user.password}
@@ -82,7 +84,7 @@ export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handle
 
             <button
               onClick={handleLogin}
-              className="w-full bg-white text-black font-semibold rounded-2xl py-3.5 mt-2 hover:bg-white/90 transition-all active:scale-[0.98] text-sm"
+              className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-bold rounded-2xl py-3.5 mt-2 hover:opacity-90 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all active:scale-[0.98] text-sm"
             >
               {isRegisterMode ? 'Registrarse' : 'Entrar'}
             </button>

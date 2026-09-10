@@ -1432,10 +1432,10 @@ function MainApp() {
         top: 0,
         left: 0,
       }}
-      className="bg-[#0B0B0C] text-[#E0E2E5] flex flex-col font-sans"
+      className="bg-[#050505] text-white flex flex-col font-sans relative overflow-hidden"
     >
       {/* Top Navigation Bar (Floating/Overlay style) */}
-      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-[#0B0B0C]/80 backdrop-blur-md">
+      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="flex-1 flex items-center justify-start">
           <button
             onClick={() => {
@@ -1463,7 +1463,7 @@ function MainApp() {
               setIsSidebarOpen(false);
               setActiveChat("lizgram");
             }}
-            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-black bg-white" : "text-white/80 hover:bg-white/5"}`}
+            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-white bg-gradient-to-r from-pink-500 to-purple-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
             title="LizGram"
           >
             <ImageIcon size={24} strokeWidth={1.5} />
@@ -1475,7 +1475,7 @@ function MainApp() {
               closeAllModals();
               setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
             }}
-            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-black bg-white" : "text-white/80 hover:bg-white/5"}`}
+            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-white bg-gradient-to-r from-pink-500 to-purple-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
             title="Buzón"
           >
             <MessageSquare size={24} strokeWidth={1.5} />
@@ -1497,7 +1497,7 @@ function MainApp() {
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#0F1012]/95 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-72 bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.2)] backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden z-50">
                 <div className="p-3 border-b border-white/5 flex justify-between items-center">
                   <h3 className="text-white font-bold">Notificaciones</h3>
                   {notifications.length > 0 && (
@@ -1640,7 +1640,7 @@ function MainApp() {
       <div className="flex flex-1 h-0 relative">
         {/* Sidebar Principal */}
         <aside
-          className={`w-[280px] shrink-0 border-r border-white/5 bg-[#0F1012]/95 backdrop-blur-xl absolute md:relative z-40 h-full flex flex-col transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+          className={`w-[280px] shrink-0 border-r border-white/5 bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.2)] backdrop-blur-xl absolute md:relative z-40 h-full flex flex-col transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
         >
           <div className="p-4 flex flex-col items-center border-b border-white/5">
             <div
@@ -1748,7 +1748,7 @@ function MainApp() {
           {/* Salas */}
           <div className="px-4 py-2 flex flex-col gap-2">
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "global" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "global" ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]" : "bg-transparent text-white/50 hover:bg-white/10 hover:text-white transition-all"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1761,7 +1761,7 @@ function MainApp() {
               </div>
             </button>
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "friends_webcam" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "friends_webcam" ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]" : "bg-transparent text-white/50 hover:bg-white/10 hover:text-white transition-all"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1774,7 +1774,7 @@ function MainApp() {
               </div>
             </button>
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "custom_rooms" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "custom_rooms" ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]" : "bg-transparent text-white/50 hover:bg-white/10 hover:text-white transition-all"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1843,7 +1843,7 @@ function MainApp() {
               return (
                 <div
                   key={u.username}
-                  className="bg-[#1A2639]/80 border border-white/5 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors"
+                  className="bg-white/[0.03] border border-white/10 backdrop-blur-md hover:border-white/20 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors"
                   onClick={() => {
                     closeAllModals();
                     setSelectedUserModal(u as any);
@@ -1919,7 +1919,7 @@ function MainApp() {
                   (() => {
                     if (activeChat.startsWith("room_")) {
                         return (
-                          <div className="bg-[#0F1012]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                          <div className="bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.2)] backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                             <div className="flex items-center gap-3">
                               <button 
                                 onClick={() => {
@@ -1983,7 +1983,7 @@ function MainApp() {
                       `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
 
                     return (
-                      <div className="bg-[#0F1012]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                      <div className="bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.2)] backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                         <div className="flex items-center gap-3">
                           <button 
                             onClick={() => setActiveChat(previousChat)} 
@@ -2149,9 +2149,9 @@ function MainApp() {
                             </div>
                             
                             {(() => {
-                                const defaultBubbleColor = isMe ? "#1E1F24" : "#151619";
+                                const defaultBubbleColor = isMe ? "rgba(6, 182, 212, 0.15)" : "rgba(255, 255, 255, 0.05)";
                                 const defaultTextColor = "#E0E2E5";
-                                const defaultBorder = "rgba(255,255,255,0.05)";
+                                const defaultBorder = isMe ? "rgba(6, 182, 212, 0.3)" : "rgba(255, 255, 255, 0.1)";
                                 const defaultShape = isMe ? "rounded-[20px] rounded-tr-[4px]" : "rounded-[20px] rounded-tl-[4px]";
                                 
                                 const bColor = senderInfo?.bubbleColor || (m.sender === "Elizabeth" ? "transparent" : defaultBubbleColor);
@@ -2165,7 +2165,7 @@ function MainApp() {
                                 if (bTexture === "glass") textureClasses = "backdrop-blur-md bg-opacity-30 border-white/20";
                                 if (bTexture === "glow") textureClasses = "shadow-[0_0_15px_rgba(255,255,255,0.2)]";
                                 
-                                const nameColor = isElizabeth ? "text-white/80" : "text-white/60";
+                                const nameColor = isElizabeth ? "text-pink-400" : "text-cyan-300";
                                 const textColor = "text-white/90";
                                 const timeColor = "text-white/40";
 
@@ -2176,7 +2176,7 @@ function MainApp() {
                                         backgroundColor: bColor !== "transparent" ? bColor : undefined,
                                         borderWidth: '1px',
                                         borderColor: bBorder !== "transparent" ? bBorder : defaultBorder,
-                                        boxShadow: bTexture === "glow" ? `0 0 15px rgba(255,255,255,0.1)` : '0 2px 10px rgba(0,0,0,0.1)',
+                                        boxShadow: bTexture === "glow" ? `0 0 15px rgba(255,255,255,0.1)` : (isMe ? "0 4px 20px rgba(6,182,212,0.15)" : "0 4px 20px rgba(0,0,0,0.2)"),backdropFilter: "blur(10px)",
                                     }}
                                   >
                                     {!isMe && (
@@ -2378,7 +2378,7 @@ function MainApp() {
                       ref={fileInputRef}
                       onChange={handleImageSelect}
                     />
-                    <div className="flex-1 bg-white/5 border border-white/10 rounded-full flex items-center px-4 relative shadow-inner focus-within:bg-white/10 focus-within:border-white/20 transition-all overflow-hidden h-[50px]">
+                    <div className="flex-1 bg-white/5 border border-white/10 rounded-full flex items-center px-4 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] focus-within:bg-white/10 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all overflow-hidden h-[50px]">
                       {isRecording ? (
                         <div className="w-full h-full">
                           <PremiumAudioVisualizer stream={recordingStream} />
