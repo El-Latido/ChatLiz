@@ -1432,17 +1432,17 @@ function MainApp() {
         top: 0,
         left: 0,
       }}
-      className="bg-gradient-to-br from-[#0B1220] via-[#121B2A] to-[#0A101C] text-gray-200 flex flex-col font-sans"
+      className="bg-[#0B0B0C] text-[#E0E2E5] flex flex-col font-sans"
     >
       {/* Top Navigation Bar (Floating/Overlay style) */}
-      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full">
+      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-[#0B0B0C]/80 backdrop-blur-md">
         <div className="flex-1 flex items-center justify-start">
           <button
             onClick={() => {
               closeAllModals();
               setIsSidebarOpen(!isSidebarOpen);
             }}
-            className="md:hidden text-[#D4AF37] hover:text-[#E8D9B0] p-2 rounded-full hover:bg-white/5 transition-colors"
+            className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
           >
             <Menu size={24} strokeWidth={1.5} />
           </button>
@@ -1463,7 +1463,7 @@ function MainApp() {
               setIsSidebarOpen(false);
               setActiveChat("lizgram");
             }}
-            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-cyan-400 bg-cyan-500/20" : "text-[#D4AF37] hover:bg-white/5"}`}
+            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-black bg-white" : "text-white/80 hover:bg-white/5"}`}
             title="LizGram"
           >
             <ImageIcon size={24} strokeWidth={1.5} />
@@ -1475,7 +1475,7 @@ function MainApp() {
               closeAllModals();
               setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
             }}
-            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-pink-400 bg-pink-500/20" : "text-[#D4AF37] hover:bg-white/5"}`}
+            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-black bg-white" : "text-white/80 hover:bg-white/5"}`}
             title="Buzón"
           >
             <MessageSquare size={24} strokeWidth={1.5} />
@@ -1487,7 +1487,7 @@ function MainApp() {
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full text-[#D4AF37] hover:bg-white/5 transition-colors relative"
+              className="p-2 rounded-full text-white/80 hover:bg-white/5 transition-colors relative"
             >
               <Bell size={24} strokeWidth={1.5} />
               {notifications.length > 0 && (
@@ -1497,9 +1497,9 @@ function MainApp() {
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#121B2A]/95 backdrop-blur-xl border border-[#D4AF37]/30 rounded-2xl shadow-2xl overflow-hidden z-50">
-                <div className="p-3 border-b border-[#D4AF37]/30 flex justify-between items-center">
-                  <h3 className="text-[#E8D9B0] font-bold">Notificaciones</h3>
+              <div className="absolute right-0 mt-2 w-72 bg-[#0F1012]/95 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden z-50">
+                <div className="p-3 border-b border-white/5 flex justify-between items-center">
+                  <h3 className="text-white font-bold">Notificaciones</h3>
                   {notifications.length > 0 && (
                     <button 
                       onClick={async () => {
@@ -1594,14 +1594,14 @@ function MainApp() {
               closeAllModals();
               setIsGamesMenuOpen(true);
             }}
-            className="hidden sm:flex items-center gap-1.5 bg-[#121B2A]/60 border border-[#D4AF37]/30 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group"
+            className="hidden sm:flex items-center gap-1.5 bg-[#0F1012]/60 border border-white/5 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group"
           >
             <Gamepad2
               size={18}
-              className="text-[#D4AF37] group-hover:scale-110 transition-transform"
+              className="text-white/80 group-hover:scale-110 transition-transform"
               strokeWidth={1.5}
             />
-            <span className="font-bold text-[#E8D9B0] text-sm">Juegos</span>
+            <span className="font-bold text-white text-sm">Juegos</span>
           </button>
 
           <div
@@ -1611,7 +1611,7 @@ function MainApp() {
               setIsConfigOpen(true);
             }}
           >
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.3)] group-hover:border-[#D4AF37] transition-all">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 shadow-lg group-hover:border-[#D4AF37] transition-all">
               <img
                 referrerPolicy="no-referrer"
                 src={
@@ -1640,9 +1640,9 @@ function MainApp() {
       <div className="flex flex-1 h-0 relative">
         {/* Sidebar Principal */}
         <aside
-          className={`w-[280px] shrink-0 border-r border-[#D4AF37]/30 bg-[#121B2A]/95 backdrop-blur-xl absolute md:relative z-40 h-full flex flex-col transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+          className={`w-[280px] shrink-0 border-r border-white/5 bg-[#0F1012]/95 backdrop-blur-xl absolute md:relative z-40 h-full flex flex-col transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
         >
-          <div className="p-4 flex flex-col items-center border-b border-[#D4AF37]/30">
+          <div className="p-4 flex flex-col items-center border-b border-white/5">
             <div
               className="relative mb-3 group cursor-pointer"
               onClick={() => {
@@ -1650,7 +1650,7 @@ function MainApp() {
                 setIsConfigOpen(true);
               }}
             >
-              <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#D4AF37] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
                 <img
                   referrerPolicy="no-referrer"
                   src={
@@ -1673,7 +1673,7 @@ function MainApp() {
               )}
               <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-[3px] border-[#121B2A]"></div>
             </div>
-            <h2 className="text-[#E8D9B0] font-bold text-lg flex items-center gap-1.5">
+            <h2 className="text-white font-bold text-lg flex items-center gap-1.5">
               {user.username}{" "}
               {user?.username?.toUpperCase() === "AXISS" && (
                 <span className="bg-red-500/20 text-red-400 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -1681,7 +1681,7 @@ function MainApp() {
                 </span>
               )}
             </h2>
-            <p className="text-[#8B98B0] text-xs">Conectado(a)</p>
+            <p className="text-white/50 text-xs">Conectado(a)</p>
           </div>
 
 
@@ -1748,7 +1748,7 @@ function MainApp() {
           {/* Salas */}
           <div className="px-4 py-2 flex flex-col gap-2">
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "global" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "global" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1761,7 +1761,7 @@ function MainApp() {
               </div>
             </button>
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "friends_webcam" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "friends_webcam" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1774,7 +1774,7 @@ function MainApp() {
               </div>
             </button>
             <button
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "custom_rooms" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" : "bg-white/5 text-gray-300 hover:bg-white/10"}`}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all ${activeChat === "custom_rooms" ? "bg-white/10 text-white border border-white/10 shadow-sm" : "bg-transparent text-white/50 hover:bg-white/5 hover:text-white"}`}
               onClick={() => {
                 closeAllModals();
                 setIsSidebarOpen(false);
@@ -1843,14 +1843,14 @@ function MainApp() {
               return (
                 <div
                   key={u.username}
-                  className="bg-[#1A2639]/80 border border-[#D4AF37]/30 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors"
+                  className="bg-[#1A2639]/80 border border-white/5 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors"
                   onClick={() => {
                     closeAllModals();
                     setSelectedUserModal(u as any);
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-[#D4AF37]/50 relative flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 relative flex-shrink-0">
                       <img
                         referrerPolicy="no-referrer"
                         src={
@@ -1872,7 +1872,7 @@ function MainApp() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[#E8D9B0] font-bold text-sm truncate flex items-center gap-1.5">
+                      <p className="text-white font-bold text-sm truncate flex items-center gap-1.5">
                         {u.username}{" "}
                         {u.username.toUpperCase() === "AXISS" && (
                           <span className="bg-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -1880,7 +1880,7 @@ function MainApp() {
                           </span>
                         )}
                       </p>
-                      <p className="text-[#8B98B0] text-xs truncate">
+                      <p className="text-white/50 text-xs truncate">
                         En línea
                       </p>
                     </div>
@@ -1919,23 +1919,23 @@ function MainApp() {
                   (() => {
                     if (activeChat.startsWith("room_")) {
                         return (
-                          <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                          <div className="bg-[#0F1012]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                             <div className="flex items-center gap-3">
                               <button 
                                 onClick={() => {
                                     socket.emit("leave_custom_room", activeChat);
                                     setActiveChat("custom_rooms");
                                 }} 
-                                className="text-[#D4AF37] hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
+                                className="text-white/80 hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
                                 title="Volver a Salas"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
                               </button>
-                              <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center shadow-sm">
-                                <Hash className="text-[#D4AF37]" size={20} />
+                              <div className="w-10 h-10 rounded-full bg-[#1A2639] border border-white/10 flex items-center justify-center shadow-sm">
+                                <Hash className="text-white/80" size={20} />
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[#E8D9B0] font-bold text-lg leading-tight flex items-center gap-1.5">
+                                <span className="text-white font-bold text-lg leading-tight flex items-center gap-1.5">
                                   Sala Privada
                                   <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/30 uppercase tracking-wider">
                                     COMUNIDAD
@@ -1948,7 +1948,7 @@ function MainApp() {
                                 socket.emit("leave_custom_room", activeChat);
                                 setActiveChat("global");
                               }}
-                              className="text-sm font-bold text-[#D4AF37] hover:text-[#E8D9B0] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
+                              className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
                             >
                               <Globe size={16} /> Volver al Mundo
                             </button>
@@ -1983,17 +1983,17 @@ function MainApp() {
                       `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat}`;
 
                     return (
-                      <div className="bg-[#121B2A]/95 backdrop-blur-md border-b border-[#D4AF37]/30 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+                      <div className="bg-[#0F1012]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-lg">
                         <div className="flex items-center gap-3">
                           <button 
                             onClick={() => setActiveChat(previousChat)} 
-                            className="text-[#D4AF37] hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
+                            className="text-white/80 hover:bg-white/10 p-2 rounded-full transition-colors mr-1"
                             title="Volver Atrás"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
                           </button>
                           <div
-                            className="w-10 h-10 rounded-full bg-[#1A2639] border border-[#D4AF37]/50 flex items-center justify-center overflow-hidden shadow-sm relative cursor-pointer"
+                            className="w-10 h-10 rounded-full bg-[#1A2639] border border-white/10 flex items-center justify-center overflow-hidden shadow-sm relative cursor-pointer"
                             onClick={() =>
                               setSelectedUserModal(targetUser as any)
                             }
@@ -2010,7 +2010,7 @@ function MainApp() {
                           </div>
                           <div className="flex flex-col">
                             <span
-                              className="text-[#E8D9B0] font-bold text-lg leading-tight flex items-center gap-1.5 cursor-pointer hover:underline"
+                              className="text-white font-bold text-lg leading-tight flex items-center gap-1.5 cursor-pointer hover:underline"
                               onClick={() =>
                                 setSelectedUserModal(targetUser as any)
                               }
@@ -2020,7 +2020,7 @@ function MainApp() {
                                 Privado
                               </span>
                             </span>
-                            <span className="text-[#8B98B0] text-xs font-medium">
+                            <span className="text-white/50 text-xs font-medium">
                               {isOnline ? (
                                 <span className="text-green-400">{t('online')}</span>
                               ) : (
@@ -2032,7 +2032,7 @@ function MainApp() {
                         </div>
                         <button
                           onClick={() => setActiveChat("global")}
-                          className="text-sm font-bold text-[#D4AF37] hover:text-[#E8D9B0] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
+                          className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-colors border border-[#D4AF37]/20 flex items-center gap-2"
                         >
                           <Globe size={16} /> Volver al Mundo
                         </button>
@@ -2093,7 +2093,8 @@ function MainApp() {
                       return (
                         <div
                           key={m.id || idx}
-                          className="relative flex justify-start px-1 md:px-2 group"
+                          className={`relative flex ${isMe ? 'justify-end' : 'justify-start'} px-1 md:px-2 group`}
+                          style={{ marginBottom: '8px' }}
                           onPointerDown={(e) => {
                             if (e.pointerType === "mouse" && e.button !== 0) return;
                             reactionTimerRef.current = setTimeout(() => setReactionMenuId(m.id || idx.toString()), 500);
@@ -2123,7 +2124,7 @@ function MainApp() {
                             </div>
                           )}
 
-                          <div className="flex gap-2 w-full mt-1.5 group">
+                          <div className={`flex gap-3 max-w-[85%] mt-1.5 group ${isMe ? 'flex-row-reverse' : ''}`}>
                             <div
                               className="relative shrink-0 mt-1 cursor-pointer"
                               onClick={() => senderInfo && setSelectedUserModal(senderInfo)}
@@ -2131,7 +2132,7 @@ function MainApp() {
                               <img
                                 referrerPolicy="no-referrer"
                                 src={avatarUrl}
-                                className={`w-8 h-8 rounded-full object-cover border shadow-sm ${m.sender === "Elizabeth" ? "border-[#D4AF37]/50" : "border-[#5A52A5]/30 bg-white/5"}`}
+                                className={`w-8 h-8 rounded-full object-cover border shadow-sm ${m.sender === "Elizabeth" ? "border-white/10" : "border-[#5A52A5]/30 bg-white/5"}`}
                                 alt={m.sender}
                               />
                               {decUrl && (
@@ -2148,9 +2149,14 @@ function MainApp() {
                             </div>
                             
                             {(() => {
-                                const bColor = senderInfo?.bubbleColor || (m.sender === "Elizabeth" ? "transparent" : "#F2E3C6");
-                                const bBorder = senderInfo?.bubbleBorder || (m.sender === "Elizabeth" ? "#D4AF3740" : "transparent");
-                                const bShape = senderInfo?.bubbleShape || (m.sender === "Elizabeth" ? "rounded-2xl" : "rounded-2xl rounded-tr-sm");
+                                const defaultBubbleColor = isMe ? "#1E1F24" : "#151619";
+                                const defaultTextColor = "#E0E2E5";
+                                const defaultBorder = "rgba(255,255,255,0.05)";
+                                const defaultShape = isMe ? "rounded-[20px] rounded-tr-[4px]" : "rounded-[20px] rounded-tl-[4px]";
+                                
+                                const bColor = senderInfo?.bubbleColor || (m.sender === "Elizabeth" ? "transparent" : defaultBubbleColor);
+                                const bBorder = senderInfo?.bubbleBorder || (m.sender === "Elizabeth" ? "rgba(255,255,255,0.1)" : defaultBorder);
+                                const bShape = senderInfo?.bubbleShape || (m.sender === "Elizabeth" ? "rounded-[20px]" : defaultShape);
                                 const bTexture = senderInfo?.bubbleTexture || (m.sender === "Elizabeth" ? "none" : "none");
                                 const isElizabeth = m.sender === "Elizabeth";
 
@@ -2159,26 +2165,28 @@ function MainApp() {
                                 if (bTexture === "glass") textureClasses = "backdrop-blur-md bg-opacity-30 border-white/20";
                                 if (bTexture === "glow") textureClasses = "shadow-[0_0_15px_rgba(255,255,255,0.2)]";
                                 
-                                const nameColor = isElizabeth ? "text-[#D4AF37]" : "text-[#5A52A5]";
-                                const textColor = (bColor === "transparent" || bColor.toLowerCase() === "#1a2035" || isElizabeth) ? "text-[#E8D9B0]" : "text-[#1A2035]";
-                                const timeColor = isElizabeth ? "text-[#8B98B0]" : "text-[#5A52A5]/70";
+                                const nameColor = isElizabeth ? "text-white/80" : "text-white/60";
+                                const textColor = "text-white/90";
+                                const timeColor = "text-white/40";
 
                                 return (
                                   <div 
-                                    className={`${shapeClasses} ${textureClasses} px-3.5 py-2 max-w-[85%] shadow-sm flex flex-col relative min-w-[150px] transition-all`}
+                                    className={`${shapeClasses} ${textureClasses} px-4 py-2.5 shadow-sm flex flex-col relative min-w-[120px] transition-all`}
                                     style={{ 
                                         backgroundColor: bColor !== "transparent" ? bColor : undefined,
-                                        borderWidth: (bBorder !== "transparent" || isElizabeth) ? (isElizabeth ? '0 0 0 3px' : '1px') : '0',
-                                        borderColor: bBorder !== "transparent" ? bBorder : (isElizabeth ? '#D4AF3740' : 'transparent'),
-                                        boxShadow: (bBorder !== "transparent" && !isElizabeth) ? `0 0 8px ${bBorder}80` : undefined,
+                                        borderWidth: '1px',
+                                        borderColor: bBorder !== "transparent" ? bBorder : defaultBorder,
+                                        boxShadow: bTexture === "glow" ? `0 0 15px rgba(255,255,255,0.1)` : '0 2px 10px rgba(0,0,0,0.1)',
                                     }}
                                   >
-                                    <span
-                                      className={`font-bold ${nameColor} text-[13px] mb-1 cursor-pointer hover:underline uppercase`}
-                                      onClick={() => setInputValue((prev) => prev + `@${m.sender} `)}
-                                    >
-                                      {m.sender}
-                                    </span>
+                                    {!isMe && (
+                                      <span
+                                        className={`font-semibold ${nameColor} text-[13px] mb-0.5 cursor-pointer hover:text-white transition-colors tracking-wide`}
+                                        onClick={() => setInputValue((prev) => prev + `@${m.sender} `)}
+                                      >
+                                        {m.sender}
+                                      </span>
+                                    )}
                                     {m.replyTo && (
                                       <div className={`bg-black/10 border-l-2 border-[#5A52A5]/50 px-2 py-1 mb-1 rounded text-xs italic flex flex-col ${textColor}`}>
                                         <span className="font-bold opacity-80">{m.replyTo.sender}</span>
@@ -2261,7 +2269,7 @@ function MainApp() {
                     typingUsers[activeChat].length > 0 && (
                       <div className="flex flex-col gap-1 px-4 -mt-2">
                         {typingUsers[activeChat].includes("Elizabeth") && (
-                          <div className="text-[#D4AF37] text-sm font-medium italic flex items-center">
+                          <div className="text-white/80 text-sm font-medium italic flex items-center">
                             ELIZABETH está escribiendo
                             <span className="ml-1 flex gap-1">
                               <span className="animate-bounce">.</span>
@@ -2271,7 +2279,7 @@ function MainApp() {
                           </div>
                         )}
                         {typingUsers[activeChat].filter(u => u !== "Elizabeth").length > 0 && (
-                          <div className="text-[#8B98B0] text-sm font-medium italic">
+                          <div className="text-white/50 text-sm font-medium italic">
                             {typingUsers[activeChat].filter((u) => u !== "Elizabeth").join(", ")}{" "}
                             {typingUsers[activeChat].filter((u) => u !== "Elizabeth").length > 1 ? "están" : "está"}{" "}
                             escribiendo...
@@ -2281,9 +2289,9 @@ function MainApp() {
                     )}
 
                   {replyingTo && (
-                    <div className="bg-[#121B2A]/80 border border-[#D4AF37]/50 rounded-xl p-2 flex items-center justify-between shadow-lg mx-2">
+                    <div className="bg-[#0F1012]/80 border border-white/10 rounded-xl p-2 flex items-center justify-between shadow-lg mx-2">
                       <div className="flex flex-col">
-                        <span className="text-[#D4AF37] text-xs font-bold flex items-center gap-1">
+                        <span className="text-white/80 text-xs font-bold flex items-center gap-1">
                           <MessageCircle size={12} /> Respondiendo a{" "}
                           {replyingTo.sender}
                         </span>
@@ -2357,7 +2365,7 @@ function MainApp() {
                           closeAllModals();
                           setIsDjPanelOpen(true);
                         }}
-                        className="fixed bottom-36 left-4 z-[105] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
+                        className="fixed bottom-36 left-4 z-[105] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-white/80 p-3 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all"
                         title="Panel de DJ"
                       >
                         <Mic size={20} />
@@ -2370,7 +2378,7 @@ function MainApp() {
                       ref={fileInputRef}
                       onChange={handleImageSelect}
                     />
-                    <div className="flex-1 bg-[#121B2A]/60 border border-[#D4AF37]/50 rounded-[24px] flex items-center px-3 relative shadow-[0_0_15px_rgba(212,175,55,0.05)] focus-within:border-[#D4AF37] focus-within:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all overflow-hidden h-[46px]">
+                    <div className="flex-1 bg-white/5 border border-white/10 rounded-full flex items-center px-4 relative shadow-inner focus-within:bg-white/10 focus-within:border-white/20 transition-all overflow-hidden h-[50px]">
                       {isRecording ? (
                         <div className="w-full h-full">
                           <PremiumAudioVisualizer stream={recordingStream} />
@@ -2383,11 +2391,11 @@ function MainApp() {
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSendMessage();
                             }}
-                            className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-[#E8D9B0] placeholder-[#D4AF37]/60 text-[14px]"
+                            className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-white placeholder-white/40 text-[15px]"
                             id="chat-input-field"
                             placeholder="Escribe tu mensaje... @Elizabeth"
                           />
-                          <div className="flex items-center gap-0.5 text-[#D4AF37]/80 shrink-0 ml-1">
+                          <div className="flex items-center gap-0.5 text-white/80/80 shrink-0 ml-1">
                             <div className="relative flex items-center justify-center">
                               <button
                                 onClick={() => {
@@ -2406,7 +2414,7 @@ function MainApp() {
                                   closeAllModals();
                                   setIsGamesMenuOpen(true);
                                 }}
-                                className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"
+                                className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
                                 title="Juegos"
                               >
                                 <Gamepad2 size={18} strokeWidth={1.5} />
@@ -2416,13 +2424,13 @@ function MainApp() {
                               onClick={() =>
                                 setShowEmojiPicker(!showEmojiPicker)
                               }
-                              className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"
+                              className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
                             >
                               <Smile size={18} strokeWidth={1.5} />
                             </button>
                             <button
                               onClick={() => fileInputRef.current?.click()}
-                              className="flex items-center justify-center hover:text-[#D4AF37] p-1 transition-colors"
+                              className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
                             >
                               <Paperclip size={18} strokeWidth={1.5} />
                             </button>
@@ -2443,7 +2451,7 @@ function MainApp() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={toggleRecording}
-                          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${isRecording ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse" : "bg-[#121B2A]/80 border border-[#D4AF37]/50 text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]"}`}
+                          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${isRecording ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse" : "bg-[#0F1012]/80 border border-white/10 text-white/80 hover:text-white hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]"}`}
                         >
                           {isRecording ? (
                             <StopCircle size={20} strokeWidth={1.5} />
@@ -2459,7 +2467,7 @@ function MainApp() {
                             !audioUrl &&
                             !selectedGif
                           }
-                          className="w-[46px] h-[46px] rounded-[16px] bg-[#121B2A]/80 backdrop-blur-md border border-[#D4AF37]/50 flex items-center justify-center text-[#D4AF37] hover:text-[#E8D9B0] hover:bg-[#D4AF37]/20 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] shrink-0 disabled:opacity-50 disabled:shadow-none"
+                          className="w-[46px] h-[46px] rounded-[16px] bg-[#0F1012]/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-[#D4AF37]/20 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] shrink-0 disabled:opacity-50 disabled:shadow-none"
                         >
                           <Send
                             size={20}
@@ -2810,16 +2818,16 @@ function MainApp() {
                 setActiveChat(toast.sender);
                 setToasts((prev) => prev.filter((t) => t.id !== toast.id));
               }}
-              className="pointer-events-auto cursor-pointer bg-[#0f111a]/95 backdrop-blur-xl border border-[#D4AF37]/50 shadow-[0_4px_20px_rgba(212,175,55,0.15)] rounded-2xl p-3 flex items-center gap-3 w-72 animate-in fade-in slide-in-from-top-4 transition-all hover:bg-white/5"
+              className="pointer-events-auto cursor-pointer bg-[#0f111a]/95 backdrop-blur-xl border border-white/10 shadow-[0_4px_20px_rgba(212,175,55,0.15)] rounded-2xl p-3 flex items-center gap-3 w-72 animate-in fade-in slide-in-from-top-4 transition-all hover:bg-white/5"
             >
               <img
                 referrerPolicy="no-referrer"
                 src={senderPic}
                 alt={toast.sender}
-                className="w-10 h-10 rounded-full object-cover border border-[#D4AF37]/30"
+                className="w-10 h-10 rounded-full object-cover border border-white/5"
               />
               <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-[#E8D9B0] font-bold text-sm truncate">
+                <span className="text-white font-bold text-sm truncate">
                   {toast.sender}
                 </span>
                 <span className="text-gray-400 text-xs truncate">
@@ -3068,7 +3076,7 @@ function MainApp() {
                     />
                     {selectedUserModal.isAi && user.username.trim() === "Axiss" && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Bot size={24} className="text-[#D4AF37] mb-1" />
+                        <Bot size={24} className="text-white/80 mb-1" />
                         <span className="text-white text-xs font-bold text-center px-2">Configurar IA</span>
                       </div>
                     )}
@@ -3109,7 +3117,7 @@ function MainApp() {
                        setSelectedUserModal(null);
                        setIsConfigOpen(true);
                     }}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 mb-6"
+                    className="w-full flex items-center justify-center gap-2 bg-white/10 hover:from-cyan-500 hover:to-blue-500 text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-cyan-500/20 mb-6"
                   >
                     <Settings size={18} />
                     Configurar Perfil
@@ -3363,7 +3371,7 @@ function MainApp() {
                       }}
                       className="flex-1 flex items-center gap-3 cursor-pointer min-w-0"
                     >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-[#D4AF37]/30 overflow-hidden relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-white/5 overflow-hidden relative flex-shrink-0">
                         <img
                           referrerPolicy="no-referrer"
                           src={

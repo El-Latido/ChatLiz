@@ -55,7 +55,7 @@ export function SocialFeed({ user, onClose }: SocialFeedProps) {
             onClick={() => setSelectedUser(user.username)}
             src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
             alt={user.username}
-            className="w-8 h-8 rounded-full border border-[#D4AF37]/50 cursor-pointer hover:opacity-80 transition-opacity"
+            className="w-8 h-8 rounded-full border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
             title="Mi Perfil"
           />
         </div>
@@ -68,7 +68,7 @@ export function SocialFeed({ user, onClose }: SocialFeedProps) {
       <div className="flex-1 overflow-y-auto w-full p-4 flex flex-col items-center">
         <div className="w-full max-w-lg pb-20">
           {loading ? (
-            <div className="flex flex-col items-center justify-center mt-20 text-[#D4AF37]">
+            <div className="flex flex-col items-center justify-center mt-20 text-white/80">
               <Loader2 size={40} className="animate-spin mb-4" />
               <p>Cargando publicaciones...</p>
             </div>
@@ -78,7 +78,7 @@ export function SocialFeed({ user, onClose }: SocialFeedProps) {
               <p className="text-gray-400 mb-6">Sé el primero en compartir un momento con la comunidad.</p>
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="bg-[#D4AF37] text-black font-bold px-6 py-2 rounded-full hover:bg-yellow-400 transition-colors"
+                className="bg-white text-black text-black font-bold px-6 py-2 rounded-full hover:bg-yellow-400 transition-colors"
               >
                 Crear Publicación
               </button>

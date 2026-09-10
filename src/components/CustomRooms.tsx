@@ -50,18 +50,18 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
     };
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#1A2639]/50 overflow-hidden">
-            <div className="p-6 bg-[#121B2A]/90 backdrop-blur-md border-b border-[#D4AF37]/30 flex justify-between items-center shrink-0">
+        <div className="flex-1 flex flex-col h-full bg-[#0B0B0C] overflow-hidden">
+            <div className="p-6 bg-[#0F1012]/90 backdrop-blur-md border-b border-white/5 flex justify-between items-center shrink-0">
                 <div>
-                    <h2 className="text-[#E8D9B0] text-2xl font-bold flex items-center gap-2">
-                        <Hash className="text-[#D4AF37]" />
+                    <h2 className="text-white text-2xl font-bold flex items-center gap-2">
+                        <Hash className="text-white/80" />
                         Salas Públicas
                     </h2>
-                    <p className="text-[#8B98B0] text-sm mt-1">Crea o únete a salas creadas por la comunidad.</p>
+                    <p className="text-white/50 text-sm mt-1">Crea o únete a salas creadas por la comunidad.</p>
                 </div>
                 <button 
                     onClick={() => setIsCreating(true)}
-                    className="bg-[#D4AF37] hover:bg-[#E8D9B0] text-[#121B2A] font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all"
+                    className="bg-white text-black hover:bg-white/90 text-[#121B2A] font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all"
                 >
                     <Plus size={18} />
                     Crear Sala
@@ -71,13 +71,13 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
             <div className="flex-1 overflow-y-auto p-6 relative">
                 {rooms.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full opacity-50">
-                        <Hash size={64} className="mb-4 text-[#D4AF37]" />
+                        <Hash size={64} className="mb-4 text-white/80" />
                         <p className="text-xl text-white font-light">No hay salas creadas aún.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {rooms.map(r => (
-                            <div key={r.id} className="bg-black/40 border border-[#D4AF37]/20 rounded-2xl p-5 flex flex-col justify-between hover:border-[#D4AF37]/50 transition-colors">
+                            <div key={r.id} className="bg-black/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between hover:border-white/10 transition-colors">
                                 <div>
                                     <div className="flex justify-between items-start mb-2">
                                         <h3 className="text-white font-bold text-lg">{r.name}</h3>
@@ -85,8 +85,8 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                                             <Users size={12} /> {r.usersCount}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-[#8B98B0] mb-4 flex items-center gap-1">
-                                        <Shield size={14} className="text-[#D4AF37]" />
+                                    <p className="text-sm text-white/50 mb-4 flex items-center gap-1">
+                                        <Shield size={14} className="text-white/80" />
                                         Dueño: {r.owner}
                                     </p>
                                     {r.rules && (
@@ -109,7 +109,7 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
 
             {isCreating && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <form onSubmit={handleCreate} className="bg-[#121B2A] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 relative">
+                    <form onSubmit={handleCreate} className="bg-[#0F1012] border border-white/10 rounded-2xl w-full max-w-md p-6 relative">
                         <button 
                             type="button" 
                             onClick={() => setIsCreating(false)}
@@ -117,8 +117,8 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                         >
                             <X size={20} />
                         </button>
-                        <h2 className="text-2xl font-bold text-[#E8D9B0] mb-6 flex items-center gap-2">
-                            <Plus size={24} className="text-[#D4AF37]"/>
+                        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                            <Plus size={24} className="text-white/80"/>
                             Crear Sala
                         </h2>
                         {error && (
@@ -128,28 +128,28 @@ export function CustomRooms({ user, onJoinRoom }: { user: any, onJoinRoom: (room
                         )}
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-[#8B98B0] text-sm mb-1 font-mono">NOMBRE DE LA SALA</label>
+                                <label className="block text-white/50 text-sm mb-1 font-mono">NOMBRE DE LA SALA</label>
                                 <input 
                                     type="text" 
                                     value={newRoomName} 
                                     onChange={e => setNewRoomName(e.target.value)}
-                                    className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-[#D4AF37]/50"
+                                    className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-white/10"
                                     placeholder="Ej: Sala de Anime"
                                     maxLength={30}
                                 />
                             </div>
                             <div>
-                                <label className="block text-[#8B98B0] text-sm mb-1 font-mono">REGLAS (Opcional)</label>
+                                <label className="block text-white/50 text-sm mb-1 font-mono">REGLAS (Opcional)</label>
                                 <textarea 
                                     value={newRoomRules} 
                                     onChange={e => setNewRoomRules(e.target.value)}
-                                    className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-[#D4AF37]/50 resize-none h-24"
+                                    className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-white/10 resize-none h-24"
                                     placeholder="Reglas de la sala, temas permitidos, etc."
                                     maxLength={150}
                                 />
                             </div>
                         </div>
-                        <button type="submit" className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] hover:opacity-90 text-black font-bold py-3 rounded-xl shadow-lg transition-all">
+                        <button type="submit" className="w-full bg-gradient-to-r from-white to-gray-200 hover:opacity-90 text-black font-bold py-3 rounded-xl shadow-lg transition-all">
                             Crear y Unirse
                         </button>
                     </form>
