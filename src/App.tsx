@@ -55,6 +55,20 @@ import { SocialFeed } from "./components/social/SocialFeed";
 const DECORATIONS = [
   // Ajedrez (Themes & Efectos)
   {
+    id: "bubble_soap",
+    type: "texture",
+    category: "efectos",
+    price: 300,
+    url: "soap",
+  },
+  {
+    id: "bubble_animals",
+    type: "texture",
+    category: "efectos",
+    price: 450,
+    url: "animals",
+  },
+  {
     id: "chess_theme_wood",
     type: "basic",
     category: "ajedrez",
@@ -396,6 +410,10 @@ function MainApp() {
     isInitiator: boolean;
   } | null>(null);
   const [activeChat, setActiveChat] = useState("global");
+  const [neonColor, setNeonColor] = useState(() => localStorage.getItem("chatliz_neon_color") || "#00f3ff");
+  const [chatBgImage, setChatBgImage] = useState(() => localStorage.getItem("chatliz_chat_bg") || "");
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [isRainbowNeon, setIsRainbowNeon] = useState(() => localStorage.getItem("chatliz_rainbow_neon") === "true");
   const [previousChat, setPreviousChat] = useState("global");
   const changeChat = (newChat: string) => {
     if (newChat !== activeChat) {
@@ -1424,6 +1442,7 @@ function MainApp() {
 
   return (
     <div
+      className="text-black flex flex-col font-sans relative overflow-hidden"
       style={{
         width: "100%",
         height: "100%",
@@ -1431,96 +1450,131 @@ function MainApp() {
         position: "fixed",
         top: 0,
         left: 0,
-      }}
-      className="bg-[#030014] text-white flex flex-col font-sans relative overflow-hidden"
+        backgroundColor: "#f5f5f7", // Robotic White
+        "--neon-color": isRainbowNeon ? undefined : neonColor,
+      } as React.CSSProperties}
     >
-      {/* Premium Animated Glowing Blobs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/30 blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-cyan-600/20 blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-      <div className="absolute top-[20%] left-[30%] w-[40%] h-[40%] bg-pink-500/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '3s' }}></div>
-      <div className="absolute bottom-[30%] left-[-10%] w-[35%] h-[35%] bg-blue-600/20 blur-[140px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '2s' }}></div>
+      {isRainbowNeon && (
+        <style>{`
+          @keyframes rainbow-neon {
+            0% { --neon-color: #ff0000; }
+            17% { --neon-color: #ff00ff; }
+            33% { --neon-color: #0000ff; }
+            50% { --neon-color: #00ffff; }
+            67% { --neon-color: #00ff00; }
+            83% { --neon-color: #ffff00; }
+            100% { --neon-color: #ff0000; }
+          }
+          .robotic-neon {
+            animation: rainbow-neon 5s linear infinite;
+          }
+        `}</style>
+      )}
       
-      {/* Glassmorphism background filter overlay */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none z-0"></div>
+      {/* High-Tech Robotic Background Accents */}
+      <div className="absolute inset-0 pointer-events-none z-0" style={{
+        backgroundImage: `
+          radial-gradient(circle at 10% 20%, rgba(0,0,0,0.03) 0%, transparent 20%),
+          radial-gradient(circle at 90% 80%, rgba(0,0,0,0.03) 0%, transparent 20%),
+          linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)
+        `,
+        backgroundSize: '100% 100%, 100% 100%, 40px 40px, 40px 40px'
+      }}></div>
+      
+      {/* Dark robotic panels on sides */}
+      <div className="absolute left-0 top-0 w-[5%] h-full bg-gradient-to-r from-black/5 to-transparent pointer-events-none"></div>
+      <div className="absolute right-0 top-0 w-[5%] h-full bg-gradient-to-l from-black/5 to-transparent pointer-events-none"></div>
+
 
       {/* Top Navigation Bar (Floating/Overlay style) */}
-      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-white/[0.03] backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-        <div className="flex-1 flex items-center justify-start">
+      <div className="flex justify-center px-4 py-2 shrink-0 z-[100] relative w-full pointer-events-none mt-2">
+        <nav 
+          className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 rounded-full pointer-events-auto shadow-[0_4px_30px_rgba(0,0,0,0.1)] robotic-neon"
+          style={{
+            background: "linear-gradient(135deg, #ffffff 0%, #f0f0f5 100%)",
+            border: "2px solid var(--neon-color, #00f3ff)",
+            boxShadow: "0 0 15px var(--neon-color, #00f3ff), inset 0 0 10px rgba(0,0,0,0.05)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          {/* Hamburger (Mobile) */}
           <button
             onClick={() => {
               closeAllModals();
               setIsSidebarOpen(!isSidebarOpen);
             }}
-            className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
+            className="md:hidden p-2 rounded-full transition-all group"
+            style={{ color: "black" }}
           >
-            <Menu size={24} strokeWidth={1.5} />
+            <Menu size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
           </button>
-        </div>
 
-        {/* Center/Right alignment for top icons (Removed Chat-Liz text to save space as requested) */}
-        <div className="flex-1 flex justify-center">
-           {/* Empty space for balance if needed */}
-        </div>
-
-        {/* Right: Actions and Settings */}
-        <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
-          
-          {/* LizGram Button */}
+          {/* LizGram */}
           <button
             onClick={() => {
               closeAllModals();
               setIsSidebarOpen(false);
               setActiveChat("lizgram");
             }}
-            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-white bg-gradient-to-r from-pink-500 to-purple-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+            className="p-2 rounded-full transition-all relative group"
             title="LizGram"
+            style={{ color: activeChat === "lizgram" ? "var(--neon-color, #00f3ff)" : "black" }}
           >
-            <ImageIcon size={24} strokeWidth={1.5} />
+            <ImageIcon size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+            {activeChat === "lizgram" && (
+                <div className="absolute inset-0 rounded-full bg-black/5 animate-pulse pointer-events-none"></div>
+            )}
           </button>
 
-          {/* Buzón (Private messages/Friends) */}
+          {/* Divider */}
+          <div className="w-[1px] h-6 bg-black/10 mx-1"></div>
+
+          {/* Buzón (Private messages) */}
           <button
             onClick={() => {
               closeAllModals();
               setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
             }}
-            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-white bg-gradient-to-r from-pink-500 to-purple-500 shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+            className="p-2 rounded-full transition-all relative group"
             title="Buzón"
+            style={{ color: isFriendsSidebarOpen ? "var(--neon-color, #00f3ff)" : "black" }}
           >
-            <MessageSquare size={24} strokeWidth={1.5} />
+            <MessageSquare size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
             {Object.values(unreadPMs).some((v) => v) && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-cyan-500 rounded-full border border-[#0B1220]"></span>
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--neon-color, #00f3ff)", boxShadow: "0 0 5px var(--neon-color, #00f3ff)" }}></span>
             )}
           </button>
 
+          {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full text-white/80 hover:bg-white/5 transition-colors relative"
+              className="p-2 rounded-full transition-all relative group"
+              style={{ color: showNotifications ? "var(--neon-color, #00f3ff)" : "black" }}
             >
-              <Bell size={24} strokeWidth={1.5} />
+              <Bell size={22} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
               {notifications.length > 0 && (
-                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-[0_0_8px_rgba(239,68,68,0.6)]">
                   {notifications.length}
                 </span>
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.2)] backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden z-50">
-                <div className="p-3 border-b border-white/5 flex justify-between items-center">
-                  <h3 className="text-white font-bold">Notificaciones</h3>
+              <div className="absolute right-0 mt-3 w-72 bg-white border shadow-2xl overflow-hidden z-50 rounded-2xl"
+                   style={{ borderColor: "var(--neon-color, #00f3ff)", boxShadow: "0 10px 40px rgba(0,0,0,0.1), 0 0 15px var(--neon-color, #00f3ff) inset" }}>
+                <div className="p-3 border-b border-black/5 flex justify-between items-center bg-gray-50">
+                  <h3 className="text-black font-bold">Notificaciones</h3>
                   {notifications.length > 0 && (
                     <button 
-                      onClick={async () => {
+                       onClick={async () => {
                         const firestoreNotifs = notifications.filter(n => n.id && n.id.length > 13);
                         setNotifications([]);
-                        for (const n of firestoreNotifs) {
-                           try {
-                               await deleteDoc(doc(db, "notifications", n.id));
-                           } catch(e) {}
+                        for (const n of firestoreNotifs) { 
+                           try { await deleteDoc(doc(db, "notifications", n.id)); } catch(e) {}
                         }
                       }}
-                      className="text-xs text-gray-400 hover:text-white"
+                      className="text-xs text-gray-500 hover:text-black font-semibold"
                     >
                       Limpiar
                     </button>
@@ -1528,7 +1582,7 @@ function MainApp() {
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500 text-sm">
+                    <div className="p-6 text-center text-gray-400 text-sm font-medium">
                       No hay notificaciones
                     </div>
                   ) : (
@@ -1540,43 +1594,32 @@ function MainApp() {
                       
                       const fromUserObj = fromUser ? (usersOnline.find(u => u.username === fromUser) || userCache[fromUser]) : null;
                       const avatarSrc = fromUserObj?.profilePic || (fromUser ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser}` : undefined);
-
                       return (
                       <div 
-                        key={isString ? i : n.id || i} 
-                        onClick={async () => {
+                         key={isString ? i : n.id || i} 
+                         onClick={async () => {
                             if (n.id && n.id.length > 13) {
-                                try { await deleteDoc(doc(db, "notifications", n.id)); } catch(e){}
+                               setNotifications(prev => prev.filter(x => x.id !== n.id));
+                               try { await deleteDoc(doc(db, "notifications", n.id)); } catch(e) {}
                             }
-                            // Optimistically remove from state
-                            setNotifications(prev => prev.filter((_, idx) => idx !== (isString ? i : prev.findIndex(p => p.id === n.id))));
-
                             if (type === 'private_message' && fromUser) {
-                                setActiveChat(fromUser);
-                                setShowNotifications(false);
-                            } else if ((type === 'like' || type === 'profile_comment') && fromUser) {
-                                const targetUserObj = usersOnline.find(u => u.username === user.username) || user;
-                                setSelectedUserModal(targetUserObj);
-                                setShowNotifications(false);
+                               setActiveChat(fromUser);
+                               if (window.innerWidth < 768) setIsSidebarOpen(false);
                             }
-                        }}
-                        className="p-3 border-b border-white/5 hover:bg-white/5 transition-colors text-sm text-gray-300 flex items-center gap-3 cursor-pointer group"
+                         }}
+                         className="p-3 hover:bg-gray-50 border-b border-black/5 cursor-pointer transition-colors flex items-start gap-3 group"
                       >
-                        {fromUser && (
-                           <img 
-                             src={avatarSrc} 
-                             alt={fromUser}
-                             className="w-8 h-8 object-cover rounded-full bg-[#1A2639] group-hover:scale-105 transition-transform"
-                           />
-                        )}
-                        <div className="flex-1">
-                            {text}
-                            {!isString && n.timestamp && (
-                                <div className="text-[10px] text-gray-500 mt-1">
-                                    {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            )}
-                        </div>
+                         {avatarSrc ? (
+                            <img src={avatarSrc} alt={fromUser} className="w-8 h-8 rounded-full border border-gray-200" />
+                         ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                              <Bell size={14} className="text-gray-400" />
+                            </div>
+                         )}
+                         <div className="flex flex-col min-w-0">
+                           <span className="text-black text-sm break-words group-hover:text-black">{text}</span>
+                           <span className="text-gray-400 text-xs mt-0.5">{type === 'system' ? 'Sistema' : fromUser}</span>
+                         </div>
                       </div>
                     )})
                   )}
@@ -1584,67 +1627,30 @@ function MainApp() {
               </div>
             )}
           </div>
-          <div
-            className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 px-3 py-1 rounded-full cursor-pointer hover:bg-amber-500/30 transition-colors"
-            onClick={() => {
-              closeAllModals();
-              setStoreCategory(undefined);
-              setIsStoreOpen(true);
-            }}
-          >
-            <span className="text-amber-400 font-bold text-sm">
-              {user.lizCoins || 0}
-            </span>
-            <span className="text-xs text-amber-200">LM</span>
-          </div>
 
-          <button
-            onClick={() => {
-              closeAllModals();
-              setIsGamesMenuOpen(true);
-            }}
-            className="hidden sm:flex items-center gap-1.5 bg-[#0F1012]/60 border border-white/5 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group"
-          >
-            <Gamepad2
-              size={18}
-              className="text-white/80 group-hover:scale-110 transition-transform"
-              strokeWidth={1.5}
-            />
-            <span className="font-bold text-white text-sm">Juegos</span>
-          </button>
+          {/* Divider */}
+          <div className="w-[1px] h-6 bg-black/10 mx-1"></div>
 
-          <div
-            className="relative group cursor-pointer"
-            onClick={() => {
-              closeAllModals();
-              setIsConfigOpen(true);
-            }}
-          >
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 shadow-lg group-hover:border-[#D4AF37] transition-all">
+          {/* Profile / User Menu */}
+          <div className="relative group/profile">
+            <button
+              onClick={() => {
+                closeAllModals();
+                setIsProfileModalOpen(true);
+              }}
+              className="w-8 h-8 rounded-full overflow-hidden border-2 transition-transform hover:scale-105 ml-1"
+              style={{ borderColor: "var(--neon-color, #00f3ff)" }}
+            >
               <img
                 referrerPolicy="no-referrer"
-                src={
-                  user.profilePic ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`
-                }
-                alt={user.username}
+                src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                alt="Profile"
                 className="w-full h-full object-cover"
               />
-            </div>
-            {user.activeDecoration && (
-              <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
-                <img
-                  referrerPolicy="no-referrer"
-                  src={user.activeDecoration}
-                  alt="marco"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#0B1220]"></div>
+            </button>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       <div className="flex flex-1 h-0 relative">
         {/* Sidebar Principal */}
@@ -1736,6 +1742,9 @@ function MainApp() {
                 Reportes
               </button>
             </div>
+            </>
+          )}
+          {user?.username?.toUpperCase() === "AXISS" && (
             <div className="px-4 mt-2">
               <button
                 className={`w-full flex items-center justify-center gap-2 text-green-400 bg-green-500/10 border ${isMonetizationOpen ? "border-green-500/50" : "border-green-500/20"} px-3 py-2 rounded-2xl hover:bg-green-500/20 transition-all text-sm font-medium`}
@@ -1749,7 +1758,6 @@ function MainApp() {
                 Ingresos SDK
               </button>
             </div>
-            </>
           )}
 
           <div className="w-full h-px bg-white/5 my-2"></div>
@@ -2173,6 +2181,8 @@ function MainApp() {
                                 let textureClasses = "";
                                 if (bTexture === "glass") textureClasses = "backdrop-blur-md bg-opacity-30 border-white/20";
                                 if (bTexture === "glow") textureClasses = "shadow-[0_0_15px_rgba(255,255,255,0.2)]";
+                                if (bTexture === "soap") textureClasses = "backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.4),inset_0_0_20px_rgba(255,255,255,0.5)] border border-white/40 overflow-visible";
+                                if (bTexture === "animals") textureClasses = "overflow-visible";
                                 
                                 const nameColor = isElizabeth ? "text-pink-400" : "text-cyan-300";
                                 const textColor = "text-white/90";
@@ -2188,6 +2198,15 @@ function MainApp() {
                                         boxShadow: bTexture === "glow" ? `0 0 15px rgba(255,255,255,0.1)` : (isMe ? "0 4px 20px rgba(6,182,212,0.15)" : "0 4px 20px rgba(0,0,0,0.2)"),backdropFilter: "blur(10px)",
                                     }}
                                   >
+                                    {bTexture === "soap" && (
+                                        <div className="absolute inset-0 rounded-[inherit] pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,154,158,0.2) 0%, rgba(254,207,239,0.2) 99%, rgba(254,207,239,0.2) 100%)', mixBlendMode: 'overlay' }}></div>
+                                    )}
+                                    {bTexture === "animals" && (
+                                        <>
+                                          <div className="absolute -top-3 -left-3 text-2xl z-10 animate-bounce pointer-events-none" style={{animationDuration: '2s'}}>🐰</div>
+                                          <div className="absolute -bottom-3 -right-3 text-2xl z-10 animate-pulse pointer-events-none">🐱</div>
+                                        </>
+                                    )}
                                     {!isMe && (
                                       <span
                                         className={`font-semibold ${nameColor} text-[13px] mb-0.5 cursor-pointer hover:text-white transition-colors tracking-wide`}
@@ -2402,6 +2421,8 @@ function MainApp() {
                             }}
                             className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-white placeholder-white/40 text-[15px]"
                             id="chat-input-field"
+                            autoComplete="off"
+                            spellCheck="false"
                             placeholder="Escribe tu mensaje... @Elizabeth"
                           />
                           <div className="flex items-center gap-0.5 text-white/80/80 shrink-0 ml-1">
@@ -2924,7 +2945,7 @@ function MainApp() {
             <button
               onClick={() => {
                  setIsWatchingAd(true);
-                 setAdCountdown(5);
+                 setAdCountdown(15);
                  const interval = setInterval(() => {
                      setAdCountdown(prev => {
                          if (prev <= 1) {
@@ -3325,6 +3346,23 @@ function MainApp() {
                                 className="mt-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all"
                             >
                                 ELIMINAR CUENTA (Admin)
+                            </button>
+                        )}
+                        {user.username.toUpperCase() === "AXISS" && selectedUserModal.role !== "admin" && selectedUserModal.username.toUpperCase() !== "AXISS" && (
+                            <button
+                                onClick={() => {
+                                    if(confirm(`¿Promover a ${selectedUserModal.username} como Administrador?`)) {
+                                        socket.emit("admin_promote_user", selectedUserModal.username, (res: any) => {
+                                            if(res.success) {
+                                                alert("Usuario promovido a Administrador.");
+                                                setSelectedUserModal(null);
+                                            }
+                                        });
+                                    }
+                                }}
+                                className="mt-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all"
+                            >
+                                PROMOVER A ADMIN
                             </button>
                         )}
                     </div>
