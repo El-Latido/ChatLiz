@@ -1475,6 +1475,9 @@ function MainApp() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ backgroundColor: 'var(--neon-color, #00f3ff)', opacity: 0.15 }}></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s', backgroundColor: 'var(--neon-color, #ff00ff)', opacity: 0.15 }}></div>
       
+      {user?.bgImage && (
+        <div className="absolute inset-0 z-0 opacity-40 mix-blend-luminosity" style={{ backgroundImage: `url(${user.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+      )}
       {/* Cyberpunk Grid Background */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{
         backgroundImage: `
@@ -2030,6 +2033,19 @@ function MainApp() {
                             </span>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                        {!aiChar && isOnline && (
+                          <button
+                            onClick={() => {
+                               socket.emit("start_call", activeChat);
+                               setOutgoingCall({ username: activeChat, profilePic: avatarUrl });
+                            }}
+                            className="p-2 rounded-xl transition-colors border border-green-500/20 text-green-400 bg-green-500/10 hover:bg-green-500/20"
+                            title="Llamar"
+                          >
+                            <PhoneCall size={20} />
+                          </button>
+                        )}
                         <button
                           onClick={() => setActiveChat("global")}
                           className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors border border-white/20 flex items-center justify-center"
@@ -2037,6 +2053,7 @@ function MainApp() {
                         >
                           <Globe size={20} />
                         </button>
+                      </div>
                       </div>
                     );
                   })()}
@@ -2049,7 +2066,7 @@ function MainApp() {
                 )}
 
                 {/* Chat Feed */}
-                <div className="flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin">
+                <div id="chat-messages-container" className="chat-messages-container flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin transition-opacity duration-300 data-[paused=true]:opacity-30 data-[paused=true]:pointer-events-none">
                   {messages
                     .filter((m) => m && m.sender)
                     .filter((m) => {
@@ -2962,81 +2979,11 @@ function MainApp() {
 
       {/* Ad Player Overlay */}
       {isWatchingAd && (
-        <div className="fixed inset-0 bg-black z-[140] flex flex-col items-center justify-center">
-          <div className="absolute top-4 left-4 text-white/50 text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-white/10">
-            Anuncio Patrocinado
-          </div>
-          {adCountdown > 0 ? (
-              <div className="absolute top-4 right-4 text-white text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-white/10">
-                La recompensa se entregará en {adCountdown}s
-              </div>
-          ) : (
-              <div className="absolute top-4 right-4 text-green-400 text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-green-500/30">
-                ¡Recompensa lista!
-              </div>
-          )}
-          
-          <div className="w-full max-w-3xl aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl relative flex items-center justify-center border border-white/10">
-             {/* Simulated Ad Video */}
-             <video 
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" 
-                autoPlay 
-                muted
-                playsInline
-                loop
-                crossOrigin="anonymous"
-                className="w-full h-full object-cover opacity-80"
-             />
-             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                 <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] text-center px-4">
-                     Publicidad SDK<br/><span className="text-amber-500">Demostración</span>
-                 </h2>
-             </div>
-          </div>
-          
-          <p className="text-white/30 text-xs mt-6 text-center max-w-lg">
-             Al visualizar este anuncio estás apoyando a los desarrolladores de la plataforma para mantener los servidores activos y a las IAs gratuitas.
-          </p>
-        </div>
-      )}
-
-
-      {/* Friend Requests Modal */}
-      {isFriendReqOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-[#12141c] p-6 rounded-3xl w-full max-w-sm shadow-2xl relative border border-cyan-500/30">
-            <button
-              onClick={() => setIsFriendReqOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
-            >
-              <X size={20} />
-            </button>
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-center gap-2">
-              <UserPlus className="text-cyan-400" /> Solicitudes
-            </h2>
-            <div className="max-h-64 overflow-y-auto space-y-3">
-               {(!user.friend_requests || user.friend_requests.length === 0) ? (
-                   <p className="text-center text-gray-500 py-4">No tienes solicitudes pendientes.</p>
-               ) : (
-                   user.friend_requests.map((reqUsername) => {
-                       const reqInfo = usersOnline.find(u => u.username === reqUsername) || userCache[reqUsername];
-                       const pic = reqInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reqUsername}`;
-                       return (
-                           <div key={reqUsername} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                               <div className="flex items-center gap-3">
-                                  <img src={pic} className="w-10 h-10 rounded-full border border-cyan-500/30" />
-                                  <span className="text-white font-medium">{reqUsername}</span>
-                               </div>
-                               <div className="flex gap-2">
-                                  <button onClick={() => socket.emit("accept_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/40 font-bold">✓</button>
-                                  <button onClick={() => socket.emit("reject_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/40 font-bold">✕</button>
-                               </div>
-                           </div>
-                       );
-                   })
-               )}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+            <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <h2 className="text-xl font-bold">Cargando anuncio...</h2>
             </div>
-          </div>
         </div>
       )}
 

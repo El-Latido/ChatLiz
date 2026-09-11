@@ -71,6 +71,11 @@ export function ProfileConfigModal({
         bubbleBorder: bubbleBorder,
         bubbleShape: bubbleShape,
         bubbleTexture: bubbleTexture,
+        nameColor,
+        nameNeon,
+        nameFont,
+        chatFont,
+        bgImage,
         updatedAt: new Date()
       }, { merge: true });
 
