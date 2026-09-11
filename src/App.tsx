@@ -1504,6 +1504,8 @@ function MainApp() {
               setIsSidebarOpen(!isSidebarOpen);
             }}
             className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
+            title="Menú"
+            aria-label="Abrir Menú"
           >
             <Menu size={24} strokeWidth={1.5} />
           </button>
@@ -1800,6 +1802,20 @@ function MainApp() {
             </button>
           </div>
 
+
+          {/* Store Button */}
+          <div className="px-4 py-2">
+            <button
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white px-3 py-2.5 rounded-xl font-bold shadow-lg transition-transform active:scale-95 shadow-orange-500/20"
+              onClick={() => {
+                closeAllModals();
+                setIsStoreOpen(true);
+              }}
+            >
+              <Box size={18} />
+              Tienda (Marcos)
+            </button>
+          </div>
 
           {/* AI Characters Button */}
           <div className="px-4 py-2">

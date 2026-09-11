@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Sparkles, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserObj } from '../types';
 import { socket } from '../socket';
+import { ChatLizAdFlowManager } from '../lib/adManager';
 
 interface StoreModalProps {
   onClose: () => void;
@@ -66,6 +67,22 @@ export function StoreModal({ onClose, user, decorations, initialCategory, onSele
     setCurrentCategoryIndex((prev) => (prev - 1 + categories.length) % categories.length);
   };
 
+  const watchAdForCoins = () => {
+    if (isPlayingAd) return;
+    setIsPlayingAd(true);
+    const adManager = new ChatLizAdFlowManager(user.username, (reward) => {
+        setIsPlayingAd(false);
+        socket.emit('watch_ad_reward', { reward }, (res: any) => {
+            if (res.success) {
+                // Optimistically update
+            } else {
+                setError(res.error || 'Error al reclamar recompensa');
+            }
+        });
+    });
+    adManager.showRewardedVideoAd();
+  };
+
   const items = decorations.filter(d => d.category === currentCategory.id);
 
   return (
@@ -77,7 +94,17 @@ export function StoreModal({ onClose, user, decorations, initialCategory, onSele
               <Sparkles className="text-[#D4AF37]" />
               Tienda Premium
             </h2>
-            <p className="text-[#D4AF37]/80 mt-1 font-medium">Liz-Moneditas: <span className="text-[#121B2A] bg-[#D4AF37] px-2.5 py-0.5 rounded-full font-bold">{user.lizCoins || 0}</span></p>
+            <div className="flex items-center gap-4 mt-1">
+              <p className="text-[#D4AF37]/80 font-medium">Liz-Moneditas: <span className="text-[#121B2A] bg-[#D4AF37] px-2.5 py-0.5 rounded-full font-bold">{user.lizCoins || 0}</span></p>
+              <button 
+                  onClick={watchAdForCoins}
+                  disabled={isPlayingAd}
+                  className="flex items-center gap-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 px-3 py-1 rounded-full text-xs font-bold transition-colors"
+              >
+                  <Sparkles size={14} />
+                  {isPlayingAd ? 'Viendo...' : 'Ver Video (+10 LM)'}
+              </button>
+            </div>
           </div>
           <button onClick={onClose} className="text-[#D4AF37]/60 hover:text-[#D4AF37] p-2 rounded-full hover:bg-[#D4AF37]/10 transition-colors">
             <X size={24} />
