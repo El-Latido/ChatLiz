@@ -1,43 +1,42 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/components/ProfileConfigModal.tsx', 'utf8');
 
-// Add EyeOff import
-code = code.replace(/import \{ X, User, Lock, Globe, Palette, Upload, Settings \} from "lucide-react";/, 'import { X, User, Lock, Globe, Palette, Upload, Settings, EyeOff } from "lucide-react";');
+const target1 = `  const [bubbleBorder, setBubbleBorder] = useState(user.bubbleBorder || 'border-[#5A52A5]/30');
+  const [bubbleShape, setBubbleShape] = useState(user.bubbleShape || 'rounded-2xl rounded-tr-sm');
+  const [bubbleTexture, setBubbleTexture] = useState(user.bubbleTexture || 'none');`;
 
-// State for incognito
-code = code.replace(/const \[statusMessage, setStatusMessage\] = useState\(user\.statusMessage \|\| ""\);/, 'const [statusMessage, setStatusMessage] = useState(user.statusMessage || "");\n  const [incognito, setIncognito] = useState(user.incognito || false);');
+const replacement1 = `  const [bubbleBorder, setBubbleBorder] = useState(user.bubbleBorder || 'border-[#5A52A5]/30');
+  const [bubbleShape, setBubbleShape] = useState(user.bubbleShape || 'rounded-2xl rounded-tr-sm');
+  const [bubbleTexture, setBubbleTexture] = useState(user.bubbleTexture || 'none');
 
-// Handle toggle incognito
-const saveFunction = `const handleSave = () => {`;
-const saveReplacement = `
-  const toggleIncognito = () => {
-     const nextVal = !incognito;
-     setIncognito(nextVal);
-     socket.emit("update_incognito", nextVal);
-  };
-  const handleSave = () => {`;
-code = code.replace(saveFunction, saveReplacement);
+  const [nameColor, setNameColor] = useState(user.nameColor || '#FFFFFF');
+  const [nameNeon, setNameNeon] = useState(user.nameNeon || 'none');
+  const [nameRainbow, setNameRainbow] = useState(user.nameRainbow || false);
+  const [nameNeonColor1, setNameNeonColor1] = useState(user.nameNeonColor1 || '#00f3ff');
+  const [nameNeonColor2, setNameNeonColor2] = useState(user.nameNeonColor2 || '#ff00ff');
+  const [nameFont, setNameFont] = useState(user.nameFont || 'default');
+  const [chatFont, setChatFont] = useState(user.chatFont || 'default');
+  const [chatColorStyle, setChatColorStyle] = useState(user.chatColorStyle || 'default');
+`;
 
-// Render incognito button in Privacidad section
-const lockSection = `<div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">`;
-const incognitoSection = `
-                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-4">
-                            <div className={\`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 \${incognito ? "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "bg-black/40"}\`}>
-                                <EyeOff size={24} className={\`transition-all duration-300 \${incognito ? "text-white" : "text-gray-500"}\`} />
-                            </div>
-                            <div>
-                                <h4 className="text-white font-bold text-sm">Modo Incógnito (Espía)</h4>
-                                <p className="text-xs text-gray-400 mt-1 max-w-[200px]">Al activar, desapareces de la lista de usuarios. Solo podrás enviar mensajes privados.</p>
-                            </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={incognito} onChange={toggleIncognito} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-                        </label>
-                    </div>
-<div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">`;
-code = code.replace(lockSection, incognitoSection);
+const target2 = `        nameColor,
+        nameNeon,
+        nameFont,
+        chatFont,
+        bgImage,`;
+
+const replacement2 = `        nameColor,
+        nameNeon,
+        nameRainbow,
+        nameNeonColor1,
+        nameNeonColor2,
+        nameFont,
+        chatFont,
+        chatColorStyle,
+        bgImage: backgroundBase64,`;
+
+code = code.replace(target1, replacement1);
+code = code.replace(target2, replacement2);
 
 fs.writeFileSync('src/components/ProfileConfigModal.tsx', code);
-console.log("Patched ProfileConfigModal.tsx");
+console.log("Patched ProfileConfigModal state & save");

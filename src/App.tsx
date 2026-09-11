@@ -1475,8 +1475,8 @@ function MainApp() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ backgroundColor: 'var(--neon-color, #00f3ff)', opacity: 0.15 }}></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s', backgroundColor: 'var(--neon-color, #ff00ff)', opacity: 0.15 }}></div>
       
-      {user?.bgImage && (
-        <div className="absolute inset-0 z-0 opacity-40 mix-blend-luminosity" style={{ backgroundImage: `url(${user.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+      {(user?.bgImage || user?.preferred_background) && (
+        <div className="absolute inset-0 z-0 opacity-40 mix-blend-luminosity" style={{ backgroundImage: `url(${user.bgImage || user.preferred_background})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
       )}
       {/* Cyberpunk Grid Background */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{
@@ -1884,7 +1884,17 @@ function MainApp() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold text-sm truncate flex items-center gap-1.5">
+                      <p className="font-bold text-sm truncate flex items-center gap-1.5"
+                         style={{
+                             color: u.nameColor || "white",
+                             fontFamily: u.nameFont !== 'default' ? u.nameFont : "inherit",
+                             textShadow: u.nameNeon !== 'none' 
+                                 ? (u.nameRainbow 
+                                     ? `0 0 5px ${u.nameNeonColor1}, 0 0 10px ${u.nameNeonColor1}, 0 0 20px ${u.nameNeonColor2}` 
+                                     : `0 0 5px ${u.nameNeonColor1}, 0 0 10px ${u.nameNeonColor1}, 0 0 20px ${u.nameNeonColor1}`) 
+                                 : "none"
+                         }}
+                      >
                         {u.username}{" "}
                         {u.username.toUpperCase() === "AXISS" && (
                           <span className="bg-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -2185,9 +2195,26 @@ function MainApp() {
                                 if (bTexture === "soap") textureClasses = "backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.4),inset_0_0_20px_rgba(255,255,255,0.5)] border border-white/40 overflow-visible";
                                 if (bTexture === "animals") textureClasses = "overflow-visible";
                                 
-                                const nameColor = isElizabeth ? "text-pink-400" : "text-cyan-300";
-                                const textColor = "text-white/90";
-                                const timeColor = "text-white/40";
+                                const nColor = senderInfo?.nameColor || (isElizabeth ? "#F472B6" : "#67E8F9");
+                                const nNeon = senderInfo?.nameNeon || "none";
+                                const nRainbow = senderInfo?.nameRainbow;
+                                const nNeon1 = senderInfo?.nameNeonColor1 || "#00f3ff";
+                                const nNeon2 = senderInfo?.nameNeonColor2 || "#ff00ff";
+                                const nFont = senderInfo?.nameFont && senderInfo.nameFont !== 'default' ? senderInfo.nameFont : "inherit";
+                                const cFont = senderInfo?.chatFont && senderInfo.chatFont !== 'default' ? senderInfo.chatFont : "inherit";
+                                const cColorStyle = senderInfo?.chatColorStyle || "default";
+                                
+                                const textColor = cColorStyle === 'colorful' ? nColor : "rgba(255, 255, 255, 0.9)";
+                                const timeColor = "rgba(255, 255, 255, 0.4)";
+                                
+                                let nameStyle: React.CSSProperties = { color: nColor, fontFamily: nFont };
+                                if (nNeon !== 'none') {
+                                    if (nRainbow) {
+                                       nameStyle.textShadow = `0 0 5px ${nNeon1}, 0 0 10px ${nNeon1}, 0 0 20px ${nNeon2}, 0 0 40px ${nNeon2}`;
+                                    } else {
+                                       nameStyle.textShadow = `0 0 5px ${nNeon1}, 0 0 10px ${nNeon1}, 0 0 20px ${nNeon1}`;
+                                    }
+                                }
 
                                 return (
                                   <div 
@@ -2210,7 +2237,8 @@ function MainApp() {
                                     )}
                                     {!isMe && (
                                       <span
-                                        className={`font-semibold ${nameColor} text-[13px] mb-0.5 cursor-pointer hover:text-white transition-colors tracking-wide`}
+                                        className={`font-semibold text-[13px] mb-0.5 cursor-pointer hover:brightness-150 transition-all tracking-wide`}
+                                        style={nameStyle}
                                         onClick={() => setInputValue((prev) => prev + `@${m.sender} `)}
                                       >
                                         {m.sender}
@@ -2224,14 +2252,15 @@ function MainApp() {
                                     )}
                                     <div className="flex flex-wrap items-end justify-between gap-2">
                                       <span
-                                        className={`${textColor} text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
+                                        className={`text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
+                                        style={{ color: textColor, fontFamily: cFont }}
                                         onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
                                       >
                                         <TranslatedText originalText={m.text} senderLanguage={m.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
                                       </span>
                                       <button
                                         onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
-                                        className={`opacity-0 group-hover:opacity-100 transition-opacity ${nameColor} hover:opacity-80 p-1`}
+                                        className={`opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80 p-1`} style={{ color: nColor }}
                                         title="Responder"
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3050,7 +3079,17 @@ function MainApp() {
 
               {/* User Info */}
               <div className="pt-20 text-center">
-                <h3 className="text-2xl font-bold text-white flex items-center justify-center gap-2 mb-1">
+                <h3 className="text-2xl font-bold flex items-center justify-center gap-2 mb-1"
+                    style={{
+                             color: selectedUserModal.nameColor || "white",
+                             fontFamily: selectedUserModal.nameFont !== 'default' ? selectedUserModal.nameFont : "inherit",
+                             textShadow: selectedUserModal.nameNeon !== 'none' 
+                                 ? (selectedUserModal.nameRainbow 
+                                     ? `0 0 5px ${selectedUserModal.nameNeonColor1}, 0 0 10px ${selectedUserModal.nameNeonColor1}, 0 0 20px ${selectedUserModal.nameNeonColor2}` 
+                                     : `0 0 5px ${selectedUserModal.nameNeonColor1}, 0 0 10px ${selectedUserModal.nameNeonColor1}, 0 0 20px ${selectedUserModal.nameNeonColor1}`) 
+                                 : "none"
+                    }}
+                >
                   {selectedUserModal.username}
                   {selectedUserModal.role === "admin" && (
                     <span className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shadow-sm">

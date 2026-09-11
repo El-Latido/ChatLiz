@@ -441,6 +441,15 @@ __name(ensureAutoRadio, "ensureAutoRadio");
                 activeUsers[data.username].statusMessage = data.statusMessage;
                 activeUsers[data.username].role = data.role;
                 activeUsers[data.username].pais_idioma = data.pais_idioma;
+                activeUsers[data.username].nameColor = data.nameColor;
+                activeUsers[data.username].nameNeon = data.nameNeon;
+                activeUsers[data.username].nameRainbow = data.nameRainbow;
+                activeUsers[data.username].nameNeonColor1 = data.nameNeonColor1;
+                activeUsers[data.username].nameNeonColor2 = data.nameNeonColor2;
+                activeUsers[data.username].nameFont = data.nameFont;
+                activeUsers[data.username].chatFont = data.chatFont;
+                activeUsers[data.username].chatColorStyle = data.chatColorStyle;
+                activeUsers[data.username].bgImage = data.bgImage;
                 changed = true;
               }
             }
@@ -467,6 +476,19 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       lizCoins: u.lizCoins || 0,
       activeDecoration: u.activeDecoration || null,
       ownedDecorations: u.ownedDecorations || [],
+      nameColor: u.nameColor,
+      nameNeon: u.nameNeon,
+      nameRainbow: u.nameRainbow,
+      nameNeonColor1: u.nameNeonColor1,
+      nameNeonColor2: u.nameNeonColor2,
+      nameFont: u.nameFont,
+      chatFont: u.chatFont,
+      chatColorStyle: u.chatColorStyle,
+      bgImage: u.bgImage,
+      bubbleColor: u.bubbleColor,
+      bubbleBorder: u.bubbleBorder,
+      bubbleShape: u.bubbleShape,
+      bubbleTexture: u.bubbleTexture,
     }));
         for (const ai of Object.keys(AI_CHARACTERS)) { usersList.unshift(aiUserTempCache[ai]); }
     io.emit("active_users", usersList);
@@ -560,6 +582,19 @@ __name(ensureAutoRadio, "ensureAutoRadio");
           lizCoins: u.lizCoins || 0,
           activeDecoration: u.activeDecoration || null,
           ownedDecorations: u.ownedDecorations || [],
+          nameColor: u.nameColor,
+          nameNeon: u.nameNeon,
+          nameRainbow: u.nameRainbow,
+          nameNeonColor1: u.nameNeonColor1,
+          nameNeonColor2: u.nameNeonColor2,
+          nameFont: u.nameFont,
+          chatFont: u.chatFont,
+          chatColorStyle: u.chatColorStyle,
+          bgImage: u.bgImage,
+          bubbleColor: u.bubbleColor,
+          bubbleBorder: u.bubbleBorder,
+          bubbleShape: u.bubbleShape,
+          bubbleTexture: u.bubbleTexture,
         }));
             for (const ai of Object.keys(AI_CHARACTERS)) { usersList.unshift(aiUserTempCache[ai]); }
         socket.emit("active_users", usersList);
@@ -986,6 +1021,19 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             uid = user?.uid || "";
             profileLikes = user?.profileLikes || 0;
             incognito = !!user?.incognito;
+            var nameColor2 = user?.nameColor;
+            var nameNeon2 = user?.nameNeon;
+            var nameRainbow2 = user?.nameRainbow;
+            var nameNeonColor12 = user?.nameNeonColor1;
+            var nameNeonColor22 = user?.nameNeonColor2;
+            var nameFont2 = user?.nameFont;
+            var chatFont2 = user?.chatFont;
+            var chatColorStyle2 = user?.chatColorStyle;
+            var bgImage2 = user?.bgImage;
+            var bubbleColor2 = user?.bubbleColor;
+            var bubbleBorder2 = user?.bubbleBorder;
+            var bubbleShape2 = user?.bubbleShape;
+            var bubbleTexture2 = user?.bubbleTexture;
             if (!uid) {
               uid = Math.random().toString(36).substring(2, 8).toUpperCase();
               await setDoc(
@@ -1442,6 +1490,85 @@ socket.on("buy_decoration", async (data, callback) => {
       }
       emitActiveUsers();
     });
+
+    socket.on("watch_ad_reward", async (callback) => {
+      if (!currentUsername) return callback({ success: false });
+      if (fdb) {
+         try {
+             // 1. Update user coins
+             const uRef = doc(fdb, "users", currentUsername);
+             const snap = await getDoc(uRef);
+             let newCoins = 100;
+             if (snap.exists()) {
+                 newCoins = (snap.data().lizCoins || 0) + 100;
+                 await updateDoc(uRef, { lizCoins: newCoins });
+             }
+
+             // 2. Update Admin Axiss
+             const axissRef = doc(fdb, "users", "Axiss");
+             const axissSnap = await getDoc(axissRef);
+             if (axissSnap.exists()) {
+                 const currentRev = axissSnap.data().adRevenue || 0;
+                 const newRev = currentRev + 0.50; // Earn 50 cents per ad for example
+                 await updateDoc(axissRef, { adRevenue: newRev });
+                 if (activeUsers["Axiss"]) {
+                     activeUsers["Axiss"].adRevenue = newRev;
+                     io.to(activeUsers["Axiss"].socketId).emit("admin_revenue_update", newRev);
+                 }
+             }
+
+             if (activeUsers[currentUsername]) {
+                 activeUsers[currentUsername].lizCoins = newCoins;
+                 emitActiveUsers();
+             }
+             callback({ success: true, newCoins });
+         } catch(e) {
+             console.error("Ad reward error:", e);
+             callback({ success: false });
+         }
+      } else {
+         if (fallbackState.users[currentUsername]) {
+             fallbackState.users[currentUsername].lizCoins = (fallbackState.users[currentUsername].lizCoins || 0) + 100;
+             if (activeUsers[currentUsername]) activeUsers[currentUsername].lizCoins = fallbackState.users[currentUsername].lizCoins;
+             if (fallbackState.users["Axiss"]) {
+                 fallbackState.users["Axiss"].adRevenue = (fallbackState.users["Axiss"].adRevenue || 0) + 0.50;
+                 if (activeUsers["Axiss"]) activeUsers["Axiss"].adRevenue = fallbackState.users["Axiss"].adRevenue;
+             }
+             saveFallbackDB();
+             emitActiveUsers();
+             callback({ success: true, newCoins: fallbackState.users[currentUsername].lizCoins });
+         } else {
+             callback({ success: false });
+         }
+      }
+    });
+
+    socket.on("update_frame", async (frameId, callback) => {
+      if (!currentUsername) return callback({ success: false });
+      if (fdb) {
+          try {
+              const uRef = doc(fdb, "users", currentUsername);
+              await updateDoc(uRef, { activeFrame: frameId || null });
+              if (activeUsers[currentUsername]) {
+                  activeUsers[currentUsername].activeFrame = frameId;
+                  emitActiveUsers();
+              }
+              callback({ success: true });
+          } catch(e) {
+              console.error(e);
+              callback({ success: false });
+          }
+      } else {
+          if (fallbackState.users[currentUsername]) {
+              fallbackState.users[currentUsername].activeFrame = frameId;
+              if (activeUsers[currentUsername]) activeUsers[currentUsername].activeFrame = frameId;
+              saveFallbackDB();
+              emitActiveUsers();
+              callback({ success: true });
+          }
+      }
+    });
+
     socket.on("update_ai_config", async (data, callback) => {
       if (currentUsername !== "Axiss")
         return callback({
