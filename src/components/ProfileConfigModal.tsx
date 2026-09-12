@@ -208,18 +208,45 @@ export function ProfileConfigModal({
                    <h3 className="text-2xl font-bold text-white">{user.username}</h3>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                    <label className="text-sm font-semibold text-gray-400 ml-1">Marco de Perfil</label>
-                   <select 
-                      value={frameId || ""}
-                      onChange={e => setFrameId(e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full bg-black/30 p-4 rounded-2xl border border-white/10 outline-none text-white transition-colors"
-                   >
-                      <option value="">Sin Marco</option>
+                   
+                   <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 max-h-48 overflow-y-auto p-3 bg-black/20 rounded-2xl border border-white/5">
+                      <div 
+                         className={`relative w-12 h-12 rounded-full cursor-pointer flex items-center justify-center border-2 ${!frameId ? 'border-cyan-400 bg-white/10' : 'border-transparent hover:bg-white/5'}`}
+                         onClick={() => setFrameId(undefined)}
+                         title="Sin Marco"
+                      >
+                         <X size={20} className="text-gray-400" />
+                      </div>
                       {Array.from({ length: 40 }, (_, i) => i + 1).map(id => (
-                         <option key={id} value={id}>Marco {id}</option>
+                         <div 
+                            key={id}
+                            className={`relative w-12 h-12 rounded-full cursor-pointer border-2 transition-all ${frameId === id ? 'border-cyan-400 scale-110 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'border-transparent hover:scale-105 hover:bg-white/5'}`}
+                            onClick={() => setFrameId(id)}
+                            title={`Marco ${id}`}
+                         >
+                            <img 
+                               src={`/frames/${id}.png`} 
+                               className="w-full h-full object-contain scale-[1.35]"
+                               style={{
+                                  WebkitMaskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)',
+                                  maskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)'
+                               }}
+                               alt={`Marco ${id}`}
+                               onError={(e) => {
+                                  // Fallback simple si la imagen no se ha subido aún
+                                  (e.target as HTMLImageElement).src = `https://placehold.co/100x100/1a1a24/3a3a4c?text=${id}`;
+                                  (e.target as HTMLImageElement).style.maskImage = 'none';
+                                  (e.target as HTMLImageElement).style.WebkitMaskImage = 'none';
+                               }}
+                            />
+                         </div>
                       ))}
-                   </select>
+                   </div>
+                   <p className="text-xs text-cyan-400/70 ml-1 bg-cyan-400/10 p-2 rounded-lg border border-cyan-400/20">
+                     💡 <b>Tip:</b> Sube tus 40 imágenes de marcos a la carpeta <code className="bg-black/50 px-1 rounded">public/frames/</code> en la barra lateral, nombrándolas <code className="bg-black/50 px-1 rounded">1.png</code> al <code className="bg-black/50 px-1 rounded">40.png</code>.
+                   </p>
                 </div>
 
                 <div className="space-y-2">

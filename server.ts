@@ -638,7 +638,8 @@ __name(ensureAutoRadio, "ensureAutoRadio");
                   ownedDecorations: user.ownedDecorations || [],
                   elo: user.elo || 0,
                   uid: uid,
-                  profileLikes: user.profileLikes || 0
+                  profileLikes: user.profileLikes || 0,
+                  frameId: user.frameId || undefined
                };
             }
             emitActiveUsers();
@@ -916,6 +917,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             elo,
             uid,
             profileLikes,
+            frameId: userDoc.frameId || undefined
          };
       }
       emitActiveUsers();
@@ -1112,6 +1114,7 @@ __name(ensureAutoRadio, "ensureAutoRadio");
         elo,
         uid,
         profileLikes,
+        frameId: fallbackState.users[username]?.frameId || undefined
       };
       emitActiveUsers();
       if (bannedUsers[username] && bannedUsers[username] > Date.now()) {
