@@ -441,15 +441,6 @@ __name(ensureAutoRadio, "ensureAutoRadio");
                 activeUsers[data.username].statusMessage = data.statusMessage;
                 activeUsers[data.username].role = data.role;
                 activeUsers[data.username].pais_idioma = data.pais_idioma;
-                activeUsers[data.username].nameColor = data.nameColor;
-                activeUsers[data.username].nameNeon = data.nameNeon;
-                activeUsers[data.username].nameRainbow = data.nameRainbow;
-                activeUsers[data.username].nameNeonColor1 = data.nameNeonColor1;
-                activeUsers[data.username].nameNeonColor2 = data.nameNeonColor2;
-                activeUsers[data.username].nameFont = data.nameFont;
-                activeUsers[data.username].chatFont = data.chatFont;
-                activeUsers[data.username].chatColorStyle = data.chatColorStyle;
-                activeUsers[data.username].bgImage = data.bgImage;
                 changed = true;
               }
             }
@@ -476,19 +467,6 @@ __name(ensureAutoRadio, "ensureAutoRadio");
       lizCoins: u.lizCoins || 0,
       activeDecoration: u.activeDecoration || null,
       ownedDecorations: u.ownedDecorations || [],
-      nameColor: u.nameColor,
-      nameNeon: u.nameNeon,
-      nameRainbow: u.nameRainbow,
-      nameNeonColor1: u.nameNeonColor1,
-      nameNeonColor2: u.nameNeonColor2,
-      nameFont: u.nameFont,
-      chatFont: u.chatFont,
-      chatColorStyle: u.chatColorStyle,
-      bgImage: u.bgImage,
-      bubbleColor: u.bubbleColor,
-      bubbleBorder: u.bubbleBorder,
-      bubbleShape: u.bubbleShape,
-      bubbleTexture: u.bubbleTexture,
     }));
         for (const ai of Object.keys(AI_CHARACTERS)) { usersList.unshift(aiUserTempCache[ai]); }
     io.emit("active_users", usersList);
@@ -582,19 +560,6 @@ __name(ensureAutoRadio, "ensureAutoRadio");
           lizCoins: u.lizCoins || 0,
           activeDecoration: u.activeDecoration || null,
           ownedDecorations: u.ownedDecorations || [],
-          nameColor: u.nameColor,
-          nameNeon: u.nameNeon,
-          nameRainbow: u.nameRainbow,
-          nameNeonColor1: u.nameNeonColor1,
-          nameNeonColor2: u.nameNeonColor2,
-          nameFont: u.nameFont,
-          chatFont: u.chatFont,
-          chatColorStyle: u.chatColorStyle,
-          bgImage: u.bgImage,
-          bubbleColor: u.bubbleColor,
-          bubbleBorder: u.bubbleBorder,
-          bubbleShape: u.bubbleShape,
-          bubbleTexture: u.bubbleTexture,
         }));
             for (const ai of Object.keys(AI_CHARACTERS)) { usersList.unshift(aiUserTempCache[ai]); }
         socket.emit("active_users", usersList);
@@ -1021,19 +986,6 @@ __name(ensureAutoRadio, "ensureAutoRadio");
             uid = user?.uid || "";
             profileLikes = user?.profileLikes || 0;
             incognito = !!user?.incognito;
-            var nameColor2 = user?.nameColor;
-            var nameNeon2 = user?.nameNeon;
-            var nameRainbow2 = user?.nameRainbow;
-            var nameNeonColor12 = user?.nameNeonColor1;
-            var nameNeonColor22 = user?.nameNeonColor2;
-            var nameFont2 = user?.nameFont;
-            var chatFont2 = user?.chatFont;
-            var chatColorStyle2 = user?.chatColorStyle;
-            var bgImage2 = user?.bgImage;
-            var bubbleColor2 = user?.bubbleColor;
-            var bubbleBorder2 = user?.bubbleBorder;
-            var bubbleShape2 = user?.bubbleShape;
-            var bubbleTexture2 = user?.bubbleTexture;
             if (!uid) {
               uid = Math.random().toString(36).substring(2, 8).toUpperCase();
               await setDoc(
@@ -1340,6 +1292,7 @@ socket.on("buy_decoration", async (data, callback) => {
     socket.on("broadcast_profile_change", (data) => {
       if (activeUsers[data.username]) {
         activeUsers[data.username].profilePic = data.profilePic;
+        activeUsers[data.username].frameId = data.frameId;
         activeUsers[data.username].statusMessage = data.statusMessage;
         emitActiveUsers();
       }
@@ -1414,61 +1367,28 @@ socket.on("buy_decoration", async (data, callback) => {
           const uRef = doc(fdb, "users", targetUser);
           const snap = await getDoc(uRef);
           if (snap.exists()) {
-            const data = snap.data();
-            const likedBy = data.likedBy || [];
-            
-            if (!likedBy.includes(currentUsername)) {
-                const currentLikes = data.profileLikes || 0;
-                await updateDoc(uRef, { 
-                    profileLikes: currentLikes + 1,
-                    likedBy: arrayUnion(currentUsername)
-                });
-                if (activeUsers[targetUser]) {
-                  activeUsers[targetUser].profileLikes = currentLikes + 1;
-                  io.to(activeUsers[targetUser].socketId).emit("user_liked", currentUsername);
-                  emitActiveUsers();
-                }
-            } else {
-                const currentLikes = data.profileLikes || 0;
-                if (currentLikes > 0) {
-                   await updateDoc(uRef, {
-                      profileLikes: currentLikes - 1,
-                      likedBy: arrayRemove(currentUsername)
-                   });
-                   if (activeUsers[targetUser]) {
-                     activeUsers[targetUser].profileLikes = currentLikes - 1;
-                     emitActiveUsers();
-                   }
-                }
+            const currentLikes = snap.data().profileLikes || 0;
+            await updateDoc(uRef, { profileLikes: currentLikes + 1 });
+            if (activeUsers[targetUser]) {
+              activeUsers[targetUser].profileLikes = currentLikes + 1;
+              emitActiveUsers();
+              io.to(activeUsers[targetUser].socketId).emit("user_liked", currentUsername);
             }
           }
-        } catch (e) {
-          console.error("Error liking user:", e);
-        }
+        } catch (e) {}
       } else {
         if (fallbackState.users[targetUser]) {
-            const likedBy = fallbackState.users[targetUser].likedBy || [];
-            if (!likedBy.includes(currentUsername)) {
-              fallbackState.users[targetUser].likedBy = [...likedBy, currentUsername];
-              fallbackState.users[targetUser].profileLikes = (fallbackState.users[targetUser].profileLikes || 0) + 1;
-              if (activeUsers[targetUser]) {
-                activeUsers[targetUser].profileLikes = fallbackState.users[targetUser].profileLikes;
-                io.to(activeUsers[targetUser].socketId).emit("user_liked", currentUsername);
-              }
-              emitActiveUsers();
-            } else {
-              fallbackState.users[targetUser].likedBy = likedBy.filter(u => u !== currentUsername);
-              fallbackState.users[targetUser].profileLikes = Math.max(0, (fallbackState.users[targetUser].profileLikes || 0) - 1);
-              if (activeUsers[targetUser]) {
-                activeUsers[targetUser].profileLikes = fallbackState.users[targetUser].profileLikes;
-              }
-              emitActiveUsers();
-            }
+          fallbackState.users[targetUser].profileLikes =
+            (fallbackState.users[targetUser].profileLikes || 0) + 1;
+          if (activeUsers[targetUser])
+            activeUsers[targetUser].profileLikes =
+              fallbackState.users[targetUser].profileLikes;
+          saveFallbackDB();
+          emitActiveUsers();
         }
       }
     });
-    
-    socket.on("toggle_block", async (targetUser) => {
+    socket.on("toggle_block_user", async (targetUser) => {
       if (!currentUsername) return;
       let blocked = activeUsers[currentUsername].blocked_list || [];
       if (blocked.includes(targetUser)) {
@@ -1490,85 +1410,6 @@ socket.on("buy_decoration", async (data, callback) => {
       }
       emitActiveUsers();
     });
-
-    socket.on("watch_ad_reward", async (callback) => {
-      if (!currentUsername) return callback({ success: false });
-      if (fdb) {
-         try {
-             // 1. Update user coins
-             const uRef = doc(fdb, "users", currentUsername);
-             const snap = await getDoc(uRef);
-             let newCoins = 100;
-             if (snap.exists()) {
-                 newCoins = (snap.data().lizCoins || 0) + 100;
-                 await updateDoc(uRef, { lizCoins: newCoins });
-             }
-
-             // 2. Update Admin Axiss
-             const axissRef = doc(fdb, "users", "Axiss");
-             const axissSnap = await getDoc(axissRef);
-             if (axissSnap.exists()) {
-                 const currentRev = axissSnap.data().adRevenue || 0;
-                 const newRev = currentRev + 0.50; // Earn 50 cents per ad for example
-                 await updateDoc(axissRef, { adRevenue: newRev });
-                 if (activeUsers["Axiss"]) {
-                     activeUsers["Axiss"].adRevenue = newRev;
-                     io.to(activeUsers["Axiss"].socketId).emit("admin_revenue_update", newRev);
-                 }
-             }
-
-             if (activeUsers[currentUsername]) {
-                 activeUsers[currentUsername].lizCoins = newCoins;
-                 emitActiveUsers();
-             }
-             callback({ success: true, newCoins });
-         } catch(e) {
-             console.error("Ad reward error:", e);
-             callback({ success: false });
-         }
-      } else {
-         if (fallbackState.users[currentUsername]) {
-             fallbackState.users[currentUsername].lizCoins = (fallbackState.users[currentUsername].lizCoins || 0) + 100;
-             if (activeUsers[currentUsername]) activeUsers[currentUsername].lizCoins = fallbackState.users[currentUsername].lizCoins;
-             if (fallbackState.users["Axiss"]) {
-                 fallbackState.users["Axiss"].adRevenue = (fallbackState.users["Axiss"].adRevenue || 0) + 0.50;
-                 if (activeUsers["Axiss"]) activeUsers["Axiss"].adRevenue = fallbackState.users["Axiss"].adRevenue;
-             }
-             saveFallbackDB();
-             emitActiveUsers();
-             callback({ success: true, newCoins: fallbackState.users[currentUsername].lizCoins });
-         } else {
-             callback({ success: false });
-         }
-      }
-    });
-
-    socket.on("update_frame", async (frameId, callback) => {
-      if (!currentUsername) return callback({ success: false });
-      if (fdb) {
-          try {
-              const uRef = doc(fdb, "users", currentUsername);
-              await updateDoc(uRef, { activeFrame: frameId || null });
-              if (activeUsers[currentUsername]) {
-                  activeUsers[currentUsername].activeFrame = frameId;
-                  emitActiveUsers();
-              }
-              callback({ success: true });
-          } catch(e) {
-              console.error(e);
-              callback({ success: false });
-          }
-      } else {
-          if (fallbackState.users[currentUsername]) {
-              fallbackState.users[currentUsername].activeFrame = frameId;
-              if (activeUsers[currentUsername]) activeUsers[currentUsername].activeFrame = frameId;
-              saveFallbackDB();
-              emitActiveUsers();
-              callback({ success: true });
-          }
-      }
-    });
-
     socket.on("update_ai_config", async (data, callback) => {
       if (currentUsername !== "Axiss")
         return callback({

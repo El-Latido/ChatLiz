@@ -1,6 +1,7 @@
 export interface UserObj {
   username: string;
   profilePic?: string;
+  frameId?: number;
   statusMessage?: string;
   role?: string;
   djSchedule?: { start: string, end: string };
@@ -20,8 +21,8 @@ export interface UserObj {
   replyTo?: { id: string, sender: string, text: string };
   reactions?: Record<string, string[]>;
   lizCoins?: number;
-  activeDecoration?: string | null;  
-  ownedDecorations?: string[];
+  activeDecoration?: string | null;
+    ownedDecorations?: string[];
   elo?: number;
   uid?: string;
   profileLikes?: number;
@@ -30,15 +31,6 @@ export interface UserObj {
   bubbleBorder?: string;
   bubbleShape?: string;
   bubbleTexture?: string;
-  nameColor?: string;
-  nameNeon?: string;
-  nameRainbow?: boolean;
-  nameNeonColor1?: string;
-  nameNeonColor2?: string;
-  nameFont?: string;
-  chatFont?: string;
-  chatColorStyle?: string;
-  bgImage?: string;
 }
 
 export interface TutiFruttiState {
@@ -68,6 +60,7 @@ export interface MessageObj {
   text: string;
   sender: string;
   senderId?: string;
+  frameId?: number;
   createdAt: number | Date | any;
   audio?: string;
   image?: string;
@@ -87,6 +80,7 @@ export interface PostObj {
   userId: string;
   username: string;
   userAvatar?: string;
+  frameId?: number;
   text: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video';
@@ -99,6 +93,7 @@ export interface CommentObj {
   postId: string;
   username: string;
   userAvatar?: string;
+  frameId?: number;
   text: string;
   createdAt: number;
 }
@@ -108,6 +103,7 @@ export interface StoryObj {
   userId: string;
   username: string;
   userAvatar?: string;
+  frameId?: number;
   mediaUrl: string;
   mediaType: 'image' | 'video';
   createdAt: number;

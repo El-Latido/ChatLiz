@@ -1,36 +1,44 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-const target = `      {/* Chat Background Audio */}
-      {chatBgAudio && (`;
+// Change adCountdown
+code = code.replace(
+    'setAdCountdown(5);',
+    'setAdCountdown(15);'
+);
 
-const replacement = `      {/* Expanded Image Modal */}
-      {expandedImage && (
+// Add expanded image modal at the end of the App just before final closing div
+const targetEnd = `    </div>
+  );
+}
+
+export default App;`;
+
+const repEnd = `      {expandedImage && (
         <div 
-          className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
           onClick={() => setExpandedImage(null)}
         >
-          <div className="relative max-w-full max-h-full flex items-center justify-center">
-            <button 
-              className="absolute -top-12 right-0 md:-right-12 text-white/50 hover:text-white p-2 rounded-full bg-black/50 hover:bg-black transition-colors"
-              onClick={(e) => { e.stopPropagation(); setExpandedImage(null); }}
-            >
-              <X size={32} />
-            </button>
-            <img 
-              referrerPolicy="no-referrer"
-              src={expandedImage} 
-              alt="Expanded view" 
-              className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()} 
-            />
-          </div>
+          <img 
+            src={expandedImage} 
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+            alt="Expanded"
+          />
+          <button 
+             className="absolute top-4 right-4 text-white hover:bg-white/10 p-3 rounded-full transition-colors"
+             onClick={(e) => { e.stopPropagation(); setExpandedImage(null); }}
+          >
+             <X size={24} />
+          </button>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Chat Background Audio */}
-      {chatBgAudio && (`;
+export default App;`;
 
-code = code.replace(target, replacement);
+code = code.replace(targetEnd, repEnd);
+
 fs.writeFileSync('src/App.tsx', code);
-console.log("Patched Expanded Image Modal");
+console.log("Patched expanded image and ad time");

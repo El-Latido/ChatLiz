@@ -42,6 +42,7 @@ import { CallModal } from "./components/CallModal";
 import { FriendsWebcam } from "./components/FriendsWebcam";
 import { CustomRooms } from "./components/CustomRooms";
 import { ActiveCallModal } from "./components/ActiveCallModal";
+import { Avatar } from "./components/Avatar";
 import { OutgoingCallModal } from "./components/OutgoingCallModal";
 import { ChessGameModal } from "./components/ChessGameModal";
 import { ChessBotModal } from "./components/ChessBotModal";
@@ -1475,9 +1476,6 @@ function MainApp() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] blur-[130px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ backgroundColor: 'var(--neon-color, #00f3ff)', opacity: 0.15 }}></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full pointer-events-none mix-blend-screen animate-pulse" style={{ animationDelay: '1.5s', backgroundColor: 'var(--neon-color, #ff00ff)', opacity: 0.15 }}></div>
       
-      {(user?.bgImage || user?.preferred_background) && (
-        <div className="absolute inset-0 z-0 opacity-40 mix-blend-luminosity" style={{ backgroundImage: `url(${user.bgImage || user.preferred_background})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-      )}
       {/* Cyberpunk Grid Background */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{
         backgroundImage: `
@@ -1504,8 +1502,6 @@ function MainApp() {
               setIsSidebarOpen(!isSidebarOpen);
             }}
             className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
-            title="Menú"
-            aria-label="Abrir Menú"
           >
             <Menu size={24} strokeWidth={1.5} />
           </button>
@@ -1611,7 +1607,7 @@ function MainApp() {
                          className="p-3 hover:bg-white/5 border-b border-white/5 cursor-pointer transition-colors flex items-start gap-3 group"
                       >
                          {avatarSrc ? (
-                            <img src={avatarSrc} alt={fromUser} className="w-8 h-8 rounded-full border border-white/10" />
+                            <Avatar src={avatarSrc} frameId={fromUserObj?.frameId} alt={fromUser} className="w-8 h-8 rounded-full border border-white/10" />
                          ) : (
                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                               <Bell size={14} className="text-white/50" />
@@ -1635,14 +1631,14 @@ function MainApp() {
                 closeAllModals();
                 setIsProfileModalOpen(true);
               }}
-              className="w-8 h-8 rounded-full overflow-hidden border-2 transition-transform hover:scale-105 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+              className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-105 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
               style={{ borderColor: "var(--neon-color, #00f3ff)" }}
             >
-              <img
-                referrerPolicy="no-referrer"
+              <Avatar
                 src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                frameId={user.frameId}
                 alt="Profile"
-                className="w-full h-full object-cover"
+                className="w-full h-full"
               />
             </button>
           </div>
@@ -1662,15 +1658,15 @@ function MainApp() {
                 setIsConfigOpen(true);
               }}
             >
-              <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#D4AF37] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
-                <img
-                  referrerPolicy="no-referrer"
+              <div className="w-20 h-20 rounded-full border-[3px] border-[#D4AF37] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+                <Avatar
                   src={
                     user.profilePic ||
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`
                   }
+                  frameId={user.frameId}
                   alt={user.username}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                 />
               </div>
               {user.activeDecoration && (
@@ -1803,20 +1799,6 @@ function MainApp() {
           </div>
 
 
-          {/* Store Button */}
-          <div className="px-4 py-2">
-            <button
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white px-3 py-2.5 rounded-xl font-bold shadow-lg transition-transform active:scale-95 shadow-orange-500/20"
-              onClick={() => {
-                closeAllModals();
-                setIsStoreOpen(true);
-              }}
-            >
-              <Box size={18} />
-              Tienda (Marcos)
-            </button>
-          </div>
-
           {/* AI Characters Button */}
           <div className="px-4 py-2">
             <button
@@ -1878,15 +1860,15 @@ function MainApp() {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 relative flex-shrink-0">
-                      <img
-                        referrerPolicy="no-referrer"
+                    <div className="w-10 h-10 rounded-full border border-white/10 flex-shrink-0">
+                      <Avatar
                         src={
                           u.profilePic ||
                           `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`
                         }
+                        frameId={u.frameId}
                         alt={u.username}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full"
                       />
                       {u.activeDecoration && (
                         <div className="absolute inset-0 pointer-events-none scale-125 z-10 flex items-center justify-center">
@@ -1900,17 +1882,7 @@ function MainApp() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate flex items-center gap-1.5"
-                         style={{
-                             color: u.nameColor || "white",
-                             fontFamily: u.nameFont !== 'default' ? u.nameFont : "inherit",
-                             textShadow: u.nameNeon !== 'none' 
-                                 ? (u.nameRainbow 
-                                     ? `0 0 5px ${u.nameNeonColor1}, 0 0 10px ${u.nameNeonColor1}, 0 0 20px ${u.nameNeonColor2}` 
-                                     : `0 0 5px ${u.nameNeonColor1}, 0 0 10px ${u.nameNeonColor1}, 0 0 20px ${u.nameNeonColor1}`) 
-                                 : "none"
-                         }}
-                      >
+                      <p className="text-white font-bold text-sm truncate flex items-center gap-1.5">
                         {u.username}{" "}
                         {u.username.toUpperCase() === "AXISS" && (
                           <span className="bg-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
@@ -2022,16 +1994,16 @@ function MainApp() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
                           </button>
                           <div
-                            className="w-10 h-10 rounded-full bg-[#1A2639] border border-white/10 flex items-center justify-center overflow-hidden shadow-sm relative cursor-pointer"
+                            className="w-10 h-10 rounded-full bg-[#1A2639] border border-white/10 flex items-center justify-center shadow-sm relative cursor-pointer"
                             onClick={() =>
                               setSelectedUserModal(targetUser as any)
                             }
                           >
-                            <img
-                              referrerPolicy="no-referrer"
+                            <Avatar
                               src={avatarUrl}
+                              frameId={targetUser?.frameId}
+                              className="w-full h-full"
                               alt="avatar"
-                              className="w-full h-full object-cover"
                             />
                             <div
                               className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1A2639] ${isOnline ? "bg-green-500" : "bg-gray-500"}`}
@@ -2059,19 +2031,6 @@ function MainApp() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                        {!aiChar && isOnline && (
-                          <button
-                            onClick={() => {
-                               socket.emit("start_call", activeChat);
-                               setOutgoingCall({ username: activeChat, profilePic: avatarUrl });
-                            }}
-                            className="p-2 rounded-xl transition-colors border border-green-500/20 text-green-400 bg-green-500/10 hover:bg-green-500/20"
-                            title="Llamar"
-                          >
-                            <PhoneCall size={20} />
-                          </button>
-                        )}
                         <button
                           onClick={() => setActiveChat("global")}
                           className="text-sm font-bold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors border border-white/20 flex items-center justify-center"
@@ -2079,7 +2038,6 @@ function MainApp() {
                         >
                           <Globe size={20} />
                         </button>
-                      </div>
                       </div>
                     );
                   })()}
@@ -2092,7 +2050,7 @@ function MainApp() {
                 )}
 
                 {/* Chat Feed */}
-                <div id="chat-messages-container" className="chat-messages-container flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin transition-opacity duration-300 data-[paused=true]:opacity-30 data-[paused=true]:pointer-events-none">
+                <div className="flex-1 overflow-y-auto px-2 md:px-4 py-2 space-y-1.5 scrollbar-thin">
                   {messages
                     .filter((m) => m && m.sender)
                     .filter((m) => {
@@ -2173,10 +2131,10 @@ function MainApp() {
                               className="relative shrink-0 mt-1 cursor-pointer"
                               onClick={() => senderInfo && setSelectedUserModal(senderInfo)}
                             >
-                              <img
-                                referrerPolicy="no-referrer"
+                              <Avatar
                                 src={avatarUrl}
-                                className={`w-8 h-8 rounded-full object-cover border shadow-sm ${m.sender === "Elizabeth" ? "border-white/10" : "border-[#5A52A5]/30 bg-white/5"}`}
+                                frameId={senderInfo?.frameId}
+                                className={`w-8 h-8 rounded-full border shadow-sm ${m.sender === "Elizabeth" ? "border-white/10" : "border-[#5A52A5]/30 bg-white/5"}`}
                                 alt={m.sender}
                               />
                               {decUrl && (
@@ -2211,26 +2169,9 @@ function MainApp() {
                                 if (bTexture === "soap") textureClasses = "backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.4),inset_0_0_20px_rgba(255,255,255,0.5)] border border-white/40 overflow-visible";
                                 if (bTexture === "animals") textureClasses = "overflow-visible";
                                 
-                                const nColor = senderInfo?.nameColor || (isElizabeth ? "#F472B6" : "#67E8F9");
-                                const nNeon = senderInfo?.nameNeon || "none";
-                                const nRainbow = senderInfo?.nameRainbow;
-                                const nNeon1 = senderInfo?.nameNeonColor1 || "#00f3ff";
-                                const nNeon2 = senderInfo?.nameNeonColor2 || "#ff00ff";
-                                const nFont = senderInfo?.nameFont && senderInfo.nameFont !== 'default' ? senderInfo.nameFont : "inherit";
-                                const cFont = senderInfo?.chatFont && senderInfo.chatFont !== 'default' ? senderInfo.chatFont : "inherit";
-                                const cColorStyle = senderInfo?.chatColorStyle || "default";
-                                
-                                const textColor = cColorStyle === 'colorful' ? nColor : "rgba(255, 255, 255, 0.9)";
-                                const timeColor = "rgba(255, 255, 255, 0.4)";
-                                
-                                let nameStyle: React.CSSProperties = { color: nColor, fontFamily: nFont };
-                                if (nNeon !== 'none') {
-                                    if (nRainbow) {
-                                       nameStyle.textShadow = `0 0 5px ${nNeon1}, 0 0 10px ${nNeon1}, 0 0 20px ${nNeon2}, 0 0 40px ${nNeon2}`;
-                                    } else {
-                                       nameStyle.textShadow = `0 0 5px ${nNeon1}, 0 0 10px ${nNeon1}, 0 0 20px ${nNeon1}`;
-                                    }
-                                }
+                                const nameColor = isElizabeth ? "text-pink-400" : "text-cyan-300";
+                                const textColor = "text-white/90";
+                                const timeColor = "text-white/40";
 
                                 return (
                                   <div 
@@ -2253,8 +2194,7 @@ function MainApp() {
                                     )}
                                     {!isMe && (
                                       <span
-                                        className={`font-semibold text-[13px] mb-0.5 cursor-pointer hover:brightness-150 transition-all tracking-wide`}
-                                        style={nameStyle}
+                                        className={`font-semibold ${nameColor} text-[13px] mb-0.5 cursor-pointer hover:text-white transition-colors tracking-wide`}
                                         onClick={() => setInputValue((prev) => prev + `@${m.sender} `)}
                                       >
                                         {m.sender}
@@ -2268,15 +2208,14 @@ function MainApp() {
                                     )}
                                     <div className="flex flex-wrap items-end justify-between gap-2">
                                       <span
-                                        className={`text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
-                                        style={{ color: textColor, fontFamily: cFont }}
+                                        className={`${textColor} text-[14px] leading-snug flex-1 cursor-pointer hover:bg-black/5 rounded px-1 transition-colors`}
                                         onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
                                       >
                                         <TranslatedText originalText={m.text} senderLanguage={m.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
                                       </span>
                                       <button
                                         onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
-                                        className={`opacity-0 group-hover:opacity-100 transition-opacity hover:opacity-80 p-1`} style={{ color: nColor }}
+                                        className={`opacity-0 group-hover:opacity-100 transition-opacity ${nameColor} hover:opacity-80 p-1`}
                                         title="Responder"
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2801,7 +2740,7 @@ function MainApp() {
                   {bannedList.map(bUser => (
                      <div key={bUser.username} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
                         <div className="flex items-center gap-3">
-                           <img src={bUser.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${bUser.username}`} className="w-10 h-10 rounded-full bg-black/50" alt={bUser.username} />
+                           <Avatar src={bUser.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${bUser.username}`} className="w-10 h-10 bg-black/50 rounded-full" alt={bUser.username} />
                            <div>
                               <div className="text-white font-bold">{bUser.username}</div>
                               <div className="text-xs text-red-300">Expira: {new Date(bUser.expiresAt).toLocaleTimeString()}</div>
@@ -3024,11 +2963,81 @@ function MainApp() {
 
       {/* Ad Player Overlay */}
       {isWatchingAd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
-            <div className="text-white text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <h2 className="text-xl font-bold">Cargando anuncio...</h2>
+        <div className="fixed inset-0 bg-black z-[140] flex flex-col items-center justify-center">
+          <div className="absolute top-4 left-4 text-white/50 text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-white/10">
+            Anuncio Patrocinado
+          </div>
+          {adCountdown > 0 ? (
+              <div className="absolute top-4 right-4 text-white text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-white/10">
+                La recompensa se entregará en {adCountdown}s
+              </div>
+          ) : (
+              <div className="absolute top-4 right-4 text-green-400 text-sm font-bold bg-black/50 px-3 py-1 rounded-full border border-green-500/30">
+                ¡Recompensa lista!
+              </div>
+          )}
+          
+          <div className="w-full max-w-3xl aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl relative flex items-center justify-center border border-white/10">
+             {/* Simulated Ad Video */}
+             <video 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" 
+                autoPlay 
+                muted
+                playsInline
+                loop
+                crossOrigin="anonymous"
+                className="w-full h-full object-cover opacity-80"
+             />
+             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                 <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] text-center px-4">
+                     Publicidad SDK<br/><span className="text-amber-500">Demostración</span>
+                 </h2>
+             </div>
+          </div>
+          
+          <p className="text-white/30 text-xs mt-6 text-center max-w-lg">
+             Al visualizar este anuncio estás apoyando a los desarrolladores de la plataforma para mantener los servidores activos y a las IAs gratuitas.
+          </p>
+        </div>
+      )}
+
+
+      {/* Friend Requests Modal */}
+      {isFriendReqOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-[#12141c] p-6 rounded-3xl w-full max-w-sm shadow-2xl relative border border-cyan-500/30">
+            <button
+              onClick={() => setIsFriendReqOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-center gap-2">
+              <UserPlus className="text-cyan-400" /> Solicitudes
+            </h2>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+               {(!user.friend_requests || user.friend_requests.length === 0) ? (
+                   <p className="text-center text-gray-500 py-4">No tienes solicitudes pendientes.</p>
+               ) : (
+                   user.friend_requests.map((reqUsername) => {
+                       const reqInfo = usersOnline.find(u => u.username === reqUsername) || userCache[reqUsername];
+                       const pic = reqInfo?.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reqUsername}`;
+                       return (
+                           <div key={reqUsername} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                               <div className="flex items-center gap-3">
+                                  <img src={pic} className="w-10 h-10 rounded-full border border-cyan-500/30" />
+                                  <span className="text-white font-medium">{reqUsername}</span>
+                               </div>
+                               <div className="flex gap-2">
+                                  <button onClick={() => socket.emit("accept_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/40 font-bold">✓</button>
+                                  <button onClick={() => socket.emit("reject_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/40 font-bold">✕</button>
+                               </div>
+                           </div>
+                       );
+                   })
+               )}
             </div>
+          </div>
         </div>
       )}
 
@@ -3057,7 +3066,7 @@ function MainApp() {
               {/* Avatar */}
               <div className="absolute -top-16 left-1/2 -translate-x-1/2">
                   <div
-                    className={`w-32 h-32 rounded-full border-4 border-[#0f111a] overflow-hidden relative shadow-lg ${selectedUserModal.isAi && user.username.trim() === "Axiss" ? "cursor-pointer group" : ""}`}
+                    className={`w-32 h-32 rounded-full border-4 border-[#0f111a] relative shadow-lg ${selectedUserModal.isAi && user.username.trim() === "Axiss" ? "cursor-pointer group" : ""}`}
                     onClick={() => {
                       if (selectedUserModal.isAi && user.username.trim() === "Axiss") {
                         setAdminConfigAiForm({
@@ -3072,13 +3081,14 @@ function MainApp() {
                       }
                     }}
                   >
-                    <img
-                      referrerPolicy="no-referrer"
+                    <Avatar
                       src={
                         selectedUserModal.profilePic ||
                         `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUserModal.username}`
                       }
-                      className="w-full h-full object-cover bg-white/5"
+                      frameId={selectedUserModal.frameId}
+                      className="w-full h-full bg-white/5"
+                      alt={selectedUserModal.username}
                     />
                     {selectedUserModal.isAi && user.username.trim() === "Axiss" && (
                       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -3095,17 +3105,7 @@ function MainApp() {
 
               {/* User Info */}
               <div className="pt-20 text-center">
-                <h3 className="text-2xl font-bold flex items-center justify-center gap-2 mb-1"
-                    style={{
-                             color: selectedUserModal.nameColor || "white",
-                             fontFamily: selectedUserModal.nameFont !== 'default' ? selectedUserModal.nameFont : "inherit",
-                             textShadow: selectedUserModal.nameNeon !== 'none' 
-                                 ? (selectedUserModal.nameRainbow 
-                                     ? `0 0 5px ${selectedUserModal.nameNeonColor1}, 0 0 10px ${selectedUserModal.nameNeonColor1}, 0 0 20px ${selectedUserModal.nameNeonColor2}` 
-                                     : `0 0 5px ${selectedUserModal.nameNeonColor1}, 0 0 10px ${selectedUserModal.nameNeonColor1}, 0 0 20px ${selectedUserModal.nameNeonColor1}`) 
-                                 : "none"
-                    }}
-                >
+                <h3 className="text-2xl font-bold text-white flex items-center justify-center gap-2 mb-1">
                   {selectedUserModal.username}
                   {selectedUserModal.role === "admin" && (
                     <span className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shadow-sm">
