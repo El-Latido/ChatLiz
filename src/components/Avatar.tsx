@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface AvatarProps {
   src?: string;
@@ -18,6 +18,26 @@ export const Avatar: React.FC<AvatarProps> = ({
   referrerPolicy = 'no-referrer',
 }) => {
   const hasFrame = frameId !== undefined && frameId >= 1 && frameId <= 40;
+  
+  const [customUrl, setCustomUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hasFrame) {
+      const getCustomUrl = () => {
+         const w = window as any;
+         if (w.chatlizCustomFrames && w.chatlizCustomFrames[frameId!]) {
+            return w.chatlizCustomFrames[frameId!];
+         }
+         return null;
+      };
+      
+      setCustomUrl(getCustomUrl());
+
+      const handleUpdate = () => setCustomUrl(getCustomUrl());
+      window.addEventListener('chatliz_custom_frames_updated', handleUpdate);
+      return () => window.removeEventListener('chatliz_custom_frames_updated', handleUpdate);
+    }
+  }, [frameId, hasFrame]);
 
   return (
     <div
@@ -34,22 +54,18 @@ export const Avatar: React.FC<AvatarProps> = ({
         <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
-            // Agrandar un poco para que funcione como borde exterior
             transform: 'scale(1.35)'
           }}
         >
           <img 
-            src={`/frames/${frameId}.png`} 
+            src={customUrl || `/frames/${frameId}.png`} 
             alt={`Frame ${frameId}`}
             className="w-full h-full object-contain"
-            style={{
-              // Este CSS corta un agujero redondo en el centro exacto del avatar.
-              // Usamos closest-side para que se base en el radio del contenedor.
+            style={customUrl ? undefined : {
               WebkitMaskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)',
               maskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)'
             }}
             onError={(e) => {
-              // Si la imagen no está disponible aún, ocultarla
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />

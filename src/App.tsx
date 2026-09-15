@@ -6,7 +6,7 @@ import React, {
   ErrorInfo,
   Component,
 } from "react";
-import { Webcam, EyeOff, Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, Layers, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins , Star } from "lucide-react";
+import { Webcam, EyeOff, Send, User, MessageCircle, Settings, Bot, Image as ImageIcon, Mic, StopCircle, Trash2, Menu, Layers, X, Hash, MessageSquare, PlaySquare, LogOut, Search, Gamepad2, Music, Youtube, Paperclip, Smile, Globe, Box, Users, UserPlus, UserMinus, DollarSign, ShieldAlert, AlertTriangle, AlertCircle, Bell, PhoneCall, Heart, Home, Play, Coins , Star } from "lucide-react";
 import {
   collection,
   onSnapshot,
@@ -30,6 +30,7 @@ import { db, auth } from "./firebaseConfig";
 import { socket } from "./socket";
 import { UserObj, MessageObj } from "./types";
 import { Login } from "./components/Login";
+import { FirstTimeSetupModal } from "./components/FirstTimeSetupModal";
 import { RecoveryModal } from "./components/RecoveryModal";
 import { ProfileConfigModal } from "./components/ProfileConfigModal";
 import { AdminConfigAiModal } from "./components/AdminConfigAiModal";
@@ -53,6 +54,12 @@ import { SongRequestModal } from "./components/SongRequestModal";
 import { DjControlPanelModal } from "./components/DjControlPanelModal";
 import { AiSelectorModal } from "./components/AiSelectorModal";
 import { SocialFeed } from "./components/social/SocialFeed";
+import {
+  MechaFiligreeBubble,
+  MechaAvatarMedallion,
+  MechaNavButton,
+  MechaMenuButton,
+} from "./components/theme/MechaCelestialTheme";
 const DECORATIONS = [
   // Ajedrez (Themes & Efectos)
   {
@@ -365,6 +372,8 @@ function MainApp() {
     }
   };
 
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<
     UserObj & { password?: string; securityEmail?: string }
@@ -379,7 +388,16 @@ function MainApp() {
   const [globalShaders, setGlobalShaders] = useState<string[]>([]);
   const [previewShaders, setPreviewShaders] = useState<string[] | null>(null);
   const [currentAdminAi, setCurrentAdminAi] = useState("Elizabeth");
-  const [aiProfileForm, setAiProfileForm] = useState({
+  const [aiProfileForm, setAiProfileForm] = useState<{
+    profilePic: string;
+    statusMessage: string;
+    systemInstruction: string;
+    username?: string;
+    bubbleColor?: string;
+    bubbleBorder?: string;
+    bubbleShape?: string;
+    bubbleTexture?: string;
+  }>({
     profilePic: "",
     statusMessage: "Administradora",
     systemInstruction: "",
@@ -413,6 +431,29 @@ function MainApp() {
   const [activeChat, setActiveChat] = useState("global");
   const [neonColor, setNeonColor] = useState(() => localStorage.getItem("chatliz_neon_color") || "#00f3ff");
   const [chatBgImage, setChatBgImage] = useState(() => localStorage.getItem("chatliz_chat_bg") || "");
+  const [activeTheme, setActiveTheme] = useState<string>(() => localStorage.getItem("chatliz_theme") || "mecha_celestial");
+
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      if (e.detail) setActiveTheme(e.detail);
+    };
+    window.addEventListener("chatliz_theme_changed", handleThemeChange);
+    return () => window.removeEventListener("chatliz_theme_changed", handleThemeChange);
+  }, []);
+
+  useEffect(() => {
+    if (user?.preferred_theme && user.preferred_theme !== activeTheme) {
+      setActiveTheme(user.preferred_theme);
+      localStorage.setItem("chatliz_theme", user.preferred_theme);
+    }
+  }, [user?.preferred_theme]);
+  const [customFrames, setCustomFrames] = useState<Record<number, string>>({});
+  
+  useEffect(() => {
+    (window as any).chatlizCustomFrames = customFrames;
+    window.dispatchEvent(new Event('chatliz_custom_frames_updated'));
+  }, [customFrames]);
+
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [isRainbowNeon, setIsRainbowNeon] = useState(() => localStorage.getItem("chatliz_rainbow_neon") === "true");
   const [previousChat, setPreviousChat] = useState("global");
@@ -427,6 +468,54 @@ function MainApp() {
     activeChatRef.current = activeChat;
   }, [activeChat]);
   
+  useEffect(() => {
+    const savedUser = localStorage.getItem("chatliz_user");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.username && parsed.password) {
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          socket.emit("register_or_login", { ...parsed, timezone }, (res: any) => {
+             if (res.success) {
+                setUser(prev => ({
+                  ...prev, ...parsed, ...res, 
+                  countryLanguage: res.countryLanguage || parsed.countryLanguage,
+                  timezone
+                }));
+                if (!res.gender) {
+                  setIsFirstTimeSetup(true);
+                } else {
+                  setIsLoggedIn(true);
+                }
+             }
+             setIsAuthChecking(false);
+          });
+          return;
+        } else if (parsed.googleUid) {
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          socket.emit("google_login", { ...parsed, timezone }, (res: any) => {
+             if (res.success) {
+                setUser(prev => ({
+                  ...prev, ...parsed, ...res, 
+                  username: res.username,
+                  countryLanguage: res.countryLanguage || parsed.countryLanguage,
+                  timezone
+                }));
+                if (!res.gender) {
+                  setIsFirstTimeSetup(true);
+                } else {
+                  setIsLoggedIn(true);
+                }
+             }
+             setIsAuthChecking(false);
+          });
+          return;
+        }
+      } catch (e) {}
+    }
+    setIsAuthChecking(false);
+  }, []);
+
   const DICT: Record<string, Record<string, string>> = {
     es: { chatGlobal: "Chat Global", online: "En línea", type: "Escribe un mensaje...", send: "Enviar", friends: "Amigos", settings: "Ajustes", search: "Buscar...", profile: "Perfil", unread: "Nuevos" },
     en: { chatGlobal: "Global Chat", online: "Online", type: "Type a message...", send: "Send", friends: "Friends", settings: "Settings", search: "Search...", profile: "Profile", unread: "New" },
@@ -486,12 +575,7 @@ function MainApp() {
   }, []);
   const [hallOfFame, setHallOfFame] = useState<any[]>([]);
 
-  let chatBg = null;
-  try {
-    chatBg = localStorage.getItem("chatBg");
-  } catch (e) {
-    console.warn("localStorage is blocked");
-  }
+  let chatBg = user?.preferred_background || (activeTheme === 'mecha_celestial' ? '/mecha_celestial_bg.jpg' : chatBgImage);
 
   // Recovery States
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
@@ -597,8 +681,15 @@ function MainApp() {
             is_friends_public: res.is_friends_public,
             friends_list: res.friends_list || [],
             blocked_list: res.blocked_list || [],
+            gender: res.gender,
+            mood: res.mood,
           });
-          setIsLoggedIn(true);
+          localStorage.setItem("chatliz_user", JSON.stringify(payload));
+          if (!res.gender) {
+            setIsFirstTimeSetup(true);
+          } else {
+            setIsLoggedIn(true);
+          }
         } else {
           alert(res.error || "Error al iniciar sesión con Google");
         }
@@ -639,12 +730,39 @@ function MainApp() {
           is_friends_public: res.is_friends_public,
           friends_list: res.friends_list || [],
           blocked_list: res.blocked_list || [],
+          gender: res.gender,
+          mood: res.mood,
+          preferred_background: res.preferred_background,
         });
-        setIsLoggedIn(true);
+        localStorage.setItem("chatliz_user", JSON.stringify(loginPayload));
+        if (!res.gender) {
+          setIsFirstTimeSetup(true);
+        } else {
+          setIsLoggedIn(true);
+        }
       } else {
         alert(res.error || "Error al iniciar sesión");
       }
     });
+  };
+
+  const handleFirstTimeSetup = (data: any) => {
+    socket.emit("broadcast_profile_change", {
+      username: user.username,
+      statusMessage: data.statusMessage,
+      profilePic: user.profilePic,
+      frameId: user.frameId,
+      gender: data.gender,
+      mood: data.mood,
+      countryLanguage: data.countryLanguage,
+      is_friends_public: data.is_friends_public
+    });
+    setUser(prev => ({
+      ...prev,
+      ...data
+    }));
+    setIsFirstTimeSetup(false);
+    setIsLoggedIn(true);
   };
 
   useEffect(() => {
@@ -916,6 +1034,19 @@ function MainApp() {
       }
     });
     
+    socket.on("global_bg_updated", (bgUrl: string) => {
+      setChatBgImage(bgUrl);
+      localStorage.setItem("chatliz_chat_bg", bgUrl);
+    });
+
+    socket.on("all_custom_frames", (data) => {
+      setCustomFrames(data || {});
+    });
+
+    socket.on("custom_frame_updated", (data: { id: number, url: string }) => {
+      setCustomFrames(prev => ({ ...prev, [data.id]: data.url }));
+    });
+
     socket.on("system_message", (data) => {
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
@@ -956,6 +1087,10 @@ function MainApp() {
       if (me) {
         setUser((prev) => ({ ...prev, ...me }));
       }
+    });
+
+    socket.on("global_chat_cleared", () => {
+      setMessages([]);
     });
 
     socket.on(
@@ -1410,7 +1545,18 @@ function MainApp() {
     setRecordingStream(null);
   };
 
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(6,182,212,0.5)]"></div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
+    if (isFirstTimeSetup) {
+      return <FirstTimeSetupModal user={user} onComplete={handleFirstTimeSetup} />;
+    }
     return (
       <>
         <Login
@@ -1455,6 +1601,25 @@ function MainApp() {
         "--neon-color": isRainbowNeon ? undefined : neonColor,
       } as React.CSSProperties}
     >
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-pointer"
+          onClick={() => setExpandedImage(null)}
+        >
+          <img 
+            src={expandedImage} 
+            alt="Expanded view" 
+            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200" 
+          />
+          <button 
+            className="absolute top-6 right-6 text-white/50 hover:text-white bg-black/50 p-2 rounded-full transition-colors"
+            onClick={(e) => { e.stopPropagation(); setExpandedImage(null); }}
+          >
+            <X size={24} />
+          </button>
+        </div>
+      )}
+
       {isRainbowNeon && (
         <style>{`
           @keyframes rainbow-neon {
@@ -1492,70 +1657,153 @@ function MainApp() {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-none z-0"></div>
 
 
-      {/* Top Navigation Bar (Floating/Overlay style) */}
-            {/* Top Navigation Bar (Floating/Overlay style) */}
-      <nav className="flex items-center justify-between px-4 py-3 shrink-0 z-[100] relative w-full border-b border-white/5 bg-black/40 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]" style={{ borderBottomColor: "var(--neon-color, #00f3ff)22" }}>
-        <div className="flex-1 flex items-center justify-start">
+      {/* Top Navigation Bar */}
+      <nav
+        className={`flex items-center justify-between px-4 py-2.5 shrink-0 z-[100] relative w-full border-b backdrop-blur-xl transition-colors ${
+          activeTheme === "mecha_celestial"
+            ? "border-[#94a3b8]/30 bg-[#090d1a]/90 shadow-[0_4px_25px_rgba(0,0,0,0.8)]"
+            : "border-white/5 bg-black/40 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+        }`}
+        style={{ borderBottomColor: activeTheme === "mecha_celestial" ? "rgba(244,114,182,0.3)" : "var(--neon-color, #00f3ff)22" }}
+      >
+        <div className="flex-1 flex items-center justify-start gap-2">
+          {activeTheme === "mecha_celestial" ? (
+            <div className="md:hidden">
+              <MechaMenuButton
+                onClick={() => {
+                  closeAllModals();
+                  setIsSidebarOpen(!isSidebarOpen);
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(!isSidebarOpen);
+              }}
+              className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
+            >
+              <Menu size={24} strokeWidth={1.5} />
+            </button>
+          )}
+
+          {/* Quick Theme Switcher Pill */}
           <button
             onClick={() => {
-              closeAllModals();
-              setIsSidebarOpen(!isSidebarOpen);
+              const nextTheme = activeTheme === "mecha_celestial" ? "default" : "mecha_celestial";
+              setActiveTheme(nextTheme);
+              localStorage.setItem("chatliz_theme", nextTheme);
+              window.dispatchEvent(new CustomEvent("chatliz_theme_changed", { detail: nextTheme }));
             }}
-            className="md:hidden text-white/80 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+              activeTheme === "mecha_celestial"
+                ? "bg-gradient-to-r from-[#f472b6]/20 via-[#ec4899]/20 to-[#38bdf8]/20 border border-[#f472b6]/40 text-[#fbcfe8] hover:text-white shadow-[0_0_12px_rgba(244,114,182,0.25)]"
+                : "bg-white/5 border border-white/10 text-cyan-300 hover:text-white hover:bg-white/10"
+            }`}
+            title="Alternar entre Mecha Celestial y Cyberpunk Neón"
           >
-            <Menu size={24} strokeWidth={1.5} />
+            <span>{activeTheme === "mecha_celestial" ? "✨ Mecha Celestial" : "⚡ Neón Clásico"}</span>
           </button>
         </div>
 
         <div className="flex-1 flex justify-center">
-           {/* Empty space for balance if needed */}
+           {/* Empty space for balance */}
         </div>
 
         {/* Right: Actions and Settings */}
         <div className="flex-1 flex items-center justify-end gap-2 sm:gap-3">
           
           {/* LizGram Button */}
-          <button
-            onClick={() => {
-              closeAllModals();
-              setIsSidebarOpen(false);
-              setActiveChat("lizgram");
-            }}
-            className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
-            style={{ backgroundColor: activeChat === "lizgram" ? "var(--neon-color, #00f3ff)33" : "transparent" }}
-            title="LizGram"
-          >
-            <ImageIcon size={24} strokeWidth={1.5} />
-          </button>
+          {activeTheme === "mecha_celestial" ? (
+            <MechaNavButton
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(false);
+                setActiveChat("lizgram");
+              }}
+              title="LizGram"
+              active={activeChat === "lizgram"}
+            >
+              <ImageIcon size={20} strokeWidth={1.8} />
+            </MechaNavButton>
+          ) : (
+            <button
+              onClick={() => {
+                closeAllModals();
+                setIsSidebarOpen(false);
+                setActiveChat("lizgram");
+              }}
+              className={`p-2 rounded-full transition-colors relative ${activeChat === "lizgram" ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+              style={{ backgroundColor: activeChat === "lizgram" ? "var(--neon-color, #00f3ff)33" : "transparent" }}
+              title="LizGram"
+            >
+              <ImageIcon size={24} strokeWidth={1.5} />
+            </button>
+          )}
 
           {/* Buzón (Private messages/Friends) */}
-          <button
-            onClick={() => {
-              closeAllModals();
-              setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
-            }}
-            className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
-            style={{ backgroundColor: isFriendsSidebarOpen ? "var(--neon-color, #00f3ff)33" : "transparent" }}
-            title="Buzón"
-          >
-            <MessageSquare size={24} strokeWidth={1.5} />
-            {Object.values(unreadPMs).some((v) => v) && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-[#0B1220]" style={{ backgroundColor: "var(--neon-color, #00f3ff)" }}></span>
-            )}
-          </button>
-
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full text-white/80 hover:bg-white/5 transition-colors relative"
+          {activeTheme === "mecha_celestial" ? (
+            <MechaNavButton
+              onClick={() => {
+                closeAllModals();
+                setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
+              }}
+              title="Buzón"
+              active={isFriendsSidebarOpen}
+              badge={
+                Object.values(unreadPMs).some((v) => v) ? (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#00f0ff] border border-black shadow-[0_0_8px_#00f0ff]"></span>
+                ) : undefined
+              }
             >
-              <Bell size={24} strokeWidth={1.5} />
-              {notifications.length > 0 && (
-                <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                  {notifications.length}
-                </span>
+              <MessageSquare size={20} strokeWidth={1.8} />
+            </MechaNavButton>
+          ) : (
+            <button
+              onClick={() => {
+                closeAllModals();
+                setIsFriendsSidebarOpen(!isFriendsSidebarOpen);
+              }}
+              className={`p-2 rounded-full transition-colors relative ${isFriendsSidebarOpen ? "text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" : "text-white/80 hover:bg-white/5"}`}
+              style={{ backgroundColor: isFriendsSidebarOpen ? "var(--neon-color, #00f3ff)33" : "transparent" }}
+              title="Buzón"
+            >
+              <MessageSquare size={24} strokeWidth={1.5} />
+              {Object.values(unreadPMs).some((v) => v) && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-[#0B1220]" style={{ backgroundColor: "var(--neon-color, #00f3ff)" }}></span>
               )}
             </button>
+          )}
+
+          <div className="relative">
+            {activeTheme === "mecha_celestial" ? (
+              <MechaNavButton
+                onClick={() => setShowNotifications(!showNotifications)}
+                title="Notificaciones"
+                badge={
+                  notifications.length > 0 ? (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-md">
+                      {notifications.length}
+                    </span>
+                  ) : undefined
+                }
+              >
+                <Bell size={20} strokeWidth={1.8} />
+              </MechaNavButton>
+            ) : (
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 rounded-full text-white/80 hover:bg-white/5 transition-colors relative"
+              >
+                <Bell size={24} strokeWidth={1.5} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+            )}
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-72 bg-[#0a0a0c]/90 backdrop-blur-2xl border-r border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-white/5 rounded-2xl overflow-hidden z-50">
                 <div className="p-3 border-b border-white/5 flex justify-between items-center" style={{ borderBottomColor: "var(--neon-color, #00f3ff)44" }}>
@@ -1626,21 +1874,41 @@ function MainApp() {
           </div>
 
           <div className="relative group/profile ml-1">
-            <button
-              onClick={() => {
-                closeAllModals();
-                setIsProfileModalOpen(true);
-              }}
-              className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-105 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
-              style={{ borderColor: "var(--neon-color, #00f3ff)" }}
-            >
-              <Avatar
-                src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                frameId={user.frameId}
-                alt="Profile"
-                className="w-full h-full"
-              />
-            </button>
+            {activeTheme === "mecha_celestial" ? (
+              <button
+                onClick={() => {
+                  closeAllModals();
+                  setIsConfigOpen(true);
+                }}
+                className="transition-transform hover:scale-105"
+                title="Mi Perfil y Ajustes"
+              >
+                <MechaAvatarMedallion className="w-9 h-9">
+                  <Avatar
+                    src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                    frameId={user.frameId}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </MechaAvatarMedallion>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  closeAllModals();
+                  setIsConfigOpen(true);
+                }}
+                className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-105 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+                style={{ borderColor: "var(--neon-color, #00f3ff)" }}
+              >
+                <Avatar
+                  src={user.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                  frameId={user.frameId}
+                  alt="Profile"
+                  className="w-full h-full"
+                />
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -1733,6 +2001,30 @@ function MainApp() {
               >
                 <AlertTriangle size={16} strokeWidth={1.5} />
                 Reportes
+              </button>
+              
+              <button
+                className="flex items-center justify-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-2xl hover:bg-red-500/20 transition-all text-sm font-medium"
+                onClick={() => {
+                  if(window.confirm("¿Estás seguro de limpiar el chat global? Esta acción no se puede deshacer.")) {
+                    socket.emit("clear_global_chat");
+                  }
+                }}
+              >
+                <Trash2 size={16} strokeWidth={1.5} />
+                Limpiar Global
+              </button>
+              <button
+                className="flex items-center justify-center gap-2 text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-2 rounded-2xl hover:bg-blue-500/20 transition-all text-sm font-medium"
+                onClick={() => {
+                  const url = window.prompt("Ingresa la URL de la imagen o video para el fondo global (deja en blanco para restablecer):");
+                  if(url !== null) {
+                    socket.emit("set_global_bg", url);
+                  }
+                }}
+              >
+                <ImageIcon size={16} strokeWidth={1.5} />
+                Fondo Global
               </button>
             </div>
             </>
@@ -1903,12 +2195,23 @@ function MainApp() {
         {/* Main Chat Container */}
         <main
           className="flex-1 min-w-0 min-h-0 relative flex flex-col bg-transparent overflow-hidden"
-          style={{
-            background: chatBg
-              ? `url(${chatBg}) center/cover no-repeat`
-              : undefined,
-          }}
+          style={
+            chatBg && !chatBg.match(/\.(mp4|webm|ogg)$/i)
+              ? { background: `url(${chatBg}) center/cover no-repeat` }
+              : undefined
+          }
         >
+          {chatBg && chatBg.match(/\.(mp4|webm|ogg)$/i) && (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              src={chatBg}
+              className="absolute inset-0 w-full h-full object-cover z-[-1] opacity-60"
+            />
+          )}
+
           {/* Chat Content Wrapper */}
           <div className="flex-1 min-h-0 min-w-0 flex flex-col relative z-0">
             <div className="hidden"></div>
@@ -2001,7 +2304,7 @@ function MainApp() {
                           >
                             <Avatar
                               src={avatarUrl}
-                              frameId={targetUser?.frameId}
+                              frameId={(targetUser as any)?.frameId}
                               className="w-full h-full"
                               alt="avatar"
                             />
@@ -2131,12 +2434,23 @@ function MainApp() {
                               className="relative shrink-0 mt-1 cursor-pointer"
                               onClick={() => senderInfo && setSelectedUserModal(senderInfo)}
                             >
-                              <Avatar
-                                src={avatarUrl}
-                                frameId={senderInfo?.frameId}
-                                className={`w-8 h-8 rounded-full border shadow-sm ${m.sender === "Elizabeth" ? "border-white/10" : "border-[#5A52A5]/30 bg-white/5"}`}
-                                alt={m.sender}
-                              />
+                              {activeTheme === "mecha_celestial" ? (
+                                <MechaAvatarMedallion className="w-9 h-9">
+                                  <Avatar
+                                    src={avatarUrl}
+                                    frameId={senderInfo?.frameId}
+                                    className="w-full h-full object-cover rounded-full"
+                                    alt={m.sender}
+                                  />
+                                </MechaAvatarMedallion>
+                              ) : (
+                                <Avatar
+                                  src={avatarUrl}
+                                  frameId={senderInfo?.frameId}
+                                  className={`w-8 h-8 rounded-full border shadow-sm ${m.sender === "Elizabeth" ? "border-white/10" : "border-[#5A52A5]/30 bg-white/5"}`}
+                                  alt={m.sender}
+                                />
+                              )}
                               {decUrl && (
                                 <div className="absolute -inset-3 pointer-events-none z-10 flex items-center justify-center">
                                   <img
@@ -2151,6 +2465,84 @@ function MainApp() {
                             </div>
                             
                             {(() => {
+                                if (activeTheme === "mecha_celestial") {
+                                  return (
+                                    <MechaFiligreeBubble isMe={isMe}>
+                                      {!isMe && (
+                                        <span
+                                          className="font-bold text-[#f472b6] text-[13px] mb-1 cursor-pointer hover:text-white transition-colors tracking-wide block"
+                                          onClick={() => setInputValue((prev) => prev + `@${m.sender} `)}
+                                        >
+                                          {m.sender}
+                                        </span>
+                                      )}
+                                      {m.replyTo && (
+                                        <div className="bg-black/30 border-l-2 border-[#f472b6] px-2.5 py-1 mb-1.5 rounded-lg text-xs italic flex flex-col text-slate-200">
+                                          <span className="font-bold text-[#fbcfe8]">{m.replyTo.sender}</span>
+                                          <span className="truncate opacity-80">
+                                            <TranslatedText originalText={m.replyTo.text} senderLanguage={m.replyTo.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
+                                          </span>
+                                        </div>
+                                      )}
+                                      <div className="flex flex-wrap items-end justify-between gap-2">
+                                        <span
+                                          className="text-slate-100 text-[14px] leading-snug flex-1 cursor-pointer hover:bg-white/5 rounded px-1 transition-colors font-normal"
+                                          onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
+                                        >
+                                          <TranslatedText originalText={m.text} senderLanguage={m.senderLanguage} userLanguage={user.pais_idioma || 'es'} />
+                                        </span>
+                                        <button
+                                          onClick={() => m.image ? setExpandedImage(m.image) : setReplyingTo(m)}
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity text-pink-300 hover:text-white p-1"
+                                          title="Responder"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="9 14 4 9 9 4"></polyline>
+                                            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                                          </svg>
+                                        </button>
+                                        <span className={`${isMe ? "text-emerald-200/80" : "text-sky-200/80"} text-[11px] font-mono shrink-0 ml-auto pl-2`}>
+                                          {timeStr}
+                                        </span>
+                                      </div>
+                                      {m.image && (
+                                        <div className="mt-2">
+                                          <img
+                                            referrerPolicy="no-referrer"
+                                            src={m.image}
+                                            className="rounded-xl border border-white/20 max-w-full shadow-md h-auto max-h-48 object-contain cursor-pointer hover:opacity-85 relative z-20"
+                                            onClick={(e) => { e.stopPropagation(); setExpandedImage(m.image); }}
+                                            alt="adjunto"
+                                          />
+                                        </div>
+                                      )}
+                                      {(m.type === "audio" || m.audio) && (
+                                        <div className="w-full mt-2">
+                                          <PremiumAudioPlayer src={m.audio} />
+                                        </div>
+                                      )}
+                                      {m.reactions && Object.keys(m.reactions).length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                          {Object.entries(m.reactions).map(([emoji, users]) => (
+                                            <div
+                                              key={emoji}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const userList = Array.isArray(users) ? users : Array(users).fill("Usuario anónimo");
+                                                alert(`Reacciones ${emoji}: \n${userList.join(", ")}`);
+                                              }}
+                                              className="bg-black/35 border border-white/10 text-xs px-2 py-0.5 rounded-full cursor-pointer hover:bg-black/50 transition-colors flex items-center gap-1 text-slate-200"
+                                              title={Array.isArray(users) ? users.join(", ") : ""}
+                                            >
+                                              {emoji} {Array.isArray(users) ? users.length : (users as any)}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </MechaFiligreeBubble>
+                                  );
+                                }
+
                                 const defaultBubbleColor = isMe ? "rgba(6, 182, 212, 0.15)" : "rgba(255, 255, 255, 0.05)";
                                 const defaultTextColor = "#E0E2E5";
                                 const defaultBorder = isMe ? "rgba(6, 182, 212, 0.3)" : "rgba(255, 255, 255, 0.1)";
@@ -2257,7 +2649,7 @@ function MainApp() {
                                             style={{ color: textColor }}
                                             title={Array.isArray(users) ? users.join(", ") : ""}
                                           >
-                                            {emoji} {Array.isArray(users) ? users.length : users}
+                                            {emoji} {Array.isArray(users) ? users.length : (users as any)}
                                           </div>
                                         ))}
                                       </div>
@@ -2371,7 +2763,7 @@ function MainApp() {
                   )}
 
                   <div className="flex items-center gap-2 relative">
-                    <InlineRadio />
+                    <InlineRadio theme={activeTheme} />
                     {user.role === "dj" && (
                       <button
                         onClick={() => {
@@ -2391,27 +2783,100 @@ function MainApp() {
                       ref={fileInputRef}
                       onChange={handleImageSelect}
                     />
-                    <div className="flex-1 bg-white/5 border border-white/10 rounded-full flex items-center px-4 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] focus-within:bg-white/10 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all overflow-hidden h-[50px]">
-                      {isRecording ? (
-                        <div className="w-full h-full">
-                          <PremiumAudioVisualizer stream={recordingStream} />
+
+                    {activeTheme === "mecha_celestial" ? (
+                      /* Mecha Celestial Sculpted Armor Capsule */
+                      <div className="flex-1 h-[50px] sm:h-[52px] rounded-full bg-gradient-to-b from-[#f8fafc] via-[#cbd5e1] to-[#94a3b8] p-[2.5px] shadow-[0_6px_22px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.9)] relative flex items-center min-w-0">
+                        {/* Gold decorative brackets at corners */}
+                        <div className="absolute top-1 left-5 w-4 h-1 bg-[#d4af37] rounded-xs opacity-90 shadow-xs pointer-events-none" />
+                        <div className="absolute top-1 right-5 w-4 h-1 bg-[#d4af37] rounded-xs opacity-90 shadow-xs pointer-events-none" />
+                        <div className="absolute bottom-1 left-5 w-4 h-1 bg-[#d4af37] rounded-xs opacity-90 shadow-xs pointer-events-none" />
+                        <div className="absolute bottom-1 right-5 w-4 h-1 bg-[#d4af37] rounded-xs opacity-90 shadow-xs pointer-events-none" />
+
+                        {/* Recessed silver/metallic slot */}
+                        <div className="w-full h-[43px] sm:h-[45px] rounded-full bg-[#9aa9ba] shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] border border-[#6b7d90] px-3.5 sm:px-4 flex items-center gap-2 relative">
+                          {isRecording ? (
+                            <div className="w-full h-full">
+                              <PremiumAudioVisualizer stream={recordingStream} />
+                            </div>
+                          ) : (
+                            <>
+                              <input
+                                value={inputValue}
+                                onChange={handleInputChange}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSendMessage();
+                                }}
+                                className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-[#0f172a] placeholder-[#334155] font-medium text-[14px] sm:text-[15px]"
+                                id="chat-input-field"
+                                autoComplete="off"
+                                spellCheck="false"
+                                placeholder="Escribe tu mensaje... @Elizabeth"
+                              />
+
+                              {/* 4 Crystal Tool Buttons */}
+                              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                                <button
+                                  onClick={() => {
+                                    closeAllModals();
+                                    setIsSongRequestOpen(true);
+                                  }}
+                                  className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-b from-[#f472b6] to-[#db2777] text-white hover:scale-105 active:scale-95 transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.35)] border border-white/60 cursor-pointer"
+                                  title="Pedir Canción"
+                                >
+                                  <Music size={15} strokeWidth={2} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    closeAllModals();
+                                    setIsGamesMenuOpen(true);
+                                  }}
+                                  className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-b from-[#38bdf8] to-[#0284c7] text-white hover:scale-105 active:scale-95 transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.35)] border border-white/60 cursor-pointer"
+                                  title="Juegos"
+                                >
+                                  <Gamepad2 size={15} strokeWidth={2} />
+                                </button>
+                                <button
+                                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                  className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-b from-[#f472b6] to-[#db2777] text-white hover:scale-105 active:scale-95 transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.35)] border border-white/60 cursor-pointer"
+                                  title="Emojis y GIFs"
+                                >
+                                  <Smile size={15} strokeWidth={2} />
+                                </button>
+                                <button
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-b from-[#38bdf8] to-[#0284c7] text-white hover:scale-105 active:scale-95 transition-transform shadow-[0_1px_4px_rgba(0,0,0,0.35)] border border-white/60 cursor-pointer"
+                                  title="Adjuntar Archivo o Imagen"
+                                >
+                                  <Paperclip size={15} strokeWidth={2} />
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <>
-                          <input
-                            value={inputValue}
-                            onChange={handleInputChange}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSendMessage();
-                            }}
-                            className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-white placeholder-white/40 text-[15px]"
-                            id="chat-input-field"
-                            autoComplete="off"
-                            spellCheck="false"
-                            placeholder="Escribe tu mensaje... @Elizabeth"
-                          />
-                          <div className="flex items-center gap-0.5 text-white/80/80 shrink-0 ml-1">
-                            <div className="relative flex items-center justify-center">
+                      </div>
+                    ) : (
+                      /* Classic Neon Input Capsule */
+                      <div className="flex-1 bg-white/5 border border-white/10 rounded-full flex items-center px-4 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] focus-within:bg-white/10 focus-within:border-cyan-500/50 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all overflow-hidden h-[50px]">
+                        {isRecording ? (
+                          <div className="w-full h-full">
+                            <PremiumAudioVisualizer stream={recordingStream} />
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              value={inputValue}
+                              onChange={handleInputChange}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSendMessage();
+                              }}
+                              className="flex-1 min-w-0 py-2 h-full bg-transparent outline-none text-white placeholder-white/40 text-[15px]"
+                              id="chat-input-field"
+                              autoComplete="off"
+                              spellCheck="false"
+                              placeholder="Escribe tu mensaje... @Elizabeth"
+                            />
+                            <div className="flex items-center gap-0.5 text-white/80 shrink-0 ml-1">
                               <button
                                 onClick={() => {
                                   closeAllModals();
@@ -2422,8 +2887,6 @@ function MainApp() {
                               >
                                 <Music size={18} strokeWidth={1.5} />
                               </button>
-                            </div>
-                            <div className="relative flex items-center justify-center">
                               <button
                                 onClick={() => {
                                   closeAllModals();
@@ -2434,39 +2897,86 @@ function MainApp() {
                               >
                                 <Gamepad2 size={18} strokeWidth={1.5} />
                               </button>
+                              <button
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
+                                title="Emojis y GIFs"
+                              >
+                                <Smile size={18} strokeWidth={1.5} />
+                              </button>
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
+                                title="Adjuntar Imagen"
+                              >
+                                <Paperclip size={18} strokeWidth={1.5} />
+                              </button>
                             </div>
-                            <button
-                              onClick={() =>
-                                setShowEmojiPicker(!showEmojiPicker)
-                              }
-                              className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
-                            >
-                              <Smile size={18} strokeWidth={1.5} />
-                            </button>
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="flex items-center justify-center hover:text-white/80 p-1 transition-colors"
-                            >
-                              <Paperclip size={18} strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      {showEmojiPicker && (
-                        <EmojiGifPicker
-                          onSelect={(type, val) => {
-                            if (type === "emoji")
-                              setInputValue((prev) => prev + val);
-                            if (type === "gif") setSelectedGif(val);
-                          }}
-                          onClose={() => setShowEmojiPicker(false)}
-                        />
-                      )}
+                          </>
+                        )}
+                      </div>
+                    )}
 
-                      <div className="flex items-center gap-1">
+                    {showEmojiPicker && (
+                      <EmojiGifPicker
+                        onSelect={(type, val) => {
+                          if (type === "emoji") setInputValue((prev) => prev + val);
+                          if (type === "gif") setSelectedGif(val);
+                        }}
+                        onClose={() => setShowEmojiPicker(false)}
+                      />
+                    )}
+
+                    {/* Action Buttons (Mic + Send) */}
+                    {activeTheme === "mecha_celestial" ? (
+                      /* Mecha Celestial Crystal Pill Buttons */
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        {/* Pink Gemstone Mic Button */}
                         <button
                           onClick={toggleRecording}
-                          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${isRecording ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse" : "bg-[#0F1012]/80 border border-white/10 text-white/80 hover:text-white hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]"}`}
+                          className={`w-[48px] h-[50px] sm:w-[52px] sm:h-[52px] rounded-[18px] transition-all flex items-center justify-center shrink-0 border-2 border-[#f8fafc] active:scale-95 shadow-[0_4px_16px_rgba(236,72,153,0.5),inset_0_2px_3px_rgba(255,255,255,0.7)] cursor-pointer ${
+                            isRecording
+                              ? "bg-gradient-to-b from-red-500 to-rose-700 animate-pulse text-white"
+                              : "bg-gradient-to-b from-[#f472b6] via-[#ec4899] to-[#be185d] text-[#0f172a] hover:text-white"
+                          }`}
+                          title={isRecording ? "Detener grabación" : "Grabar audio"}
+                        >
+                          {isRecording ? (
+                            <StopCircle size={20} strokeWidth={2} className="text-white" />
+                          ) : (
+                            <Mic size={20} strokeWidth={2} className="text-[#0f172a]" />
+                          )}
+                        </button>
+
+                        {/* Pink Gemstone Send Button with Cyan Plane */}
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={
+                            !inputValue.trim() &&
+                            !selectedImage &&
+                            !audioUrl &&
+                            !selectedGif
+                          }
+                          className="w-[48px] h-[50px] sm:w-[52px] sm:h-[52px] rounded-[18px] bg-gradient-to-b from-[#f472b6] via-[#ec4899] to-[#be185d] border-2 border-[#f8fafc] shadow-[0_4px_16px_rgba(236,72,153,0.5),inset_0_2px_3px_rgba(255,255,255,0.7)] flex items-center justify-center text-[#38bdf8] hover:text-cyan-200 transition-all shrink-0 disabled:opacity-50 disabled:shadow-none active:scale-95 group cursor-pointer"
+                          title="Enviar mensaje"
+                        >
+                          <Send
+                            size={20}
+                            className="ml-0.5 text-[#38bdf8] drop-shadow-[0_0_6px_#38bdf8] group-hover:scale-110 transition-transform"
+                            strokeWidth={2}
+                          />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Classic Neon Buttons */
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={toggleRecording}
+                          className={`w-[46px] h-[46px] flex items-center justify-center rounded-[16px] transition-colors shrink-0 ${
+                            isRecording
+                              ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse"
+                              : "bg-[#0F1012]/80 border border-white/10 text-white/80 hover:text-white hover:bg-[#D4AF37]/20 shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+                          }`}
                         >
                           {isRecording ? (
                             <StopCircle size={20} strokeWidth={1.5} />
@@ -2491,7 +3001,7 @@ function MainApp() {
                           />
                         </button>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -2791,6 +3301,7 @@ function MainApp() {
           setAdminConfigAiOpen={setAdminConfigAiOpen}
           usersOnline={usersOnline}
           setAiProfileForm={setAiProfileForm}
+          customFrames={customFrames}
         />
       )}
 
@@ -3029,8 +3540,20 @@ function MainApp() {
                                   <span className="text-white font-medium">{reqUsername}</span>
                                </div>
                                <div className="flex gap-2">
-                                  <button onClick={() => socket.emit("accept_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/40 font-bold">✓</button>
-                                  <button onClick={() => socket.emit("reject_friend_request", reqUsername)} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/40 font-bold">✕</button>
+                                  <button onClick={() => {
+                                      socket.emit("accept_friend_request", reqUsername, (res: any) => {
+                                          if (res.success) {
+                                              setUser(prev => ({ ...prev, friend_requests: prev.friend_requests?.filter(r => r !== reqUsername) || [], friends_list: [...(prev.friends_list || []), reqUsername] }));
+                                          }
+                                      });
+                                  }} className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/40 font-bold">✓</button>
+                                  <button onClick={() => {
+                                      socket.emit("reject_friend_request", reqUsername, (res: any) => {
+                                          if (res.success) {
+                                              setUser(prev => ({ ...prev, friend_requests: prev.friend_requests?.filter(r => r !== reqUsername) || [] }));
+                                          }
+                                      });
+                                  }} className="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/40 font-bold">✕</button>
                                </div>
                            </div>
                        );
@@ -3069,7 +3592,7 @@ function MainApp() {
                     className={`w-32 h-32 rounded-full border-4 border-[#0f111a] relative shadow-lg ${selectedUserModal.isAi && user.username.trim() === "Axiss" ? "cursor-pointer group" : ""}`}
                     onClick={() => {
                       if (selectedUserModal.isAi && user.username.trim() === "Axiss") {
-                        setAdminConfigAiForm({
+                        setAiProfileForm({
                           profilePic: selectedUserModal.profilePic || "",
                           statusMessage: selectedUserModal.statusMessage || "Inteligencia Artificial",
                           systemInstruction: selectedUserModal.systemInstruction || "",

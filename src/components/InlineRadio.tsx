@@ -4,7 +4,11 @@ import ReactPlayer from 'react-player';
 const Player = ReactPlayer as any;
 import { socket } from '../socket';
 
-export function InlineRadio() {
+interface InlineRadioProps {
+  theme?: string;
+}
+
+export function InlineRadio({ theme }: InlineRadioProps = {}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
@@ -237,21 +241,46 @@ export function InlineRadio() {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setShowHistory(false); }}
     >
-      <div className={`bg-[#121B2A]/80 backdrop-blur-md border border-[#D4AF37]/50 rounded-[16px] w-[46px] h-[46px] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center justify-center overflow-hidden transition-all duration-300 hover:bg-[#D4AF37]/10`}>
-        <button 
-          onClick={togglePlay}
-          className={`w-[30px] h-[30px] flex items-center justify-center rounded-full transition-all ${isPlaying ? 'text-[#D4AF37] bg-[#D4AF37]/20 shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-[#D4AF37] hover:bg-[#D4AF37]/10'}`}
-          title="Radio Global"
-        >
-          {isLoading ? (
-             <Loader2 size={18} strokeWidth={2.5} className="animate-spin" />
-          ) : isPlaying ? (
-            <Pause size={18} strokeWidth={2.5} />
-          ) : (
-            <Play size={18} strokeWidth={2.5} className="ml-0.5" />
-          )}
-        </button>
-      </div>
+      {theme === 'mecha_celestial' ? (
+        <div className="w-[48px] h-[48px] sm:w-[52px] sm:h-[52px] rounded-[18px] bg-gradient-to-b from-[#f8fafc] via-[#cbd5e1] to-[#94a3b8] p-[2px] shadow-[0_6px_20px_rgba(0,0,0,0.6),inset_0_1px_2px_rgba(255,255,255,0.9)] flex items-center justify-center shrink-0 cursor-pointer active:scale-95 transition-all relative group">
+          {/* 4 Gold corner rivets */}
+          <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] border border-[#fef08a] shadow-xs" />
+          <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] border border-[#fef08a] shadow-xs" />
+          <div className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] border border-[#fef08a] shadow-xs" />
+          <div className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] border border-[#fef08a] shadow-xs" />
+
+          {/* Inner Pink Crystal Button */}
+          <button
+            onClick={togglePlay}
+            className="w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] rounded-[14px] bg-gradient-to-br from-[#f472b6] via-[#ec4899] to-[#9d174d] border border-[#fda4af]/80 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),0_0_12px_rgba(236,72,153,0.5)] flex items-center justify-center cursor-pointer"
+            title="Radio Global"
+          >
+            {isLoading ? (
+              <Loader2 size={18} strokeWidth={2.5} className="animate-spin text-white" />
+            ) : isPlaying ? (
+              <Pause size={18} strokeWidth={2.5} className="text-[#fde047] drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" />
+            ) : (
+              <Play size={18} strokeWidth={2.5} fill="#fde047" className="text-[#fde047] ml-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" />
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className={`bg-[#121B2A]/80 backdrop-blur-md border border-[#D4AF37]/50 rounded-[16px] w-[46px] h-[46px] shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center justify-center overflow-hidden transition-all duration-300 hover:bg-[#D4AF37]/10`}>
+          <button 
+            onClick={togglePlay}
+            className={`w-[30px] h-[30px] flex items-center justify-center rounded-full transition-all ${isPlaying ? 'text-[#D4AF37] bg-[#D4AF37]/20 shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-[#D4AF37] hover:bg-[#D4AF37]/10'}`}
+            title="Radio Global"
+          >
+            {isLoading ? (
+               <Loader2 size={18} strokeWidth={2.5} className="animate-spin" />
+            ) : isPlaying ? (
+              <Pause size={18} strokeWidth={2.5} />
+            ) : (
+              <Play size={18} strokeWidth={2.5} className="ml-0.5" />
+            )}
+          </button>
+        </div>
+      )}
 
       <div className={`absolute bottom-[56px] left-0 bg-[#121B2A]/90 backdrop-blur-md border border-[#D4AF37]/50 rounded-[12px] p-2 flex items-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-all duration-300 ${isHovered || isPlaying || showHistory ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         <button onClick={toggleMute} className="text-[#D4AF37]/80 hover:text-[#D4AF37]">

@@ -12,10 +12,11 @@ interface ProfileConfigModalProps {
   setAdminConfigAiOpen: React.Dispatch<React.SetStateAction<boolean>>;
   usersOnline: UserObj[];
   setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; }>>;
+  customFrames: Record<number, string>;
 }
 
 export function ProfileConfigModal({
-  user, setUser, setIsConfigOpen, setAdminConfigAiOpen, usersOnline, setAiProfileForm
+  user, setUser, setIsConfigOpen, setAdminConfigAiOpen, usersOnline, setAiProfileForm, customFrames
 }: ProfileConfigModalProps) {
   const [activeTab, setActiveTab] = useState<'perfil' | 'apariencia' | 'idioma' | 'cuenta'>('perfil');
   const [incognito, setIncognito] = useState((user as any).incognito || false);
@@ -26,6 +27,7 @@ export function ProfileConfigModal({
   const [frameId, setFrameId] = useState<number | undefined>(user.frameId);
   const [isFriendsPublic, setIsFriendsPublic] = useState(user.is_friends_public || false);
   const [backgroundBase64, setBackgroundBase64] = useState(user.preferred_background || '');
+  const [preferredTheme, setPreferredTheme] = useState(user.preferred_theme || localStorage.getItem("chatliz_theme") || 'mecha_celestial');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   const [bubbleColor, setBubbleColor] = useState(user.bubbleColor || '#121B2A');
@@ -69,6 +71,7 @@ export function ProfileConfigModal({
         pais_idioma: pais,
         is_friends_public: isFriendsPublic,
         preferred_background: backgroundBase64,
+        preferred_theme: preferredTheme,
         bubbleColor: finalBubbleColor,
         bubbleBorder: bubbleBorder,
         bubbleShape: bubbleShape,
@@ -79,6 +82,9 @@ export function ProfileConfigModal({
       const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al contactar con el servidor")), 10000));
       await Promise.race([savePromise, timeoutPromise]);
       
+      localStorage.setItem("chatliz_theme", preferredTheme);
+      window.dispatchEvent(new CustomEvent("chatliz_theme_changed", { detail: preferredTheme }));
+
       setUser(prev => ({
           ...prev,
           password,
@@ -88,18 +94,22 @@ export function ProfileConfigModal({
           pais_idioma: pais,
           is_friends_public: isFriendsPublic,
           preferred_background: backgroundBase64,
+          preferred_theme: preferredTheme,
           bubbleColor: finalBubbleColor,
           bubbleBorder,
           bubbleShape,
           bubbleTexture
       }));
 
-      socket.emit("update_profile", {
+      socket.emit("broadcast_profile_change", {
+        username: user.username,
         statusMessage: comentario,
         profilePic: fotoURL,
         frameId: frameId,
-        pais_idioma: pais,
+        countryLanguage: pais,
         is_friends_public: isFriendsPublic,
+        preferred_background: backgroundBase64,
+        preferred_theme: preferredTheme
       });
 
       setSaveStatus("¡Guardado correctamente!");
@@ -222,14 +232,14 @@ export function ProfileConfigModal({
                       {Array.from({ length: 40 }, (_, i) => i + 1).map(id => (
                          <div 
                             key={id}
-                            className={`relative w-12 h-12 rounded-full cursor-pointer border-2 transition-all ${frameId === id ? 'border-cyan-400 scale-110 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'border-transparent hover:scale-105 hover:bg-white/5'}`}
+                            className={`relative w-12 h-12 rounded-full cursor-pointer border-2 transition-all group ${frameId === id ? 'border-cyan-400 scale-110 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'border-transparent hover:scale-105 hover:bg-white/5'}`}
                             onClick={() => setFrameId(id)}
                             title={`Marco ${id}`}
                          >
                             <img 
-                               src={`/frames/${id}.png`} 
+                               src={customFrames[id] || `/frames/${id}.png`} 
                                className="w-full h-full object-contain scale-[1.35]"
-                               style={{
+                               style={customFrames[id] ? undefined : {
                                   WebkitMaskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)',
                                   maskImage: 'radial-gradient(circle closest-side, transparent 74%, black 75%)'
                                }}
@@ -238,9 +248,23 @@ export function ProfileConfigModal({
                                   // Fallback simple si la imagen no se ha subido aún
                                   (e.target as HTMLImageElement).src = `https://placehold.co/100x100/1a1a24/3a3a4c?text=${id}`;
                                   (e.target as HTMLImageElement).style.maskImage = 'none';
-                                  (e.target as HTMLImageElement).style.WebkitMaskImage = 'none';
+                                  (e.target as any).style.webkitMaskImage = 'none';
                                }}
                             />
+                            {user.username === "Axiss" && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const url = window.prompt(`Ingresa la URL del marco ${id} (deja en blanco para usar el archivo local):`);
+                                  if (url !== null) {
+                                    socket.emit("set_custom_frame", { id, url });
+                                  }
+                                }}
+                                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-full text-[10px] text-white font-bold"
+                              >
+                                EDIT
+                              </button>
+                            )}
                          </div>
                       ))}
                    </div>
@@ -297,31 +321,149 @@ export function ProfileConfigModal({
 
             {activeTab === 'apariencia' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Theme Selector */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center gap-2">
+                      <Palette size={16} className="text-[#f472b6]" />
+                      Tema Visual de la Interfaz
+                    </label>
+                    <span className="text-xs text-[#f472b6] font-medium bg-[#f472b6]/10 px-2.5 py-0.5 rounded-full border border-[#f472b6]/30">
+                      Personalizable
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Mecha Celestial Card */}
+                    <div
+                      onClick={() => setPreferredTheme('mecha_celestial')}
+                      className={`cursor-pointer p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden flex flex-col justify-between ${
+                        preferredTheme === 'mecha_celestial'
+                          ? 'border-[#f472b6] bg-gradient-to-br from-[#24132b] via-[#160c1a] to-[#0f172a] shadow-[0_0_20px_rgba(244,114,182,0.3)]'
+                          : 'border-white/10 bg-black/20 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">✨</span>
+                          <span className="text-sm font-bold text-white">Mecha Celestial</span>
+                        </div>
+                        {preferredTheme === 'mecha_celestial' && (
+                          <span className="text-[11px] font-bold text-[#f472b6] bg-[#f472b6]/20 px-2 py-0.5 rounded-full border border-[#f472b6]/40">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-300 mb-3 leading-relaxed">
+                        Consola de cristal rosa, marcos con filigrana plateada, gemas cian brillantes y burbujas ciruela/esmeralda.
+                      </p>
+                      
+                      {/* Mini preview */}
+                      <div className="p-2 rounded-xl bg-black/40 border border-[#94a3b8]/40 flex flex-col gap-1.5 mb-2">
+                        <div className="self-start px-2 py-1 rounded-lg bg-[#24132b] border border-[#94a3b8]/60 text-[10px] text-pink-300 font-medium flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></span> Elizabeth
+                        </div>
+                        <div className="self-end px-2 py-1 rounded-lg bg-[#18443e] border border-[#94a3b8]/60 text-[10px] text-teal-200 font-medium flex items-center gap-1">
+                          Tú <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></span>
+                        </div>
+                      </div>
+
+                      {preferredTheme === 'mecha_celestial' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBackgroundBase64('/mecha_celestial_bg.jpg');
+                          }}
+                          className="w-full py-1.5 bg-[#f472b6]/15 hover:bg-[#f472b6]/25 border border-[#f472b6]/40 rounded-xl text-[11px] text-[#fbcfe8] font-medium transition-colors text-center"
+                        >
+                          Usar fondo Mecha Celestial
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Cyberpunk Neón Card */}
+                    <div
+                      onClick={() => setPreferredTheme('default')}
+                      className={`cursor-pointer p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden flex flex-col justify-between ${
+                        preferredTheme === 'default'
+                          ? 'border-cyan-400 bg-gradient-to-br from-[#0a1120] via-[#050811] to-black shadow-[0_0_20px_rgba(6,182,212,0.3)]'
+                          : 'border-white/10 bg-black/20 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">⚡</span>
+                          <span className="text-sm font-bold text-white">Cyberpunk Neón</span>
+                        </div>
+                        {preferredTheme === 'default' && (
+                          <span className="text-[11px] font-bold text-cyan-400 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/40">
+                            Activo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+                        Diseño futurista oscuro con acentos neón y líneas tecnológicas estilizadas.
+                      </p>
+                      {/* Mini preview */}
+                      <div className="p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5 mb-2">
+                        <div className="self-start px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] text-gray-300 font-medium">
+                          Mensaje
+                        </div>
+                        <div className="self-end px-2 py-1 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-[10px] text-cyan-300 font-medium">
+                          Enviado
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-white/5" />
+
                 {/* Background */}
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-400 flex items-center gap-2">Fondo General de la Sala</label>
-                  <div className="flex gap-3 items-center bg-black/20 p-3 rounded-2xl border border-white/5">
-                    {backgroundBase64 ? (
-                       <img referrerPolicy="no-referrer" src={backgroundBase64} className="h-16 w-16 rounded-xl object-cover shadow-lg" alt="Fondo" />
-                    ) : (
-                       <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center text-xs text-gray-500">Por defecto</div>
-                    )}
-                    <div className="flex-1 relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, setBackgroundBase64)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-white">
-                        Subir Imagen
-                      </button>
+                  <label className="text-sm font-semibold text-gray-400 flex items-center gap-2">Fondo General de la Sala (URL o Archivo)</label>
+                  <div className="flex flex-col gap-3 bg-black/20 p-3 rounded-2xl border border-white/5">
+                    <div className="flex gap-3 items-center">
+                      {backgroundBase64 ? (
+                         backgroundBase64.match(/\.(mp4|webm|ogg)$/i) ? (
+                            <div className="h-16 w-16 rounded-xl bg-cyan-900/50 flex items-center justify-center text-xs text-cyan-400 font-bold border border-cyan-500/30">VIDEO</div>
+                         ) : (
+                            <img referrerPolicy="no-referrer" src={backgroundBase64} className="h-16 w-16 rounded-xl object-cover shadow-lg" alt="Fondo" />
+                         )
+                      ) : (
+                         <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center text-xs text-gray-500 text-center leading-tight p-1">Por defecto (Admin)</div>
+                      )}
+                      
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, setBackgroundBase64)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-white text-center">
+                            Subir Imagen local
+                          </button>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const url = window.prompt("Ingresa la URL de una imagen o video (.mp4):");
+                            if (url) setBackgroundBase64(url);
+                          }}
+                          className="w-full py-2 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-xl text-sm font-medium transition-colors text-cyan-400 border border-cyan-500/30 text-center"
+                        >
+                          Usar URL (Imagen/Video)
+                        </button>
+                      </div>
+
+                      {backgroundBase64 && (
+                        <button onClick={() => setBackgroundBase64('')} className="py-2 px-4 h-full bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-medium transition-colors self-stretch flex items-center justify-center">
+                           Restablecer
+                        </button>
+                      )}
                     </div>
-                    {backgroundBase64 && (
-                      <button onClick={() => setBackgroundBase64('')} className="py-2 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-medium transition-colors">
-                         Borrar
-                      </button>
-                    )}
                   </div>
                 </div>
                 

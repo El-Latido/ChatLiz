@@ -10,7 +10,6 @@ interface LoginProps {
   setRecoveryModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-import { useState } from 'react';
 export function Login({ user, setUser, handleLogin, setRecoveryModalOpen, handleGoogleLogin }: LoginProps) {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

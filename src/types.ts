@@ -13,6 +13,9 @@ export interface UserObj {
   friends_list?: string[];
   blocked_list?: string[];
   is_friends_public?: boolean;
+  gender?: string;
+  mood?: string;
+  is_first_time?: boolean;
   awards?: string[];
   friend_requests?: any[];
   preferred_background?: string;
@@ -25,6 +28,7 @@ export interface UserObj {
     ownedDecorations?: string[];
   elo?: number;
   uid?: string;
+  googleUid?: string;
   profileLikes?: number;
   profileComments?: { author: string, text: string, timestamp: number, stars?: number }[];
   bubbleColor?: string;

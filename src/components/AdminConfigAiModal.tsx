@@ -5,8 +5,8 @@ import { socket } from '../socket';
 interface AdminConfigAiModalProps {
   aiUsername: string;
   setAdminConfigAiOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  aiProfileForm: { profilePic: string; statusMessage: string; systemInstruction?: string; };
-  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; }>>;
+  aiProfileForm: { profilePic: string; statusMessage: string; systemInstruction?: string; username?: string; bubbleColor?: string; bubbleBorder?: string; bubbleShape?: string; bubbleTexture?: string; };
+  setAiProfileForm: React.Dispatch<React.SetStateAction<{ profilePic: string; statusMessage: string; systemInstruction: string; username?: string; bubbleColor?: string; bubbleBorder?: string; bubbleShape?: string; bubbleTexture?: string; }>>;
 }
 
 export function AdminConfigAiModal({ setAdminConfigAiOpen, aiProfileForm, setAiProfileForm, aiUsername }: AdminConfigAiModalProps) {
